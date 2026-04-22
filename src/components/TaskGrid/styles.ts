@@ -2,6 +2,16 @@ import { ITheme, mergeStyleSets } from "@fluentui/react"
 
 export const getDatasetControlStyles = (theme: ITheme) => {
     return mergeStyleSets({
+        container: {
+            display: 'flex',
+            maxWidth: '80vW'
+        },
+        gridContainer: {
+            width: '30%'
+        },
+        ganttContainer: {
+            width: '70%'
+        },
         datasetControlRoot: {
             height: '100%',
             '.talxis_task-grid_row--drag-over-middle': {

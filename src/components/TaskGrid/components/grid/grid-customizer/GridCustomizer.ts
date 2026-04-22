@@ -1,4 +1,4 @@
-import { ColDef as ColDefBase, GridApi as GridApiBase, IRowNode, IsServerSideGroupOpenByDefaultParams, RowClassRules as RowClassRulesBase } from "@ag-grid-community/core";
+import { BodyScrollEvent, ColDef as ColDefBase, GridApi as GridApiBase, IRowNode, IsServerSideGroupOpenByDefaultParams, RowClassRules as RowClassRulesBase, RowGroupOpenedEvent } from "@ag-grid-community/core";
 import { ITaskDataProvider } from "../../../data-providers/task-data-provider";
 import { DatasetConstants, IRawRecord, IRecord } from "@talxis/client-libraries";
 import { GridDragHandler, IDragOperation } from "../grid-drag-handler";
@@ -167,6 +167,10 @@ export class GridCustomizer implements IGridCustomizer {
                     break
                 }
             }
+            //if gantt
+            if (true) {
+                colDef.pinned = undefined;
+            }
         }
 
         columnDefs.sort((a, b) => this._getColumnPriority(a) - this._getColumnPriority(b));
@@ -178,6 +182,7 @@ export class GridCustomizer implements IGridCustomizer {
         return columnDefs;
 
     }
+
 
     private _getColumnPriority(col: ColDef): number {
         if (col.colId === DatasetConstants.CHECKBOX_COLUMN_KEY) return 0;
@@ -378,11 +383,32 @@ export class GridCustomizer implements IGridCustomizer {
         })
     }
 
+    private _onRowGroupOpened(event: RowGroupOpenedEvent) {
+        const eventName = event.expanded ? 'onTaskExpanded' : 'onTaskCollapsed';
+        this._taskDataProvider.taskEvents.dispatchEvent(eventName, event.node.id!);
+    }
+
+
     private _registerEventListeners() {
         this._taskDataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId, movingToTaskId, position) => this._moveInto(movingFromTaskId, movingToTaskId, position));
         this._taskDataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));
+        this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
+        this._gridApi.addEventListener('bodyScroll', (event: BodyScrollEvent) => this._syncVerticalScroll(event.top));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
+    }
+
+    private _syncVerticalScroll(scrollTop: number) {
+        const bryntumGanttViewPort = this._getBryntumGanttViewport();
+        if (bryntumGanttViewPort) {
+            bryntumGanttViewPort.style.scrollBehavior = 'none';
+            bryntumGanttViewPort.scrollTop = scrollTop;
+        }
+    }
+
+    //TODO: SCOPE TO CONTROL, NOT DOCUMENT!
+    private _getBryntumGanttViewport(): HTMLElement | null {
+        return document.querySelector('.b-vertical-overflow') ?? null;
     }
 }

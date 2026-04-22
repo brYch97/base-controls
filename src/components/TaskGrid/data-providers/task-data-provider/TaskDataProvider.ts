@@ -89,6 +89,8 @@ export interface ITaskDataProviderEventListener {
     onTaskDataUpdated: (data: IRawRecord[]) => void;
     onAfterTasksEdited: (result: IEditTasksResult | null) => void;
     onRecordTreeUpdated: (updatedParentIds: (string | undefined)[]) => void;
+    onTaskExpanded: (taskId: string) => void;
+    onTaskCollapsed: (taskId: string) => void;
     onError: (error: any, message: string) => void;
 }
 

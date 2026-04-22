@@ -32,6 +32,9 @@ export interface INativeColumns {
     path: string;
     /** (Optional) Numeric completion percentage. When present, rendered with a progress-bar cell renderer. */
     percentComplete?: string;
+
+    startDate?: string;
+    endDate?: string;
 }
 
 /** Feature flags that control which UI elements are rendered in the grid header and ribbon. */

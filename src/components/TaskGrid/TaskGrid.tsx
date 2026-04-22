@@ -14,6 +14,9 @@ import { ITaskGridState, TaskGridDatasetControlFactory } from "./TaskGridDataset
 import { Header } from "./components/header/Header";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
+import { GanttChart } from "./components/gannt";
+
+
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -82,6 +85,7 @@ export const TaskGrid = (props: ITaskGridProps) => {
         </PcfContext.Provider>
     );
 }
+
 const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const { datasetControl, onRemountRequested, taskGridDescriptor } = props;
     const theme = useTheme();
@@ -95,31 +99,41 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
         datasetControl.getDataset().refresh();
     }, []);
 
-    return <DatasetControlContext.Provider value={datasetControl}>
-        <TaskDataProviderContext.Provider value={provider}>
-            <TaskGridDescriptorContext.Provider value={taskGridDescriptor}>
-                <RootElementIdContext.Provider value={rootElementId}>
-                    <DatasetControlRenderer
-                        onGetDatasetControlInstance={() => datasetControl}
-                        onGetControlComponent={Grid}
-                        onOverrideComponentProps={(props) => {
-                            return {
-                                ...props,
-                                onRender: (props, defaultRender) => {
-                                    return defaultRender({
-                                        ...props,
-                                        container: {
-                                            ...props.container,
-                                            id: rootElementId,
-                                            className: `${props.container.className} ${styles.datasetControlRoot}`
-                                        },
-                                        onRenderHeader: (props, defaultRender) => <Header headerProps={props} defaultRender={defaultRender} />
-                                    })
+    return <>
+        <DatasetControlContext.Provider value={datasetControl}>
+            <TaskDataProviderContext.Provider value={provider}>
+                <TaskGridDescriptorContext.Provider value={taskGridDescriptor}>
+                    <RootElementIdContext.Provider value={rootElementId}>
+                        <DatasetControlRenderer
+                            onGetDatasetControlInstance={() => datasetControl}
+                            onGetControlComponent={(props) => <div className={styles.container}>
+                                <div className={styles.gridContainer}>
+                                    <Grid {...props} />
+                                </div>
+                                <div className={styles.ganttContainer}>
+                                    <GanttChart />
+                                </div>
+                            </div>}
+                            onOverrideComponentProps={(props) => {
+                                return {
+                                    ...props,
+                                    onRender: (props, defaultRender) => {
+                                        return defaultRender({
+                                            ...props,
+                                            container: {
+                                                ...props.container,
+                                                id: rootElementId,
+                                                className: `${props.container.className} ${styles.datasetControlRoot}`
+                                            },
+                                            onRenderHeader: (props, defaultRender) => <Header headerProps={props} defaultRender={defaultRender} />
+                                        })
+                                    }
                                 }
-                            }
-                        }} />
-                </RootElementIdContext.Provider>
-            </TaskGridDescriptorContext.Provider>
-        </TaskDataProviderContext.Provider>
-    </DatasetControlContext.Provider >
+                            }} />
+
+                    </RootElementIdContext.Provider>
+                </TaskGridDescriptorContext.Provider>
+            </TaskDataProviderContext.Provider>
+        </DatasetControlContext.Provider >
+    </>
 }

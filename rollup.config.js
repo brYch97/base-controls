@@ -51,7 +51,14 @@ const externalDeps = [
     'react-select',
     'react-select/async',
     'hotkeys-js',
-    'react-window'
+    'react-window',
+    '@bryntum/gantt',
+    '@bryntum/gantt-react',
+    '@bryntum/gantt/gantt.css',
+    '@bryntum/gantt/fontawesome/css/fontawesome.css',
+    '@bryntum/gantt/fontawesome/css/solid.css',
+    '@bryntum/gantt/svalbard-light.css',
+    'style-inject'
 ]
 
 export default [

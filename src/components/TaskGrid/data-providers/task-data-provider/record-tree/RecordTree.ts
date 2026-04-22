@@ -8,6 +8,7 @@ interface ITreeNode {
     pathIds: string[];
     pathStrings: string[];
     index: number;
+    record: IRecord;
     parent?: IRecord;
 }
 
@@ -247,6 +248,7 @@ export class RecordTree implements IRecordTree {
             this._nodeMap.set(recordId, {
                 directChildren: filteredDirectChildren,
                 allChildren: allChildren,
+                record: record,
                 pathIds,
                 pathStrings,
                 parent: parentRecord,
@@ -261,6 +263,7 @@ export class RecordTree implements IRecordTree {
                 this._nodeMap.set(null as any, {
                     directChildren: directlyMatchingRecords,
                     allChildren: directlyMatchingRecords,
+                    record: null as any,
                     pathIds: [],
                     pathStrings: [],
                     index: -1
@@ -272,6 +275,7 @@ export class RecordTree implements IRecordTree {
                 this._nodeMap.set(null as any, {
                     directChildren: filteredTopLevelRecords,
                     allChildren: allRecordsWithMatching,
+                    record: null as any,
                     pathIds: [],
                     pathStrings: [],
                     index: -1
