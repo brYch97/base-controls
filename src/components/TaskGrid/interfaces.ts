@@ -166,4 +166,5 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     isCustomColumnDeletionEnabled: () => boolean;
     /** Whether user queries are enabled (from `ITaskGridParameters.enableUserQueries`). */
     isUserQueriesFeatureEnabled: () => boolean;
+    getHeight: () => string;
 }

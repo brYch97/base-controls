@@ -1,7 +1,6 @@
-import { Grid, TaskStore, Gantt } from "@bryntum/gantt";
+import { TaskStore, Gantt, TaskModel } from "@bryntum/gantt";
 import { ITaskGridDatasetControl } from "../..";
 import { IDeleteTasksResult, ITaskDataProvider } from "../../data-providers";
-import { TaskModel } from "./TaskModel";
 import { IColumn, IRawRecord, IRecord, IRecordSaveOperationResult } from "@talxis/client-libraries";
 
 interface IGanntManagerParams {
@@ -18,6 +17,8 @@ export class GanttManager implements IGanntManager {
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _gantt: Gantt | null = null;
+    private _saveLockPromise: Promise<void> | null = null;
+    private _expandedNodeSet: Set<string> = new Set();
 
     constructor(params: IGanntManagerParams) {
         this._store = new TaskStore();
@@ -33,8 +34,9 @@ export class GanttManager implements IGanntManager {
         return this._store;
     }
 
-    public onRetrieveGanntInstance(gannt: Gantt) {
-        this._gantt = gannt;
+    public onRetrieveGanntInstance(gantt: Gantt) {
+        this._gantt = gantt;
+        this._gantt.subGrids.locked.hide();
         this._gantt.on('scroll', (e: any) => {
             this._syncVerticalScroll(e.scrollTop);
         });
@@ -49,18 +51,24 @@ export class GanttManager implements IGanntManager {
     }
 
     private _registerEventListeners() {
-        this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadDataToStore());
+        this._dataProvider.addEventListener('onNewDataLoaded', () => this._onNewDataLoaded());
         this._dataProvider.taskEvents.addEventListener('onTaskExpanded', (taskId) => this._onTaskExpanded(taskId));
         this._dataProvider.taskEvents.addEventListener('onTaskCollapsed', (taskId) => this._onTaskCollapsed(taskId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (tasks) => this._addTasksToStore(tasks));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', (tasks) => this._removeTasksFromStore(tasks));
         this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncChangesFromOutside(result));
-        this._store.on('update', (obj: any) => console.log(obj))
+        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId, movingToTaskId, position) => this._moveTask(movingFromTaskId, movingToTaskId, position));
+        this._store.on('update', (updateEvent: any) => this._syncChangesFromInside(updateEvent));
 
     }
 
+    private _onNewDataLoaded() {
+        this._expandedNodeSet.clear();
+        this._loadDataToStore();
+    }
+
     private _syncChangesFromOutside(result: IRecordSaveOperationResult) {
-        if (result.success) {
+        if (result.success && !this._saveLockPromise) {
             //update everything => delete any add again or global update?
             const taskInStore = this._store.getById(result.recordId);
             if (!taskInStore) return;
@@ -68,28 +76,37 @@ export class GanttManager implements IGanntManager {
         }
     }
 
+    private _moveTask(movingFromId: string, movingToId: string, position: 'above' | 'below' | 'child') {
+        this._loadDataToStore();
+        console.log(`Task with id ${movingFromId} moved ${position} task with id ${movingToId}`);
+    }
+
+    private _syncChangesFromInside(updateEvent: any) {
+        if (updateEvent.record instanceof TaskModel) {
+            const changes = updateEvent.changes;
+            for (const fieldName in changes) {
+                const columnName = this._getColumnNameFromGanttField(fieldName);
+                if (!columnName) continue;
+                const record = this._dataProvider.getRecordsMap()[updateEvent.record.id];
+                record.setValue(columnName, changes[fieldName].value);
+            }
+            if(!this._saveLockPromise) {
+                this._saveLockPromise = new Promise((resolve) => {
+                    setTimeout(async () => {
+                        await this._dataProvider.save();
+                        resolve();
+                        this._saveLockPromise = null;
+                    }, 0);   
+                })
+            }
+        }
+    }
+
     //TODO: this could go wrong when adding multiple tasks at once
     //make sure that the order of tasks in the array is correct (parents before children) or implement a more robust way of adding tasks (e.g. by traversing the tree and adding nodes recursively)
     private _addTasksToStore(tasks: IRawRecord[] | null) {
-        if (!tasks) {
-            return;
-        }
-        for (const task of tasks) {
-            const taskId = task[this._dataProvider.getMetadata().PrimaryIdAttribute];
-            const record = this._dataProvider.getRecordsMap()[taskId];
-            const parentId = record.getValue(this._dataProvider.getNativeColumns().parentId)?.[0].id.guid;
-            if (parentId) {
-                const taskInStore = this._store.getById(parentId);
-                if (!taskInStore) {
-                    throw new Error(`Parent task with id ${parentId} not found in the store`);
-                }
-                const children: any = taskInStore.children || [];
-                taskInStore.insertChild(this._convertRecordToTask(record), children[0]);
-            }
-            else {
-                this._store.insert(0, this._convertRecordToTask(record));
-            }
-        }
+        if (!tasks) return null;
+        this._loadDataToStore();
     }
 
     private _removeTasksFromStore(result: IDeleteTasksResult | null) {
@@ -99,10 +116,12 @@ export class GanttManager implements IGanntManager {
 
     private _onTaskExpanded(taskId: string) {
         this._getGanttInstance().expand(taskId);
+        this._expandedNodeSet.add(taskId);
     }
 
     private _onTaskCollapsed(taskId: string) {
         this._getGanttInstance().collapse(taskId);
+        this._expandedNodeSet.delete(taskId);
     }
 
     private _convertRecordToTask(record: IRecord): any {
@@ -121,6 +140,9 @@ export class GanttManager implements IGanntManager {
     }
 
     private isNodeExpandedByDefault(recordId: string): boolean {
+        if(this._expandedNodeSet.has(recordId)) {
+            return true;
+        }
         const matchingRecords = this._dataProvider.getRecordTree().getMatchingRecords();
         return !matchingRecords[recordId];
     }
@@ -162,5 +184,13 @@ export class GanttManager implements IGanntManager {
             throw new Error("End date column is not defined in the dataset, cannot render Gantt chart. Please make sure that the dataset contains an end date column and that it is properly mapped in the dataset control.");
         }
         return endDateColumn;
+    }
+
+    private _getColumnNameFromGanttField(ganttField: string): string | null {
+        switch (ganttField) {
+            case 'startDate': return this._datasetControl.getNativeColumns().startDate!;
+            case 'endDate': return this._datasetControl.getNativeColumns().endDate!;
+            default: return null;
+        }
     }
 }

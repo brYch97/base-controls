@@ -207,8 +207,9 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     public isRibbonVisible(): boolean {
         return true;
     }
-    public getHeight(): string | null {
-        return this._gridParameters.height ?? null;
+    //task grid should always have height
+    public getHeight(): string {
+        return this._gridParameters.height ?? '100%';
     }
     public getDataset(): IDataset {
         return this._dataset;

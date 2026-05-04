@@ -1,10 +1,26 @@
 import { ITheme, mergeStyleSets } from "@fluentui/react"
 
-export const getDatasetControlStyles = (theme: ITheme) => {
+export const getDatasetControlStyles = (theme: ITheme, height: string) => {
     return mergeStyleSets({
         container: {
-            display: 'flex',
-            maxWidth: '80vW'
+            height: height,
+            ...(true ? {
+                '.ag-body-vertical-scroll': {
+                    //we use gantt for vertical scrolling, so we hide the ag-grid scrollbar and sync scroll positions
+                    width: '0px !important',
+                    minWidth: '0px !important',
+                },
+                '.b-grid-body-container, .ag-body-viewport': {
+                    overscrollBehavior: 'none'
+                }
+            } : {})
+        },
+        ganttPanel: {
+            display: 'flex'
+        },
+        divider: {
+            backgroundColor: theme.semanticColors.menuDivider,
+            width: 2
         },
         gridContainer: {
             width: '30%'

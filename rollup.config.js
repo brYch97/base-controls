@@ -58,7 +58,8 @@ const externalDeps = [
     '@bryntum/gantt/fontawesome/css/fontawesome.css',
     '@bryntum/gantt/fontawesome/css/solid.css',
     '@bryntum/gantt/svalbard-light.css',
-    'style-inject'
+    'style-inject',
+    'react-resizable-panels'
 ]
 
 export default [

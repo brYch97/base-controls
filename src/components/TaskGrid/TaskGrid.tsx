@@ -4,7 +4,7 @@ import { useRef } from "react";
 import * as React from "react";
 import { AgGridLicenseKeyContext, DatasetControlContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext, usePcfContext } from "./context";
 import { DatasetControl as DatasetControlRenderer } from "../DatasetControl";
-import { useTheme } from "@fluentui/react";
+import { IconButton, useTheme } from "@fluentui/react";
 import { getDatasetControlStyles } from "./styles";
 import { Grid } from "./components/grid";
 import { ITaskDataProvider } from "./data-providers/task-data-provider";
@@ -15,8 +15,9 @@ import { Header } from "./components/header/Header";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
 import { GanttChart } from "./components/gannt";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
-
+const CHECKBOX_CONTROL_BTN_OFFSET = 80; //offset of the checkbox control button in ag-grid, used for calculating default grid pane size
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -25,7 +26,7 @@ interface ITaskGridProps {
     labels?: Partial<ITaskGridLabels>;
     components?: Partial<ITaskGridComponents>;
 }
-
+    
 interface IInternalTaskGridProps extends ITaskGridProps {
     datasetControl: ITaskGridDatasetControl;
     onRemountRequested: () => void;
@@ -89,9 +90,14 @@ export const TaskGrid = (props: ITaskGridProps) => {
 const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const { datasetControl, onRemountRequested, taskGridDescriptor } = props;
     const theme = useTheme();
-    const styles = React.useMemo(() => getDatasetControlStyles(theme), [theme]);
+    const styles = React.useMemo(() => getDatasetControlStyles(theme, datasetControl.getHeight()), [theme]);
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
+
+    const getDefaultGridPaneSize = () => {
+        const visibleColumns = datasetControl.getDataset().columns.filter(col => !col.isHidden);
+        const totalSizeFactor = visibleColumns.reduce((sum, col) => sum + (col.visualSizeFactor ?? 0), 0);
+    }
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
 
@@ -106,14 +112,28 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                     <RootElementIdContext.Provider value={rootElementId}>
                         <DatasetControlRenderer
                             onGetDatasetControlInstance={() => datasetControl}
-                            onGetControlComponent={(props) => <div className={styles.container}>
+                            onGetControlComponent={(props) => {/* <div className={styles.container}>
                                 <div className={styles.gridContainer}>
                                     <Grid {...props} />
                                 </div>
                                 <div className={styles.ganttContainer}>
                                     <GanttChart />
                                 </div>
-                            </div>}
+                            </div> */
+                                return <div className={styles.container}>
+                                    <PanelGroup direction="horizontal">
+                                        <Panel defaultSize={30}>
+                                             <Grid {...props} />
+                                        </Panel>
+                                        <PanelResizeHandle className={styles.divider}>
+                                        </PanelResizeHandle>
+                                        <Panel className={styles.ganttPanel} defaultSize={70}>
+                                            <GanttChart />
+                                        </Panel>
+                                    </PanelGroup>
+                                </div>
+
+                            }}
                             onOverrideComponentProps={(props) => {
                                 return {
                                     ...props,
