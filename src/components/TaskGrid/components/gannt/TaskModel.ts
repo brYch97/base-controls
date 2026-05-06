@@ -22,6 +22,7 @@ export class TaskModel extends TaskModelBase {
         return super.setEndDate(date, keepDuration);
     } */
 
+
     private _getRecord(): IRecord {
         return this._taskTree.getNode(this.id as string).record;
     }

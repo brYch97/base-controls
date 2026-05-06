@@ -27,7 +27,13 @@ export const GanttChart = () => {
             rowHeight={42}
             transitionDuration={0}
             taskEditFeature={false}
-            rowExpanderFeature={false}
+            panFeature
+            dependenciesFeature={false}
+            timeRangesFeature={{
+                showCurrentTimeLine: {
+                    name: 'Today'
+                }
+            }}
             taskStore={ganttManager.getStore()} />
     </div>
 }

@@ -23,6 +23,9 @@ export class GanttManager implements IGanntManager {
     constructor(params: IGanntManagerParams) {
         this._store = new TaskStore();
         this._datasetControl = params.datasetControl;
+        this._gantt?.zoomTo({
+
+        })
         this._dataProvider = this._datasetControl.getDataProvider();
         this._registerEventListeners();
         if (!this._dataProvider.isLoading()) {
@@ -37,9 +40,13 @@ export class GanttManager implements IGanntManager {
     public onRetrieveGanntInstance(gantt: Gantt) {
         this._gantt = gantt;
         this._gantt.subGrids.locked.hide();
+        //@ts-ignore - not in typings
+        this._gantt.project.autoSetConstraints = true;
+        this._gantt.features.tree.expandOnCellClick = false;
         this._gantt.on('scroll', (e: any) => {
             this._syncVerticalScroll(e.scrollTop);
         });
+        this._gantt.on('expand', (e: any) => console.log(e))
 
     }
 
@@ -52,6 +59,7 @@ export class GanttManager implements IGanntManager {
 
     private _registerEventListeners() {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._onNewDataLoaded());
+        this._dataProvider.addEventListener('onRecordsSelected', (ids) => this._zoomToTasks(ids));
         this._dataProvider.taskEvents.addEventListener('onTaskExpanded', (taskId) => this._onTaskExpanded(taskId));
         this._dataProvider.taskEvents.addEventListener('onTaskCollapsed', (taskId) => this._onTaskCollapsed(taskId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (tasks) => this._addTasksToStore(tasks));
@@ -65,6 +73,9 @@ export class GanttManager implements IGanntManager {
     private _onNewDataLoaded() {
         this._expandedNodeSet.clear();
         this._loadDataToStore();
+        setTimeout(() => {
+            this._gantt?.zoomToFit?.();
+        }, 0);
     }
 
     private _syncChangesFromOutside(result: IRecordSaveOperationResult) {
@@ -90,13 +101,13 @@ export class GanttManager implements IGanntManager {
                 const record = this._dataProvider.getRecordsMap()[updateEvent.record.id];
                 record.setValue(columnName, changes[fieldName].value);
             }
-            if(!this._saveLockPromise) {
+            if (!this._saveLockPromise) {
                 this._saveLockPromise = new Promise((resolve) => {
                     setTimeout(async () => {
                         await this._dataProvider.save();
                         resolve();
                         this._saveLockPromise = null;
-                    }, 0);   
+                    }, 0);
                 })
             }
         }
@@ -132,7 +143,9 @@ export class GanttManager implements IGanntManager {
             startDate: record.getValue(this._getStartDateColumn().name),
             endDate: record.getValue(this._getEndDateColumn().name),
             expanded: this.isNodeExpandedByDefault(record.getRecordId()),
-            __dataProvider: this._dataProvider,
+            inactive: !record.isActive(),
+            manuallyScheduled: true,
+            milestone: true,
             ...(node?.directChildren?.length > 0 && {
                 children: node.directChildren.map((child: IRecord) => this._convertRecordToTask(child))
             })
@@ -140,7 +153,7 @@ export class GanttManager implements IGanntManager {
     }
 
     private isNodeExpandedByDefault(recordId: string): boolean {
-        if(this._expandedNodeSet.has(recordId)) {
+        if (this._expandedNodeSet.has(recordId)) {
             return true;
         }
         const matchingRecords = this._dataProvider.getRecordTree().getMatchingRecords();
@@ -192,5 +205,15 @@ export class GanttManager implements IGanntManager {
             case 'endDate': return this._datasetControl.getNativeColumns().endDate!;
             default: return null;
         }
+    }
+
+    private _zoomToTasks(taskIds: string[]) {
+        const tasks = taskIds.map(id => this._store.getById(id)) as TaskModel[];
+        if (!tasks.length) return;
+
+        const startDate = new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())));
+        const endDate = new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())));
+
+        this._getGanttInstance().zoomToSpan({ startDate, endDate });
     }
 }
