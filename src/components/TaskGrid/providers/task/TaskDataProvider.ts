@@ -80,8 +80,6 @@ export interface ITaskDataProviderEventListener {
     onAfterTaskMoved: (movingFromTaskId: string, movingToTaskId: string, position: 'above' | 'below' | 'child') => void;
     onTaskDataUpdated: (data: IRawRecord[]) => void;
     onRecordTreeUpdated: (updatedParentIds: (string | undefined)[]) => void;
-    onTaskExpanded: (taskId: string) => void;
-    onTaskCollapsed: (taskId: string) => void;
     onBeforeDatasetItemsOpened: (entityReferences: ComponentFramework.EntityReference[], isTaskEntity: boolean) => void;
     onAfterDatasetItemsOpened: (entityReferences: ComponentFramework.EntityReference[], isTaskEntity: boolean, result: IOpenDatasetItemsResult | null) => void;
     onError: (error: any, message: string) => void;

@@ -410,8 +410,12 @@ export class GridCustomizer implements IGridCustomizer {
     }
 
     private _onRowGroupOpened(event: RowGroupOpenedEvent) {
-        const eventName = event.expanded ? 'onTaskExpanded' : 'onTaskCollapsed';
-        this._taskDataProvider.taskEvents.dispatchEvent(eventName, event.node.id!);
+        const bridge = this._datasetControl.ganttGridBridge;
+        if (event.expanded) {
+            bridge.dispatchEvent('onAgGridRowExpanded', event.node.id!);
+        } else {
+            bridge.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
+        }
     }
 
 
@@ -423,18 +427,31 @@ export class GridCustomizer implements IGridCustomizer {
         this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
         this._gridApi.addEventListener('bodyScroll', (event: BodyScrollEvent) => this._syncVerticalScroll(event.top));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
+        this._datasetControl.ganttGridBridge.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
     }
+
+    private _isSyncingScroll = false;
 
     private _syncVerticalScroll(scrollTop: number) {
-        const bryntumGanttViewPort = this._getBryntumGanttViewport();
-        if (bryntumGanttViewPort) {
-            bryntumGanttViewPort.style.scrollBehavior = 'none';
-            bryntumGanttViewPort.scrollTop = scrollTop;
-        }
+        if (this._isSyncingScroll) return;
+        this._isSyncingScroll = true;
+        this._datasetControl.ganttGridBridge.dispatchEvent('onAgGridScrolled', scrollTop);
+        this._isSyncingScroll = false;
     }
 
-    //TODO: SCOPE TO CONTROL, NOT DOCUMENT!
-    private _getBryntumGanttViewport(): HTMLElement | null {
-        return document.querySelector('.b-vertical-overflow') ?? null;
+    private _onGanttScrolled(scrollTop: number) {
+        if (this._isSyncingScroll) return;
+        this._isSyncingScroll = true;
+        const viewport = this._getAgGridBodyViewport();
+        if (viewport) {
+            viewport.style.scrollBehavior = 'auto';
+            viewport.scrollTop = scrollTop;
+        }
+        this._isSyncingScroll = false;
+    }
+
+    private _getAgGridBodyViewport(): HTMLElement | null {
+        const rootElement = document.getElementById(this._datasetControl.getControlId() + '-root');
+        return rootElement?.querySelector('.ag-body-viewport') ?? null;
     }
 }

@@ -11,6 +11,7 @@ import { Type } from "@talxis/client-libraries/dist/utils/fetch-xml/filter/Type"
 import { ICustomColumnsDataProvider } from "./providers/custom-columns/CustomColumnsDataProvider";
 import { ITaskGridDatasetControl, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
 import { ErrorHelper } from "../../utils/error-handling";
+import { GanttGridBridge } from "./bridges";
 
 const STATE_CODE_ACTIVE = 0;
 
@@ -28,6 +29,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     private _commands: ICommand[] = [];
     private _getPcfContext: () => ComponentFramework.Context<any, any>;
     private _changeToQueryId!: string;
+    public readonly ganttGridBridge = new GanttGridBridge();
 
     constructor(parameters: ITaskGridDatasetControlParameters) {
         super();
@@ -308,6 +310,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     }
     public destroy(): void {
         this.saveState();
+        this.ganttGridBridge.clearEventListeners();
         this._dataProvider.destroy();
         this._savedQueryDataProvider.destroy();
         this._customColumnsDataProvider?.destroy();

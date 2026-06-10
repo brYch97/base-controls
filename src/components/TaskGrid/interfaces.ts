@@ -7,6 +7,7 @@ import { ITaskDataProviderStrategy, ITaskDataProvider } from "./providers/task";
 import { ITaskGridLabels } from "./labels";
 import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { ILocalizationService } from "../../utils";
+import { GanttGridBridge } from "./bridges";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -29,7 +30,7 @@ export interface IFieldMapping {
     stackRank: string;
     /** Active/inactive status attribute. Used by the "Hide inactive tasks" filter. */
     stateCode: string;
-    
+
     startDate?: string;
     endDate?: string;
 }
@@ -199,4 +200,6 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     isUserQueriesFeatureEnabled: () => boolean;
     /** Whether inline task creation is enabled (from `ITaskGridParameters.enableInlineCreation`). */
     isInlineCreateEnabled: () => boolean;
+    /** Bridge for view-level sync between AG Grid and the Gantt chart (scroll, expand/collapse). */
+    ganttGridBridge: GanttGridBridge;
 }

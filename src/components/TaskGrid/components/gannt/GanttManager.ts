@@ -19,6 +19,7 @@ export class GanttManager implements IGanntManager {
     private _gantt: Gantt | null = null;
     private _saveLockPromise: Promise<void> | null = null;
     private _expandedNodeSet: Set<string> = new Set();
+    private _isSyncingScroll = false;
 
     constructor(params: IGanntManagerParams) {
         this._store = new TaskStore();
@@ -60,14 +61,15 @@ export class GanttManager implements IGanntManager {
     private _registerEventListeners() {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._onNewDataLoaded());
         this._dataProvider.addEventListener('onRecordsSelected', (ids) => this._zoomToTasks(ids));
-        this._dataProvider.taskEvents.addEventListener('onTaskExpanded', (taskId) => this._onTaskExpanded(taskId));
-        this._dataProvider.taskEvents.addEventListener('onTaskCollapsed', (taskId) => this._onTaskCollapsed(taskId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (tasks) => this._addTasksToStore(tasks));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', (tasks) => this._removeTasksFromStore(tasks));
         this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncChangesFromOutside(result));
         this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId, movingToTaskId, position) => this._moveTask(movingFromTaskId, movingToTaskId, position));
         this._store.on('update', (updateEvent: any) => this._syncChangesFromInside(updateEvent));
-
+        const bridge = this._datasetControl.ganttGridBridge;
+        bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._onTaskExpanded(taskId));
+        bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onTaskCollapsed(taskId));
+        bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
     }
 
     private _onNewDataLoaded() {
@@ -169,16 +171,18 @@ export class GanttManager implements IGanntManager {
     }
 
     private _syncVerticalScroll(scrollTop: number) {
-        const agGridViewPort = this._getAgGridViewport();
-        if (agGridViewPort) {
-            agGridViewPort.style.scrollBehavior = 'none';
-            agGridViewPort.scrollTop = scrollTop;
-        }
+        if (this._isSyncingScroll) return;
+        this._isSyncingScroll = true;
+        this._datasetControl.ganttGridBridge.dispatchEvent('onGanttScrolled', scrollTop);
+        this._isSyncingScroll = false;
     }
 
-    //TODO: SCOPE TO CONTROL, NOT DOCUMENT!
-    private _getAgGridViewport(): HTMLElement | null {
-        return document.querySelector('.ag-body-vertical-scroll-viewport');
+    private _onAgGridScrolled(scrollTop: number) {
+        if (this._isSyncingScroll) return;
+        this._isSyncingScroll = true;
+        //@ts-ignore - scrollTo not in typings
+        this._getGanttInstance().scrollTo?.({ y: scrollTop });
+        this._isSyncingScroll = false;
     }
 
     private _getStartDateColumn(): IColumn {
