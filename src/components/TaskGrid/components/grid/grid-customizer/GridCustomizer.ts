@@ -9,6 +9,7 @@ import { ILocalizationService } from "../../../../../utils";
 import { ITaskGridLabels } from "../../../labels";
 import { PERCENT_COMPLETE_CONTROL_NAME, PercentComplete } from "../cell-renderers/percent-complete";
 import { INativeColumns, ITaskGridDatasetControl } from "../../../interfaces";
+import { IGanttGridBridge } from "../../../bridges/GanttGridBridge";
 
 export const ADD_TASK_COLUMN_NAME = 'addTask';
 
@@ -56,10 +57,12 @@ export class GridCustomizer implements IGridCustomizer {
     private _nativeColumns: INativeColumns;
     private _pcfContext: ComponentFramework.Context<any>;
     private _datasetControl: ITaskGridDatasetControl;
+    private _bridge: IGanttGridBridge;
     private _strategy?: IGridCustomizerStrategy;
 
     constructor(parameters: IGridCustomizerParameters) {
         this._datasetControl = parameters.datasetControl;
+        this._bridge = this._datasetControl.ganttGridBridge;
         this._taskDataProvider = this._datasetControl.getDataProvider();
         this._gridApi = parameters.gridApi;
         this._localizationService = this._datasetControl.getLocalizationService();
@@ -410,11 +413,10 @@ export class GridCustomizer implements IGridCustomizer {
     }
 
     private _onRowGroupOpened(event: RowGroupOpenedEvent) {
-        const bridge = this._datasetControl.ganttGridBridge;
         if (event.expanded) {
-            bridge.dispatchEvent('onAgGridRowExpanded', event.node.id!);
+            this._bridge.dispatchEvent('onAgGridRowExpanded', event.node.id!);
         } else {
-            bridge.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
+            this._bridge.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
         }
     }
 
@@ -425,29 +427,41 @@ export class GridCustomizer implements IGridCustomizer {
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));
         this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
-        this._gridApi.addEventListener('bodyScroll', (event: BodyScrollEvent) => this._syncVerticalScroll(event.top));
+        this._gridApi.addEventListener('bodyScroll', (event: BodyScrollEvent) => this._onGridScrolled(event.top));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
-        this._datasetControl.ganttGridBridge.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
+        this._bridge.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
+        this._bridge.addEventListener('onGanttTaskExpanded', (taskId) => this._onGanttRowExpanded(taskId));
+        this._bridge.addEventListener('onGanttTaskCollapsed', (taskId) => this._onGanttRowCollapsed(taskId));
     }
 
-    private _isSyncingScroll = false;
-
-    private _syncVerticalScroll(scrollTop: number) {
-        if (this._isSyncingScroll) return;
-        this._isSyncingScroll = true;
-        this._datasetControl.ganttGridBridge.dispatchEvent('onAgGridScrolled', scrollTop);
-        this._isSyncingScroll = false;
+    private _onGridScrolled(scrollTop: number) {
+        this._bridge.dispatchEvent('onAgGridScrolled', scrollTop);
     }
 
     private _onGanttScrolled(scrollTop: number) {
-        if (this._isSyncingScroll) return;
-        this._isSyncingScroll = true;
         const viewport = this._getAgGridBodyViewport();
         if (viewport) {
             viewport.style.scrollBehavior = 'auto';
             viewport.scrollTop = scrollTop;
         }
-        this._isSyncingScroll = false;
+    }
+
+    private _onGanttRowExpanded(taskId: string) {
+        const node = this._gridApi.getRowNode(taskId);
+        node?.setExpanded(true);
+    }
+
+    private _onGanttRowCollapsed(taskId: string) {
+        const node = this._gridApi.getRowNode(taskId);
+        node?.setExpanded(false);
+    }
+
+    private _onRowGroupOpened(event: RowGroupOpenedEvent) {
+        if (event.expanded) {
+            this._bridge.dispatchEvent('onAgGridRowExpanded', event.node.id!);
+        } else {
+            this._bridge.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
+        }
     }
 
     private _getAgGridBodyViewport(): HTMLElement | null {
