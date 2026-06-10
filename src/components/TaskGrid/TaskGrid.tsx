@@ -90,7 +90,7 @@ export const TaskGrid = (props: ITaskGridProps) => {
 const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const { datasetControl, onRemountRequested, taskGridDescriptor } = props;
     const theme = useTheme();
-    const styles = React.useMemo(() => getDatasetControlStyles(theme, '300px'), [theme]);
+    const styles = React.useMemo(() => getDatasetControlStyles(theme, '100%'), [theme]);
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
 
