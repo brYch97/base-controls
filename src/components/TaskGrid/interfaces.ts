@@ -29,13 +29,13 @@ export interface IFieldMapping {
     stackRank: string;
     /** Active/inactive status attribute. Used by the "Hide inactive tasks" filter. */
     stateCode: string;
+    
+    startDate?: string;
+    endDate?: string;
 }
 
 export interface INativeColumns extends IFieldMapping {
     path: string;
-
-    startDate?: string;
-    endDate?: string;
 }
 
 /** Feature flags that control which UI elements are rendered in the grid header and ribbon. */
@@ -193,7 +193,7 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     isCustomColumnCreationEnabled: () => boolean;
     /** Whether custom column editing is enabled (from `ITaskGridParameters.enableCustomColumnEditing`). */
     isCustomColumnEditingEnabled: () => boolean;
-    /** Whether custom column deletion is enabled (from `ITaskGridParameters.enableCustomColumnDeletion`). */   
+    /** Whether custom column deletion is enabled (from `ITaskGridParameters.enableCustomColumnDeletion`). */
     isCustomColumnDeletionEnabled: () => boolean;
     /** Whether user queries are enabled (from `ITaskGridParameters.enableUserQueries`). */
     isUserQueriesFeatureEnabled: () => boolean;

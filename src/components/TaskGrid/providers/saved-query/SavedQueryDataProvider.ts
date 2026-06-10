@@ -1,7 +1,7 @@
 import { DataTypes, EventEmitter, IColumn, IEventEmitter, IFetchXmlDataProviderColumn } from "@talxis/client-libraries";
 import { ITaskDataProvider } from "../task";
 import { ICustomColumnsDataProvider } from "../custom-columns/CustomColumnsDataProvider";
-import { INativeColumns } from "../../interfaces";
+import { IFieldMapping, INativeColumns } from "../../interfaces";
 import { ErrorHelper, ILocalizationService } from "../../../../utils";
 import { ITaskGridLabels } from "../../labels";
 
@@ -46,7 +46,6 @@ export interface ISavedQueryMetadata {
 }
 
 export const PATH_COLUMN_NAME = 'path__virtual';
-const REQUIRED_COLUMNS = ['subject', 'parentId', 'stackRank', 'stateCode'];
 
 /** Strategy interface for loading and persisting system and user-defined saved views (queries). */
 export interface ISavedQueryStrategy {
@@ -84,24 +83,24 @@ export interface ISavedQueryDataProvider {
     deleteUserQueries: (queryIds: string[]) => Promise<IDeletedUserQueriesResult>;
     /** Fetches system and user queries from the strategy and sets the initial active query. */
     refresh: () => Promise<void>;
-
     /** Disposes event listeners and releases all resources held by the provider. */
     destroy: () => void;
 }
 
 interface ISavedQueryDataProviderParameters {
-    nativeColumns: INativeColumns;
+    fieldMapping: IFieldMapping;
     localizationService: ILocalizationService<ITaskGridLabels>;
     customColumnsDataProvider?: ICustomColumnsDataProvider;
     preferredQuery?: Partial<ISavedQuery> & { id: string };
 }
-
+    
 export class SavedQueryDataProvider implements ISavedQueryDataProvider {
-    private _strategy: ISavedQueryStrategy
+    private _strategy: ISavedQueryStrategy;
     private _systemQueries: ISavedQuery[] = [];
     private _currentQuery?: ISavedQuery;
     private _userQueries: ISavedQuery[] = [];
     private _customColumnsDataProvider?: ICustomColumnsDataProvider;
+    private _fieldMapping: IFieldMapping;
     private _nativeColumns: INativeColumns;
     private _localizationService: ILocalizationService<ITaskGridLabels>;
     private _systemQueriesColumnsMap: Map<string, IColumn> = new Map();
@@ -111,7 +110,8 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
     constructor(strategy: ISavedQueryStrategy, parameters: ISavedQueryDataProviderParameters) {
         this._strategy = strategy;
         this._preferredQuery = parameters.preferredQuery;
-        this._nativeColumns = parameters.nativeColumns;
+        this._fieldMapping = parameters.fieldMapping;
+        this._nativeColumns = { ...parameters.fieldMapping, path: PATH_COLUMN_NAME };
         this._customColumnsDataProvider = parameters.customColumnsDataProvider;
         this._localizationService = parameters.localizationService;
     }
@@ -240,12 +240,12 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
     private _includeRequiredColumns(columns: IColumn[]) {
         const allQueries = [...this.getSystemQueries(), ...this.getUserQueries()];
         const allQueryColumns = [...new Map(allQueries.flatMap(query => query.columns.map(col => [col.name, col]))).values()];
-        for (const requiredColumnName of REQUIRED_COLUMNS) {
-            const mappedRequiredColumnName = this._nativeColumns[requiredColumnName as keyof INativeColumns];
-            if (!columns.find(col => col.name === mappedRequiredColumnName)) {
-                const columnFromQueries = allQueryColumns.find(col => col.name === mappedRequiredColumnName);
+        const requiredColumns = Object.values(this._fieldMapping);
+        for (const requiredColumnName of requiredColumns) {
+            if (!columns.find(col => col.name === requiredColumnName)) {
+                const columnFromQueries = allQueryColumns.find(col => col.name === requiredColumnName);
                 if (!columnFromQueries) {
-                    throw new Error(`Required column ${mappedRequiredColumnName} is missing from both current query and all available queries`);
+                    throw new Error(`Required column ${requiredColumnName} is missing from both current query and all available queries`);
                 }
                 columns.push({
                     ...columnFromQueries,

@@ -34,7 +34,7 @@ export class TaskGridDatasetControlFactory {
         const savedQueryStrategy = parameters.taskGridDescriptor.onCreateSavedQueryStrategy();
         const savedQueryDataProvider = new SavedQueryDataProvider(savedQueryStrategy, {
             localizationService: parameters.localizationService,
-            nativeColumns: { ...parameters.taskGridDescriptor.onGetFieldMapping(), path: PATH_COLUMN_NAME },
+            fieldMapping: parameters.taskGridDescriptor.onGetFieldMapping(),
             customColumnsDataProvider: customColumnsDataProvider,
             preferredQuery: parameters.state.savedQuery,
         })
