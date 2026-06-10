@@ -1,6 +1,6 @@
 import { TaskModel as TaskModelBase } from "@bryntum/gantt";
-import { IRecordTree } from "../../data-providers/task-data-provider/record-tree/RecordTree";
 import { IRecord } from "@talxis/client-libraries";
+import { IRecordTree } from "../../providers/task/record-tree";
 
 interface ITaskModelParams extends Partial<TaskModel> {
     taskTree: IRecordTree;

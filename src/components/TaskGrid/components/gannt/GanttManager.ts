@@ -1,7 +1,7 @@
 import { TaskStore, Gantt, TaskModel } from "@bryntum/gantt";
 import { ITaskGridDatasetControl } from "../..";
-import { IDeleteTasksResult, ITaskDataProvider } from "../../data-providers";
 import { IColumn, IRawRecord, IRecord, IRecordSaveOperationResult } from "@talxis/client-libraries";
+import { IDeleteTasksResult, ITaskDataProvider } from "../../providers";
 
 interface IGanntManagerParams {
     datasetControl: ITaskGridDatasetControl;
