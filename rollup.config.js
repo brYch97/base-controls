@@ -52,6 +52,7 @@ const externalDeps = [
     'react-select/async',
     'hotkeys-js',
     'react-window',
+    "lexorank",
     '@bryntum/gantt',
     '@bryntum/gantt-react',
     '@bryntum/gantt/gantt.css',

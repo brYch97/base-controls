@@ -7,8 +7,8 @@ import { DatasetControl as DatasetControlRenderer } from "../DatasetControl";
 import { IconButton, useTheme } from "@fluentui/react";
 import { getDatasetControlStyles } from "./styles";
 import { Grid } from "./components/grid";
-import { ITaskDataProvider } from "./data-providers/task-data-provider";
-import { ITaskGridLabels, LocalizationService } from "./labels";
+import { ITaskDataProvider } from "./providers/task";
+import { ITaskGridLabels } from "./labels";
 import { TASK_GRID_LABELS } from "./labels";
 import { ITaskGridState, TaskGridDatasetControlFactory } from "./TaskGridDatasetControlFactory";
 import { Header } from "./components/header/Header";
@@ -16,8 +16,10 @@ import { ITaskGridComponents, TaskGridComponents } from "./components/components
 import { ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
 import { GanttChart } from "./components/gannt";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+ //offset of the checkbox control button in ag-grid, used for calculating default grid pane size
+import { LocalizationService } from "../../utils";
 
-const CHECKBOX_CONTROL_BTN_OFFSET = 80; //offset of the checkbox control button in ag-grid, used for calculating default grid pane size
+const CHECKBOX_CONTROL_BTN_OFFSET = 80;
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -39,9 +41,7 @@ export const TaskGrid = (props: ITaskGridProps) => {
     const components = { ...TaskGridComponents, ...props.components };
     const pcfContextRef = useRef(props.pcfContext);
     pcfContextRef.current = props.pcfContext;
-    const labelsRef = useRef<ITaskGridLabels>();
-    labelsRef.current = { ...TASK_GRID_LABELS, ...props.labels };
-    const localizationService = React.useMemo(() => new LocalizationService(() => labelsRef.current!), []);
+    const localizationService = React.useMemo(() => new LocalizationService({ ...TASK_GRID_LABELS, ...props.labels }), []);
 
     const [instanceState, setInstanceState] = React.useState<{
         instance: ITaskGridDatasetControl;
@@ -65,14 +65,14 @@ export const TaskGrid = (props: ITaskGridProps) => {
 
     if (!instanceState) {
         return components.onRenderSkeleton({
-            height: taskGridDescriptor.onGetGridParameters?.().height ?? '400px'
+            height: taskGridDescriptor.onGetHeight?.() ?? '400px'
         })
     }
 
     return (
         <PcfContext.Provider value={pcfContextRef.current}>
             <LocalizationServiceContext.Provider value={localizationService}>
-                <AgGridLicenseKeyContext.Provider value={taskGridDescriptor.onGetAgGridLicenseKey?.() ?? null}>
+                <AgGridLicenseKeyContext.Provider value={taskGridDescriptor.onGetGridParameters?.()?.agGridLicenseKey ?? null}>
                     <TaskGridComponentsContext.Provider value={components}>
                         <InternalTaskGridDatasetControl
                             key={instanceState.remountKey}
