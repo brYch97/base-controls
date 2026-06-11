@@ -61,7 +61,8 @@ const externalDeps = [
     '@bryntum/gantt/svalbard-light.css',
     'style-inject',
     'react-resizable-panels',
-    "dhtmlx-gantt"
+    "dhtmlx-gantt",
+    'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 ]
 
 export default [

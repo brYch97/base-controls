@@ -3,6 +3,11 @@ import { ITheme, mergeStyleSets } from "@fluentui/react";
 
 export const getGanttStyles = (theme: ITheme) => {
     return mergeStyleSets({
+        root: {
+            '.gantt_task_inactive': {
+                background: 'red'
+            }
+        },
         ganttContainer: {
             height: '100%',
             flex: 1,
