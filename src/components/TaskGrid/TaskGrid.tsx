@@ -18,6 +18,7 @@ import { GanttChart } from "./components/gannt";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
  //offset of the checkbox control button in ag-grid, used for calculating default grid pane size
 import { LocalizationService } from "../../utils";
+import { Gantt } from "./components/gannt/Gantt";
 
 const CHECKBOX_CONTROL_BTN_OFFSET = 80;
 
@@ -128,7 +129,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                         <PanelResizeHandle className={styles.divider}>
                                         </PanelResizeHandle>
                                         <Panel className={styles.ganttPanel} defaultSize={70}>
-                                            <GanttChart />
+                                            <Gantt />
                                         </Panel>
                                     </PanelGroup>
                                 </div>
