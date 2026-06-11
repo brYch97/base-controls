@@ -31,6 +31,10 @@ export class GanttManager2 implements IGanttManager {
     }
 
     public onInit(params: IInitParams) {
+        gantt.plugins({
+            multiselect: true,
+        });
+        gantt.config.multiselect = true;
         gantt.config.show_grid = false;
         gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         gantt.config.scale_height = 43;
