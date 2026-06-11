@@ -35,7 +35,7 @@ export class GanttManager2 implements IGanttManager {
         gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         gantt.config.scale_height = 43;
         gantt.ext.zoom.init(this._getZoomConfig() as any);
-        gantt.templates.task_class = (_start, _end, task) => task.active ? '' : 'gantt_task_inactive';
+        gantt.templates.task_row_class = (_start, _end, task) => task.active ? '' : 'gantt_row_inactive';
         gantt.init(params.container);
         this._registerEventListeners();
     }
@@ -88,7 +88,7 @@ export class GanttManager2 implements IGanttManager {
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
-            parent: parent?.id?.guid,
+            parent: this._dataProvider.isFlatListEnabled() ? undefined :parent?.id?.guid,
             active: record.isActive(),
             open: this.isTaskExpandedByDefault(record.getRecordId()),
         };

@@ -27,15 +27,27 @@ export const getGanttStyles = (theme: ITheme) => {
             '--dhx-gantt-popup-color': theme.semanticColors.bodyText,
             '--dhx-gantt-tooltip-background': theme.semanticColors.bodyText,
             '--dhx-gantt-tooltip-color': theme.semanticColors.bodyBackground,
-            '.gantt_task_inactive': {
-                opacity: 0.6,
-                filter: 'grayscale(40%)',
-                '.gantt_task_content': {
-                    color: theme.semanticColors.bodyText,
+            '.gantt_row_inactive': {
+                position: 'relative',
+                '::after': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: theme.semanticColors.disabledBackground,
+                    opacity: 0.5,
+                    zIndex: 1,
+                    pointerEvents: 'all',
+                    cursor: 'not-allowed',
                 },
-                '.gantt_task_progress': {
-                    background: theme.semanticColors.disabledBackground,
-                },
+            },
+            '.gantt_task_content': {
+                textOverflow: 'ellipsis',
+                paddingLeft: 5,
+                paddingRight: 5,
+                fontWeight: 600
+            },
+            '.gantt_task_scale': {
+                fontWeight: 600
             }
         },
         ganttContainer: {
