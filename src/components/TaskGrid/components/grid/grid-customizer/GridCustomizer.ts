@@ -160,6 +160,10 @@ export class GridCustomizer implements IGridCustomizer {
                 case this._nativeColumns.subject: {
                     colDef.cellRenderer = GroupCell;
                     colDef.pinned = 'left';
+                    //if gantt
+                    if (true) {
+                        colDef.pinned = undefined;
+                    }
                     break;
                 }
                 case DatasetConstants.CHECKBOX_COLUMN_KEY: {
@@ -178,10 +182,6 @@ export class GridCustomizer implements IGridCustomizer {
                     colDef.cellEditor = PercentComplete;
                     break;
                 }
-            }
-            //if gantt
-            if (true) {
-                colDef.pinned = undefined;
             }
         }
 

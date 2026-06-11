@@ -123,12 +123,12 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                             </div> */
                                 return <div className={styles.container}>
                                     <PanelGroup direction="horizontal">
-                                        <Panel defaultSize={30}>
+                                        <Panel defaultSize={35}>
                                              <Grid {...props} />
                                         </Panel>
                                         <PanelResizeHandle className={styles.divider}>
                                         </PanelResizeHandle>
-                                        <Panel className={styles.ganttPanel} defaultSize={70}>
+                                        <Panel className={styles.ganttPanel} defaultSize={65}>
                                             <Gantt />
                                         </Panel>
                                     </PanelGroup>

@@ -53,6 +53,19 @@ export class GanttManager2 implements IGanttManager {
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
         gantt.attachEvent('onBeforeTaskDrag', (id) => !!gantt.getTask(id)?.active);
         gantt.attachEvent('onBeforeLinkAdd', (_id, link) => !!gantt.getTask(link.source)?.active && !!gantt.getTask(link.target)?.active);
+        gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onTaskDragged(id));
+    }
+
+    private async _onTaskDragged(taskId: string) {
+        const task = gantt.getTask(taskId);
+        const record = this._dataProvider.getRecordsMap()[taskId];
+
+        const startColumnName = this._getStartDateColumn().name;
+        const endColumnName = this._getEndDateColumn().name;
+
+        record.setValue(startColumnName, task.start_date);
+        record.setValue(endColumnName, task.end_date);
+        record.save();
     }
 
     private _loadTasksToGantt() {
