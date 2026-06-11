@@ -5,7 +5,14 @@ export const getGanttStyles = (theme: ITheme) => {
     return mergeStyleSets({
         root: {
             '.gantt_task_inactive': {
-                background: 'red'
+                opacity: 0.4,
+                filter: 'grayscale(60%)',
+                '.gantt_task_content': {
+                    color: theme.semanticColors.disabledText,
+                },
+                '.gantt_task_progress': {
+                    background: theme.semanticColors.disabledBackground,
+                },
             }
         },
         ganttContainer: {

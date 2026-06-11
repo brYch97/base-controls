@@ -51,6 +51,8 @@ export class GanttManager2 implements IGanttManager {
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => gantt.scrollTo(undefined, scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
+        gantt.attachEvent('onBeforeTaskDrag', (id) => !!gantt.getTask(id)?.active);
+        gantt.attachEvent('onBeforeLinkAdd', (_id, link) => !!gantt.getTask(link.source)?.active && !!gantt.getTask(link.target)?.active);
     }
 
     private _loadTasksToGantt() {
