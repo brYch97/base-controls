@@ -125,7 +125,7 @@ export class GridCustomizer implements IGridCustomizer {
         }
         const matchingRecords = this._taskDataProvider.getRecordTree().getMatchingRecords();
         const result = !matchingRecords[params.data.getRecordId()];
-        if(result) {
+        if (result) {
             return result;
         }
         return defaultAction(params);
@@ -167,7 +167,7 @@ export class GridCustomizer implements IGridCustomizer {
                     break;
                 }
             }
-            switch(customCellRenderer) {
+            switch (customCellRenderer) {
                 case PERCENT_COMPLETE_CONTROL_NAME: {
                     colDef.cellRenderer = PercentComplete;
                     break;
@@ -412,30 +412,19 @@ export class GridCustomizer implements IGridCustomizer {
         })
     }
 
-    private _onRowGroupOpened(event: RowGroupOpenedEvent) {
-        if (event.expanded) {
-            this._bridge.dispatchEvent('onAgGridRowExpanded', event.node.id!);
-        } else {
-            this._bridge.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
-        }
-    }
-
 
     private _registerEventListeners() {
         this._taskDataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId, movingToTaskId, position) => this._moveInto(movingFromTaskId, movingToTaskId, position));
         this._taskDataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));
+        //ag grid api scroll event has weird behavior
+        this._getAgGridBodyViewport()?.addEventListener('scroll', (event) => this._bridge.dispatchEvent('onAgGridScrolled', (event.target as HTMLElement).scrollTop));
         this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
-        this._gridApi.addEventListener('bodyScroll', (event: BodyScrollEvent) => this._onGridScrolled(event.top));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
         this._bridge.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
         this._bridge.addEventListener('onGanttTaskExpanded', (taskId) => this._onGanttRowExpanded(taskId));
         this._bridge.addEventListener('onGanttTaskCollapsed', (taskId) => this._onGanttRowCollapsed(taskId));
-    }
-
-    private _onGridScrolled(scrollTop: number) {
-        this._bridge.dispatchEvent('onAgGridScrolled', scrollTop);
     }
 
     private _onGanttScrolled(scrollTop: number) {
@@ -456,16 +445,17 @@ export class GridCustomizer implements IGridCustomizer {
         node?.setExpanded(false);
     }
 
+
+    private _getAgGridBodyViewport(): HTMLElement | null {
+        const rootElement = document.getElementById(this._datasetControl.getControlId() + '-root');
+        return rootElement?.querySelector('.ag-body-viewport') ?? null;
+    }
+
     private _onRowGroupOpened(event: RowGroupOpenedEvent) {
         if (event.expanded) {
             this._bridge.dispatchEvent('onAgGridRowExpanded', event.node.id!);
         } else {
             this._bridge.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
         }
-    }
-
-    private _getAgGridBodyViewport(): HTMLElement | null {
-        const rootElement = document.getElementById(this._datasetControl.getControlId() + '-root');
-        return rootElement?.querySelector('.ag-body-viewport') ?? null;
     }
 }

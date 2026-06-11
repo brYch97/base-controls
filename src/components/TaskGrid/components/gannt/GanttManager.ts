@@ -47,13 +47,28 @@ export class GanttManager implements IGanntManager {
         //@ts-ignore - not in typings
         this._gantt.project.autoSetConstraints = true;
         this._gantt.features.tree.expandOnCellClick = false;
+
         this._gantt.on('scroll', (e: any) => {
-            this._onGanttScrolled(e.scrollTop);
+            this._bridge.dispatchEvent('onGanttScrolled', e.scrollTop);
         });
-        this._gantt.on('expand', (e: any) => {
+/*         this._gantt.on('rowExpand', (e: any) => {
+            console.log('Row expanded in Gantt:', e.record.id);
+            //this._bridge.dispatchEvent('onGanttTaskExpanded', e.record.id);
+        });
+        this._gantt.on('rowCollapse', (e: any) => {
+            console.log('Row collapsed in Gantt:', e.record.id);
+            //this._bridge.dispatchEvent('onGanttTaskCollapsed', e.record.id);
+        });
+        this._gantt.on('beforeRowExpand', (e: any) => {
+            console.log('Before row expand in Gantt:', e.record.id);
+        })
+        this._gantt.on('beforeRowCollapse', (e: any) => {
+            console.log('Before row collapse in Gantt:', e.record.id);
+        }); */
+        this._gantt.on('expandNode', (e: any) => {
             this._bridge.dispatchEvent('onGanttTaskExpanded', e.record.id);
         });
-        this._gantt.on('collapse', (e: any) => {
+        this._gantt.on('collapseNode', (e: any) => {
             this._bridge.dispatchEvent('onGanttTaskCollapsed', e.record.id);
         });
 
@@ -175,11 +190,6 @@ export class GanttManager implements IGanntManager {
         const topLevelRecords = tree.getNode(null)?.directChildren ?? [];
         this._store.removeAll();
         this._store.add(topLevelRecords.map(record => this._convertRecordToTask(record)));
-    }
-
-    private _onGanttScrolled(scrollTop: number) {
-        this._bridge.dispatchEvent('onGanttScrolled', scrollTop);
-        //this._datasetControl.ganttGridBridge.dispatchEvent('onGanttScrolled', scrollTop);
     }
 
     private _onAgGridScrolled(scrollTop: number) {
