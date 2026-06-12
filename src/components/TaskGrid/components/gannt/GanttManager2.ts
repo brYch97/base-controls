@@ -7,7 +7,8 @@ import dayjs from 'dayjs';
 import { GanttZooming, IGanttZooming } from './GanttZooming';
 import ReactDOM from 'react-dom';
 import React from 'react';
-import { PrimaryButton } from '@fluentui/react';
+import { Callout, PrimaryButton } from '@fluentui/react';
+import { TaskTooltip } from './components/task-tooltip';
 
 
 interface IInitParams {
@@ -28,6 +29,7 @@ export class GanttManager2 implements IGanttManager {
     private _bridge: IGanttGridBridge;
     private _zooming: IGanttZooming;
     private _expandedNodeSet: Set<string> = new Set();
+    private _container!: HTMLDivElement;
 
     constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
@@ -38,30 +40,44 @@ export class GanttManager2 implements IGanttManager {
 
     public onInit(params: IInitParams) {
         gantt.plugins({
-            multiselect: true,
-            tooltip: true
+            multiselect: true
         });
-        /*         gantt.templates.task_text = (start, end, task) => {
-                    setTimeout(() => {
-                        ReactDOM.render(React.createElement(PrimaryButton, {children: 'Test'}), document.querySelector(`[data-react-mount="${task.id}"]`))
-                    }, 0);
-                    return `<div data-react-mount="${task.id}"></div>`;
-                } */
-        gantt.templates.tooltip_text = (start, end, task) => {
-            setTimeout(() => {
-                ReactDOM.render(React.createElement(PrimaryButton, { children: 'Test' }), document.querySelector(`[data-react-mount="${task.id}"]`))
-            }, 100);
-            return `<div data-react-mount="${task.id}"></div>`;
-        };
-        gantt.templates.tooltp
         gantt.config.multiselect = true;
         gantt.config.show_grid = false;
         gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         gantt.config.scale_height = 43;
         this._zooming.init();
         gantt.templates.task_row_class = (_start, _end, task) => task.active ? '' : 'gantt_row_inactive';
+        this._container = params.container;
         gantt.init(params.container);
+        this._setupTooltip();
         this._registerEventListeners();
+    }
+
+    private _setupTooltip() {
+        const taskAttr = gantt.config.task_attribute;
+        const tooltipMount = document.createElement('div');
+        this._container.appendChild(tooltipMount);
+
+        this._container.addEventListener('mousemove', (event: MouseEvent) => {
+            const taskNode = (event.target as HTMLElement).closest<HTMLElement>(`[${taskAttr}]:not(.gantt_task_row)`);
+            if (!taskNode) return;
+            const taskId = taskNode.getAttribute(taskAttr);
+            if (!taskId || !gantt.isTaskExists(taskId)) return;
+             const task = gantt.getTask(taskId);
+            ReactDOM.render(
+                React.createElement(TaskTooltip, { taskId, event, datasetControl: this._datasetControl }),
+                tooltipMount
+            );
+
+        });
+
+        this._container.addEventListener('mouseout', (event: MouseEvent) => {
+            const related = event.relatedTarget as HTMLElement | null;
+            if (!related?.closest(`[${taskAttr}]:not(.gantt_task_row)`)) {
+                ReactDOM.unmountComponentAtNode(tooltipMount);
+            }
+        });
     }
 
     private _registerEventListeners() {
