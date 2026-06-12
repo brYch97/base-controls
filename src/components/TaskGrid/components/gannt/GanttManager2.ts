@@ -1,9 +1,13 @@
 import { gantt } from 'dhtmlx-gantt';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
-import { IColumn, IRawRecord, IRecord, IRecordSaveOperationResult } from '@talxis/client-libraries';
+import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
+import { GanttZooming, IGanttZooming } from './GanttZooming';
+import ReactDOM from 'react-dom';
+import React from 'react';
+import { PrimaryButton } from '@fluentui/react';
 
 
 interface IInitParams {
@@ -22,23 +26,41 @@ export class GanttManager2 implements IGanttManager {
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
+    private _zooming: IGanttZooming;
     private _expandedNodeSet: Set<string> = new Set();
 
     constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
         this._dataProvider = this._datasetControl.getDataProvider();
         this._bridge = this._datasetControl.ganttGridBridge;
+        this._zooming = new GanttZooming({ datasetControl: this._datasetControl });
     }
 
     public onInit(params: IInitParams) {
         gantt.plugins({
             multiselect: true,
+            tooltip: true
         });
+        /*         gantt.templates.task_text = (start, end, task) => {
+                    setTimeout(() => {
+                        ReactDOM.render(React.createElement(PrimaryButton, {children: 'Test'}), document.querySelector(`[data-react-mount="${task.id}"]`))
+                    }, 0);
+                    return `<div data-react-mount="${task.id}"></div>`;
+                } */
+        gantt.templates.tooltip_text = (start, end, task) => {
+            return `
+        <div class="my-tooltip">
+            <strong>${task.text}</strong>
+            <span>${gantt.templates.tooltip_date_format(start)} → ${gantt.templates.tooltip_date_format(end)}</span>
+        </div>
+    `;
+        };
+        gantt.templates.tooltp
         gantt.config.multiselect = true;
         gantt.config.show_grid = false;
         gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         gantt.config.scale_height = 43;
-        gantt.ext.zoom.init(this._getZoomConfig() as any);
+        this._zooming.init();
         gantt.templates.task_row_class = (_start, _end, task) => task.active ? '' : 'gantt_row_inactive';
         gantt.init(params.container);
         this._registerEventListeners();
@@ -74,6 +96,7 @@ export class GanttManager2 implements IGanttManager {
                 gantt.unselectTask(task.id);
             }
         });
+        this._zooming.zoomToFitSelectedTasks();
     }
 
     private _onRecordSelectedFromGantt(taskId: string) {
@@ -125,7 +148,7 @@ export class GanttManager2 implements IGanttManager {
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
-            parent: this._dataProvider.isFlatListEnabled() ? undefined :parent?.id?.guid,
+            parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
             active: record.isActive(),
             open: this.isTaskExpandedByDefault(record.getRecordId()),
         };
@@ -199,55 +222,4 @@ export class GanttManager2 implements IGanttManager {
         }
         gantt.refreshTask(id);
     }
-
-
-    private _hourRangeFormat(step: number) {
-        return function(date: Date){
-            //@ts-ignore
-			var intervalEnd = new Date(gantt.date.add(date, step, "hour") - 1)
-			return gantt.date.date_to_str("%H:%i");
-		};
-    }    
-
-    private _getZoomConfig() {
-        return {
-            minColumnWidth: 40,
-            maxColumnWidth: 150,
-            levels: [
-                // Level 1: decade view — year header, quarter columns
-                [
-                    { unit: "year", format: "%Y", step: 1 },
-                    { unit: "month", format: "%M", step: 3 }
-                ],
-                // Level 2: year view — year header, month columns
-                [
-                    { unit: "year", format: "%Y", step: 1 },
-                    { unit: "month", format: "%M", step: 1 }
-                ],
-                // Level 3: quarter view — quarter header, week columns
-                [
-                    { unit: "month", format: "%F %Y", step: 3 },
-                    { unit: "week", format: "W%W", step: 1 }
-                ],
-                // Level 4: month view — month header, day columns
-                [
-                    { unit: "month", format: "%F %Y", step: 1 },
-                    { unit: "day", format: "%d", step: 1 }
-                ],
-                // Level 5: week view — week header, day columns with name
-                [
-                    { unit: "week", format: "Week #%W", step: 1 },
-                    { unit: "day", format: "%d %D", step: 1 }
-                ],
-            ],
-            startDate: new Date(2020, 0, 1),
-            endDate: new Date(2030, 11, 31),
-            useKey: "ctrlKey",
-            trigger: "wheel",
-            element: function () {
-                return gantt.$root.querySelector(".gantt_task");
-            }
-        }
-    }
-
 }
