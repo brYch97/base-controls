@@ -59,6 +59,7 @@ export class GanttManager2 implements IGanttManager {
         gantt.attachEvent('onBeforeTaskDrag', (id) => !!gantt.getTask(id)?.active);
         gantt.attachEvent('onBeforeLinkAdd', (_id, link) => !!gantt.getTask(link.source)?.active && !!gantt.getTask(link.target)?.active);
         gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onTaskDragged(id));
+        gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
     }
 
     private _onRecordsSelected(recordIds: string[]) {
@@ -73,6 +74,10 @@ export class GanttManager2 implements IGanttManager {
                 gantt.unselectTask(task.id);
             }
         });
+    }
+
+    private _onRecordSelectedFromGantt(taskId: string) {
+        this._dataProvider.setSelectedRecordIds(gantt.getSelectedTasks());
     }
 
     private async _onTaskDragged(taskId: string) {
