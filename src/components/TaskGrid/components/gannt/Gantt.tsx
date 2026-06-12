@@ -1,23 +1,22 @@
 import { Task } from 'dhtmlx-gantt';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GanttManager2 } from './GanttManager2';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { useDatasetControl } from '../..';
 import { getGanttStyles } from './styles';
 import { useTheme } from '@fluentui/react';
 import { GanttComponents } from './components/components';
-import { TaskTooltip } from './components/task-tooltip';
 import { GanttComponentsContext, IGanttComponents } from './context';
+import { GanttManager } from './GanttManager';
 
 interface IGanttProps {
-    components?: IGanttComponents;
+    components?: Partial<IGanttComponents>;
 }
 
 export const Gantt = (props: IGanttProps) => {
     const components = useMemo(() => ({ ...GanttComponents, ...props.components }), [props.components]);
     const ref = useRef<HTMLDivElement>(null);
     const datasetControl = useDatasetControl();
-    const ganttManager = useMemo(() => new GanttManager2({ datasetControl }), []);
+    const ganttManager = useMemo(() => new GanttManager({ datasetControl }), []);
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);

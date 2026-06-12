@@ -1,201 +1,148 @@
-import { TaskStore, Gantt, TaskModel } from "@bryntum/gantt";
-import { ITaskGridDatasetControl } from "../..";
-import { IColumn, IRawRecord, IRecord, IRecordSaveOperationResult } from "@talxis/client-libraries";
-import { IDeleteTasksResult, ITaskDataProvider } from "../../providers";
+import { gantt } from 'dhtmlx-gantt';
+import { ITaskGridDatasetControl } from '../..';
+import { ITaskDataProvider } from '../../providers';
+import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
+import dayjs from 'dayjs';
+import { GanttZooming, IGanttZooming } from './GanttZooming';
 
-interface IGanntManagerParams {
+
+interface IInitParams {
+    container: HTMLDivElement;
+}
+
+interface IGanttManagerParams {
     datasetControl: ITaskGridDatasetControl;
 }
 
-export interface IGanntManager {
-    getStore: () => TaskStore;
-    onRetrieveGanntInstance: (gannt: Gantt) => void;
+export interface IGanttManager {
+    onInit: (params: IInitParams) => void;
+    getGanttInstance: () => typeof gantt;
 }
 
-export class GanttManager implements IGanntManager {
-    private _store: TaskStore;
+export class GanttManager implements IGanttManager {
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
-    private _gantt: Gantt | null = null;
     private _bridge: IGanttGridBridge;
-    private _saveLockPromise: Promise<void> | null = null;
+    private _zooming: IGanttZooming;
     private _expandedNodeSet: Set<string> = new Set();
-    private _isSyncingScroll = false;
+    
 
-    constructor(params: IGanntManagerParams) {
-        this._store = new TaskStore();
+    constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
-        this._bridge = this._datasetControl.ganttGridBridge;
-        this._gantt?.zoomTo({
-
-        })
         this._dataProvider = this._datasetControl.getDataProvider();
+        this._bridge = this._datasetControl.ganttGridBridge;
+        this._zooming = new GanttZooming({ datasetControl: this._datasetControl });
+    }
+
+    public onInit(params: IInitParams) {
+        gantt.plugins({
+            multiselect: true
+        });
+        gantt.config.multiselect = true;
+        gantt.config.show_grid = false;
+        gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
+        gantt.config.scale_height = 43;
+        this._zooming.init();
+        gantt.templates.task_row_class = (_start, _end, task) => task.active ? '' : 'gantt_row_inactive';
+        gantt.init(params.container);
         this._registerEventListeners();
-        if (!this._dataProvider.isLoading()) {
-            this._loadDataToStore();
-        };
     }
 
-    public getStore(): TaskStore {
-        return this._store;
-    }
-
-    public onRetrieveGanntInstance(gantt: Gantt) {
-        this._gantt = gantt;
-        this._gantt.subGrids.locked.hide();
-        //@ts-ignore - not in typings
-        this._gantt.project.autoSetConstraints = true;
-        this._gantt.features.tree.expandOnCellClick = false;
-
-        this._gantt.on('scroll', (e: any) => {
-            this._bridge.dispatchEvent('onGanttScrolled', e.scrollTop);
-        });
-/*         this._gantt.on('rowExpand', (e: any) => {
-            console.log('Row expanded in Gantt:', e.record.id);
-            //this._bridge.dispatchEvent('onGanttTaskExpanded', e.record.id);
-        });
-        this._gantt.on('rowCollapse', (e: any) => {
-            console.log('Row collapsed in Gantt:', e.record.id);
-            //this._bridge.dispatchEvent('onGanttTaskCollapsed', e.record.id);
-        });
-        this._gantt.on('beforeRowExpand', (e: any) => {
-            console.log('Before row expand in Gantt:', e.record.id);
-        })
-        this._gantt.on('beforeRowCollapse', (e: any) => {
-            console.log('Before row collapse in Gantt:', e.record.id);
-        }); */
-        this._gantt.on('expandNode', (e: any) => {
-            this._bridge.dispatchEvent('onGanttTaskExpanded', e.record.id);
-        });
-        this._gantt.on('collapseNode', (e: any) => {
-            this._bridge.dispatchEvent('onGanttTaskCollapsed', e.record.id);
-        });
-
-    }
-
-    private _getGanttInstance(): Gantt {
-        if (!this._gantt) {
-            throw new Error("Gantt instance is not available yet");
-        }
-        return this._gantt;
+    public getGanttInstance() {
+        return gantt;
     }
 
     private _registerEventListeners() {
-        this._dataProvider.addEventListener('onNewDataLoaded', () => this._onNewDataLoaded());
-        this._dataProvider.addEventListener('onRecordsSelected', (ids) => this._zoomToTasks(ids));
-        this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (tasks) => this._addTasksToStore(tasks));
-        this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', (tasks) => this._removeTasksFromStore(tasks));
-        this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncChangesFromOutside(result));
-        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId, movingToTaskId, position) => this._moveTask(movingFromTaskId, movingToTaskId, position));
-        this._store.on('update', (updateEvent: any) => this._syncChangesFromInside(updateEvent));
+        this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
+        this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[result.recordId]));
+        this._dataProvider.addEventListener('onRecordsSelected', (recordIds) => this._onRecordsSelected(recordIds));
+        //this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
+        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
+        this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', () => this._loadTasksToGantt());
+        this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
         this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._onAgGridTaskExpanded(taskId));
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
-        this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
+        this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => gantt.scrollTo(undefined, scrollTop));
+        this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
+        gantt.attachEvent('onBeforeTaskDrag', (id) => !!gantt.getTask(id)?.active);
+        gantt.attachEvent('onBeforeLinkAdd', (_id, link) => !!gantt.getTask(link.source)?.active && !!gantt.getTask(link.target)?.active);
+        gantt.attachEvent('onTaskDrag', (id: string) => this._onTaskDrag(id));
+        gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onAfterTaskDrag(id));
+        gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
     }
 
-    private _onNewDataLoaded() {
-        this._expandedNodeSet.clear();
-        this._loadDataToStore();
-        setTimeout(() => {
-            this._gantt?.zoomToFit?.();
-        }, 0);
-    }
-
-    private _syncChangesFromOutside(result: IRecordSaveOperationResult) {
-        if (result.success && !this._saveLockPromise) {
-            //update everything => delete any add again or global update?
-            const taskInStore = this._store.getById(result.recordId);
-            if (!taskInStore) return;
-            taskInStore.set(this._convertRecordToTask(this._dataProvider.getRecordsMap()[result.recordId]));
-        }
-    }
-
-    private _moveTask(movingFromId: string, movingToId: string, position: 'above' | 'below' | 'child') {
-        this._loadDataToStore();
-        console.log(`Task with id ${movingFromId} moved ${position} task with id ${movingToId}`);
-    }
-
-    private _syncChangesFromInside(updateEvent: any) {
-        if (updateEvent.record instanceof TaskModel) {
-            const changes = updateEvent.changes;
-            for (const fieldName in changes) {
-                const columnName = this._getColumnNameFromGanttField(fieldName);
-                if (!columnName) continue;
-                const record = this._dataProvider.getRecordsMap()[updateEvent.record.id];
-                record.setValue(columnName, changes[fieldName].value);
+    private _onRecordsSelected(recordIds: string[]) {
+        const selectedIds = new Set((recordIds ?? []).map(id => String(id)));
+        gantt.eachTask((task: any) => {
+            const taskId = String(task.id);
+            const isSelected = gantt.isSelectedTask(task.id);
+            if (selectedIds.has(taskId) && !isSelected) {
+                (gantt as any).selectTask(task.id, true);
             }
-            if (!this._saveLockPromise) {
-                this._saveLockPromise = new Promise((resolve) => {
-                    setTimeout(async () => {
-                        await this._dataProvider.save();
-                        resolve();
-                        this._saveLockPromise = null;
-                    }, 0);
-                })
+            if (!selectedIds.has(taskId) && isSelected) {
+                gantt.unselectTask(task.id);
             }
-        }
+        });
+        this._zooming.zoomToFitSelectedTasks();
     }
 
-    //TODO: this could go wrong when adding multiple tasks at once
-    //make sure that the order of tasks in the array is correct (parents before children) or implement a more robust way of adding tasks (e.g. by traversing the tree and adding nodes recursively)
-    private _addTasksToStore(tasks: IRawRecord[] | null) {
-        if (!tasks) return null;
-        this._loadDataToStore();
+    private _onRecordSelectedFromGantt(taskId: string) {
+        this._dataProvider.setSelectedRecordIds(gantt.getSelectedTasks());
     }
 
-    private _removeTasksFromStore(result: IDeleteTasksResult | null) {
-        if (!result) return;
-        this._store.remove(result.deletedTaskIds);
+    private async _onTaskDrag(taskId: string) {
+        const task = gantt.getTask(taskId);
+        const record = this._dataProvider.getRecordsMap()[taskId];
+
+        const startColumnName = this._getStartDateColumn().name;
+        const endColumnName = this._getEndDateColumn().name;
+
+        record.setValue(startColumnName, task.start_date);
+        record.setValue(endColumnName, task.end_date);
     }
 
-    private _onAgGridTaskExpanded(taskId: string) {
-        this._getGanttInstance().expand(taskId);
-        this._expandedNodeSet.add(taskId);
+    private _onAfterTaskDrag(taskId: string) {
+        this._dataProvider.getRecordsMap()[taskId].save();
     }
 
-    private _onAgGridTaskCollapsed(taskId: string) {
-        this._getGanttInstance().collapse(taskId);
-        this._expandedNodeSet.delete(taskId);
+    private _loadTasksToGantt() {
+        const records = this._dataProvider.getRecordTree().getNode(null).allChildren;
+        const data = records.map(record => this._convertRecordToTask(record));
+        gantt.clearAll();
+        gantt.parse({
+            data: data
+        });
+
+    }
+
+    private _getDateFromString(date: string | null): Date | null {
+        if (!date) return null;
+        return new Date(date);
     }
 
     private _convertRecordToTask(record: IRecord): any {
-        const node = this._dataProvider.getRecordTree().getNode(record.getRecordId());
+        const parentColumnName = this._datasetControl.getNativeColumns().parentId;
+        const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
+        let startDate = this._getDateFromString(record.getValue(this._getStartDateColumn().name));
+        let endDate = this._getDateFromString(record.getValue(this._getEndDateColumn().name));
+
+        if (!startDate) {
+            startDate = new Date();
+        }
+        if (!endDate) {
+            endDate = dayjs(startDate).add(7, 'day').toDate();
+        }
+
         return {
             id: record.getRecordId(),
-            name: record.getNamedReference().name,
-            startDate: record.getValue(this._getStartDateColumn().name),
-            endDate: record.getValue(this._getEndDateColumn().name),
-            expanded: this.isNodeExpandedByDefault(record.getRecordId()),
-            inactive: !record.isActive(),
-            manuallyScheduled: true,
-            milestone: true,
-            ...(node?.directChildren?.length > 0 && {
-                children: node.directChildren.map((child: IRecord) => this._convertRecordToTask(child))
-            })
+            text: record.getNamedReference().name,
+            start_date: startDate,
+            end_date: endDate,
+            parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
+            active: record.isActive(),
+            open: this.isTaskExpandedByDefault(record.getRecordId()),
         };
-    }
-
-    private isNodeExpandedByDefault(recordId: string): boolean {
-        if (this._expandedNodeSet.has(recordId)) {
-            return true;
-        }
-        const matchingRecords = this._dataProvider.getRecordTree().getMatchingRecords();
-        return !matchingRecords[recordId];
-    }
-
-    private _loadDataToStore() {
-        // Convert the tree into store-compatible format recursively
-        const tree = this._dataProvider.getRecordTree();
-        const topLevelRecords = tree.getNode(null)?.directChildren ?? [];
-        this._store.removeAll();
-        this._store.add(topLevelRecords.map(record => this._convertRecordToTask(record)));
-    }
-
-    private _onAgGridScrolled(scrollTop: number) {
-        this._getGanttInstance().scrollVerticallyTo(scrollTop, {
-            animate: false
-        });
     }
 
     private _getStartDateColumn(): IColumn {
@@ -216,21 +163,54 @@ export class GanttManager implements IGanntManager {
         return endDateColumn;
     }
 
-    private _getColumnNameFromGanttField(ganttField: string): string | null {
-        switch (ganttField) {
-            case 'startDate': return this._datasetControl.getNativeColumns().startDate!;
-            case 'endDate': return this._datasetControl.getNativeColumns().endDate!;
-            default: return null;
+    private isTaskExpandedByDefault(recordId: string): boolean {
+        const matchingRecords = this._dataProvider.getRecordTree().getMatchingRecords();
+        //never expand on flatlist
+        if (this._dataProvider.isFlatListEnabled()) {
+            return false
+        }
+        //always expand if no matching foud
+        if (!matchingRecords[recordId]) {
+            return true;
+        }
+        //expand if previously expanded
+        return this._expandedNodeSet.has(recordId);
+    }
+
+    private _onAgGridTaskExpanded(taskId: string) {
+        gantt.open(taskId);
+        this._expandedNodeSet.add(taskId);
+    }
+
+    private _onAgGridTaskCollapsed(taskId: string) {
+        gantt.close(taskId);
+        this._expandedNodeSet.delete(taskId);
+    }
+
+    private _getScrollingContainer(): Element {
+        const container = document.querySelector('.gantt_data_area');
+        if (!container) {
+            throw new Error("Could not find Gantt scrolling container");
+        }
+        return container;
+    }
+
+    private _syncRawDataChangeFromOutside(data: IRawRecord[]) {
+        for (const rawRecord of data) {
+            const id = rawRecord[this._dataProvider.getMetadata().PrimaryIdAttribute];
+            const record = this._dataProvider.getRecordsMap()[id];
+            this._syncRecordChangeFromOutside(record);
         }
     }
 
-    private _zoomToTasks(taskIds: string[]) {
-        const tasks = taskIds.map(id => this._store.getById(id)) as TaskModel[];
-        if (!tasks.length) return;
-
-        const startDate = new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())));
-        const endDate = new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())));
-
-        this._getGanttInstance().zoomToSpan({ startDate, endDate });
+    private _syncRecordChangeFromOutside(record: IRecord) {
+        const id = record.getRecordId();
+        const taskToUpdate = gantt.getTask(id);
+        const updatedTask = this._convertRecordToTask(record);
+        for (const key in updatedTask) {
+            if (key === 'parent') continue;
+            taskToUpdate[key] = updatedTask[key];
+        }
+        gantt.refreshTask(id);
     }
 }

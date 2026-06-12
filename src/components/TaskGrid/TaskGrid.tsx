@@ -4,7 +4,7 @@ import { useRef } from "react";
 import * as React from "react";
 import { AgGridLicenseKeyContext, DatasetControlContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext, usePcfContext } from "./context";
 import { DatasetControl as DatasetControlRenderer } from "../DatasetControl";
-import { IconButton, useTheme } from "@fluentui/react";
+import { Callout, IconButton, useTheme } from "@fluentui/react";
 import { getDatasetControlStyles } from "./styles";
 import { Grid } from "./components/grid";
 import { ITaskDataProvider } from "./providers/task";
@@ -14,7 +14,6 @@ import { ITaskGridState, TaskGridDatasetControlFactory } from "./TaskGridDataset
 import { Header } from "./components/header/Header";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
-import { GanttChart } from "./components/gannt";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
  //offset of the checkbox control button in ag-grid, used for calculating default grid pane size
 import { LocalizationService } from "../../utils";

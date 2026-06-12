@@ -25,9 +25,13 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
     const endDate = record.getFormattedValue(nativeColumns.endDate!);
     const durationDays = task.duration ?? 0;
     const durationFormatted = formatting.formatDuration(durationDays * 24 * 60);
+    const target = {
+        x: event.clientX + 10,
+        y: event.clientY + 12,
+    };
 
     return components.onRenderTaskTooltipCallout({
-        target: event,
+        target,
         directionalHint: DirectionalHint.bottomLeftEdge,
         directionalHintFixed: false,
         isBeakVisible: false,

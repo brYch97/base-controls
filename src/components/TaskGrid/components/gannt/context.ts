@@ -7,7 +7,12 @@ export interface ITaskTooltipProps {
     event: MouseEvent;
 }
 
+export interface ITaskTextProps {
+    task: Task;
+}
+
 export interface IGanttComponents {
+    onRenderTaskText: (props: ITaskTextProps) => React.ReactElement;
     onRenderTaskTooltip: (props: ITaskTooltipProps) => React.ReactElement;
     onRenderTaskTooltipCallout: (props: ICalloutProps) => React.ReactElement;
 }

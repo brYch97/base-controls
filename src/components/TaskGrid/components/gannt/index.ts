@@ -1,1 +1,1 @@
-export * from './GanttChart';
+export * from './Gantt';
