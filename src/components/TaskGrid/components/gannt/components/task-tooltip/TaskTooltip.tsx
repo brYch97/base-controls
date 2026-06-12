@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Callout, DirectionalHint, Icon, useTheme } from '@fluentui/react';
 import { Task } from 'dhtmlx-gantt';
-import { ITaskGridDatasetControl, useTaskDataProvider } from '../../../..';
+import { useTaskDataProvider } from '../../../../context';
 import { getTaskTooltipStyles } from './styles';
 import { Formatting } from '@talxis/client-libraries';
 import { useGanttComponents } from '../../context';
@@ -12,7 +12,7 @@ export interface ITaskTooltipProps {
 }
 
 export const TaskTooltip = (props: ITaskTooltipProps) => {
-    const { task, event} = props;
+    const { task, event } = props;
     const theme = useTheme();
     const styles = useMemo(() => getTaskTooltipStyles(theme), [theme]);
     const components = useGanttComponents();
@@ -47,7 +47,7 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
                     <div className={styles.row}>
                         <Icon iconName="CalendarReply" className={styles.icon} />
                         <span className={styles.label}>End</span>
-                        <span className={styles.value}>{        endDate}</span>
+                        <span className={styles.value}>{endDate}</span>
                     </div>
                     <div className={styles.row}>
                         <Icon iconName="Clock" className={styles.icon} />
@@ -60,4 +60,4 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
             </div>
         )
     });
-}
+};

@@ -5,9 +5,9 @@ import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { useDatasetControl } from '../..';
 import { getGanttStyles } from './styles';
 import { useTheme } from '@fluentui/react';
-import { GanttComponents, IGanttComponents } from './components/components';
+import { GanttComponents } from './components/components';
 import { TaskTooltip } from './components/task-tooltip';
-import { GanttComponentsContext } from './context';
+import { GanttComponentsContext, IGanttComponents } from './context';
 
 interface IGanttProps {
     components?: IGanttComponents;
