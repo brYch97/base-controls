@@ -42,8 +42,6 @@ export interface IDataverseTaskGridDescriptorParams {
     projectRecord?: RecordInput;
 
     height?: string;
-    /** Set to `true` to enable personal saved views (user queries) via {@link DataverseSavedQueryStrategy}. Defaults to `false`. */
-    enableUserQueries?: boolean;
     /** Fine-grained feature flags forwarded to the grid. See {@link ITaskGridParameters}. */
     gridParameters?: ITaskGridParameters;
     /** When set, the hierarchy is rooted at this task ID instead of showing all top-level tasks. */
@@ -121,7 +119,6 @@ export class DataverseTaskGridDescriptor implements ITaskGridDescriptor {
 
     /** Returns the field mapping with `stateCode` hard-coded to `"statecode"` (standard Dataverse attribute name). */
     public onGetFieldMapping(): IFieldMappingBase {
-        this
         return {
             ...this._fieldMapping,
             //dataverse uses this for all entities
@@ -136,7 +133,7 @@ export class DataverseTaskGridDescriptor implements ITaskGridDescriptor {
 
     /** Returns a {@link DataverseSavedQueryStrategy} when `enableUserQueries` is `true`, otherwise a read-only stub that exposes only the system queries. */
     public onCreateSavedQueryStrategy(): ISavedQueryStrategy {
-        if (this._gridParameters?.enableUserQueries !== false) {
+        if (this._gridParameters?.enableUserQueries) {
             return new DataverseSavedQueryStrategy({
                 onGetSystemQueries: async () => this._systemQueries,
                 ownerId: this._userId,
