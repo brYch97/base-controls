@@ -48,12 +48,10 @@ export class GanttManager2 implements IGanttManager {
                     return `<div data-react-mount="${task.id}"></div>`;
                 } */
         gantt.templates.tooltip_text = (start, end, task) => {
-            return `
-        <div class="my-tooltip">
-            <strong>${task.text}</strong>
-            <span>${gantt.templates.tooltip_date_format(start)} → ${gantt.templates.tooltip_date_format(end)}</span>
-        </div>
-    `;
+            setTimeout(() => {
+                ReactDOM.render(React.createElement(PrimaryButton, { children: 'Test' }), document.querySelector(`[data-react-mount="${task.id}"]`))
+            }, 100);
+            return `<div data-react-mount="${task.id}"></div>`;
         };
         gantt.templates.tooltp
         gantt.config.multiselect = true;
