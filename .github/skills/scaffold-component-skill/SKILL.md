@@ -15,63 +15,9 @@ Scaffold a new component in a new subfolder inside the current folder using repo
 
 If one or both values are missing, ask a concise clarification question before generating files.
 
-## Embedded Conventions
+## Conventions
 
-Apply these conventions directly when scaffolding.
-
-### Structure Conventions
-
-- Every component must have its own folder.
-- New component folder names must match the component name in kebab-case (for example: `LookupMany` -> `lookup-many`).
-- The main component implementation file must be named after the component in PascalCase (for example: `LookupMany.tsx`).
-- Component props interface must be named `I<ComponentName>Props`.
-- The props interface must be defined in the main component file (`<ComponentName>.tsx`), not in a separate `interfaces.ts` file, unless explicitly requested.
-- Component function parameter must always be named `props`.
-- Each component folder must include an `index.ts` file.
-- `index.ts` must export the component from the component implementation file:
-
-```ts
-export * from './ComponentName';
-```
-
-Legacy note:
-
-- Existing folders that use older naming can remain unchanged unless the task explicitly includes renaming/refactoring.
-
-### Styling Conventions
-
-- Keep component styling in a separate `styles.ts` file colocated with the component.
-- Do not define style objects inline in component `.tsx` files unless there is a temporary debugging reason.
-- In `styles.ts`, build styles with `mergeStyleSets` from `@fluentui/react`.
-- Export a styles factory function named `get<ComponentName>Styles`.
-- The function must end with `Styles` and include the component name.
-- For newly scaffolded components, style factory output must be exactly `{ root: {} }` unless explicitly requested otherwise.
-- In component `.tsx` files, call style factory functions inside `useMemo`.
-
-### Overridable UI Conventions
-
-- Apply only when `overridableUi=yes`.
-- `I<ComponentName>Props` must include `components?: Partial<I<ComponentName>Components>`.
-- `I<ComponentName>Components` must be scaffolded as an empty interface by default.
-- `I<ComponentName>Components` should be defined in `components/components.tsx`.
-- Do not scaffold a separate `interfaces.ts` file unless explicitly requested.
-- Do not scaffold any `onRender...` callback names unless explicitly requested.
-- Store default component mappings in a dedicated `components` subfolder.
-- Put default component mappings in `components/components.tsx`.
-- Add `components/index.ts` that exports everything from `components/components.tsx`.
-- In scaffolds, `components/components.tsx` must export an empty object placeholder:
-
-```ts
-export const <ComponentName>Components: I<ComponentName>Components = {};
-```
-
-- In component implementation, create a merged components object in the component body only when overridable UI is requested:
-
-```ts
-const components = { ...<ComponentName>Components, ...props.components };
-```
-
-- Do not scaffold render callback usage unless explicitly requested.
+Follow all rules from the component code style instructions (`.github/instructions/component-code-style.instructions.md`). Do not re-derive conventions here — use that file as the single source of truth for naming, structure, styling, props, and overridable UI patterns.
 
 ## Implementation Requirements
 

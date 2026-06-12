@@ -66,7 +66,7 @@ export class GanttManager2 implements IGanttManager {
             if (!taskId || !gantt.isTaskExists(taskId)) return;
              const task = gantt.getTask(taskId);
             ReactDOM.render(
-                React.createElement(TaskTooltip, { taskId, event, datasetControl: this._datasetControl }),
+                React.createElement(TaskTooltip, { task, event, datasetControl: this._datasetControl }),
                 tooltipMount
             );
 
