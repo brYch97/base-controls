@@ -5,10 +5,6 @@ import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
 import { GanttZooming, IGanttZooming } from './GanttZooming';
-import ReactDOM from 'react-dom';
-import React from 'react';
-import { Callout, PrimaryButton } from '@fluentui/react';
-import { TaskTooltip } from './components/task-tooltip';
 
 
 interface IInitParams {
@@ -21,6 +17,7 @@ interface IGanttManagerParams {
 
 export interface IGanttManager {
     onInit: (params: IInitParams) => void;
+    getGanttInstance: () => typeof gantt;
 }
 
 export class GanttManager2 implements IGanttManager {
@@ -29,7 +26,6 @@ export class GanttManager2 implements IGanttManager {
     private _bridge: IGanttGridBridge;
     private _zooming: IGanttZooming;
     private _expandedNodeSet: Set<string> = new Set();
-    private _container!: HTMLDivElement;
 
     constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
@@ -48,36 +44,12 @@ export class GanttManager2 implements IGanttManager {
         gantt.config.scale_height = 43;
         this._zooming.init();
         gantt.templates.task_row_class = (_start, _end, task) => task.active ? '' : 'gantt_row_inactive';
-        this._container = params.container;
         gantt.init(params.container);
-        this._setupTooltip();
         this._registerEventListeners();
     }
 
-    private _setupTooltip() {
-        const taskAttr = gantt.config.task_attribute;
-        const tooltipMount = document.createElement('div');
-        this._container.appendChild(tooltipMount);
-
-        this._container.addEventListener('mousemove', (event: MouseEvent) => {
-            const taskNode = (event.target as HTMLElement).closest<HTMLElement>(`[${taskAttr}]:not(.gantt_task_row)`);
-            if (!taskNode) return;
-            const taskId = taskNode.getAttribute(taskAttr);
-            if (!taskId || !gantt.isTaskExists(taskId)) return;
-             const task = gantt.getTask(taskId);
-            ReactDOM.render(
-                React.createElement(TaskTooltip, { task, event, datasetControl: this._datasetControl }),
-                tooltipMount
-            );
-
-        });
-
-        this._container.addEventListener('mouseout', (event: MouseEvent) => {
-            const related = event.relatedTarget as HTMLElement | null;
-            if (!related?.closest(`[${taskAttr}]:not(.gantt_task_row)`)) {
-                ReactDOM.unmountComponentAtNode(tooltipMount);
-            }
-        });
+    public getGanttInstance() {
+        return gantt;
     }
 
     private _registerEventListeners() {
@@ -94,7 +66,8 @@ export class GanttManager2 implements IGanttManager {
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
         gantt.attachEvent('onBeforeTaskDrag', (id) => !!gantt.getTask(id)?.active);
         gantt.attachEvent('onBeforeLinkAdd', (_id, link) => !!gantt.getTask(link.source)?.active && !!gantt.getTask(link.target)?.active);
-        gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onTaskDragged(id));
+        gantt.attachEvent('onTaskDrag', (id: string) => this._onTaskDrag(id));
+        gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onAfterTaskDrag(id));
         gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
     }
 
@@ -117,7 +90,7 @@ export class GanttManager2 implements IGanttManager {
         this._dataProvider.setSelectedRecordIds(gantt.getSelectedTasks());
     }
 
-    private async _onTaskDragged(taskId: string) {
+    private async _onTaskDrag(taskId: string) {
         const task = gantt.getTask(taskId);
         const record = this._dataProvider.getRecordsMap()[taskId];
 
@@ -126,7 +99,10 @@ export class GanttManager2 implements IGanttManager {
 
         record.setValue(startColumnName, task.start_date);
         record.setValue(endColumnName, task.end_date);
-        record.save();
+    }
+
+    private _onAfterTaskDrag(taskId: string) {
+        this._dataProvider.getRecordsMap()[taskId].save();
     }
 
     private _loadTasksToGantt() {
