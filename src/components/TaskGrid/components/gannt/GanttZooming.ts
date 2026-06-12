@@ -1,4 +1,4 @@
-import { gantt } from 'dhtmlx-gantt';
+import { GanttStatic } from 'dhtmlx-gantt';
 import { ITaskGridDatasetControl } from '../../interfaces';
 import { ITaskDataProvider } from '../../providers';
 
@@ -9,20 +9,24 @@ export interface IGanttZooming {
 
 interface IGanttZoomingParams {
     datasetControl: ITaskGridDatasetControl;
+    gantt: GanttStatic;
 }
 
 export class GanttZooming implements IGanttZooming {
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
+    private _gantt: GanttStatic;
 
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
+        this._gantt = params.gantt;
         this._taskDataProvider = params.datasetControl.getDataProvider();
     }
 
     public init() {
-        //gantt.config.fit_tasks = true;
-        gantt.ext.zoom.init(this._getZoomConfig() as any);
+        this._gantt.ext.zoom.init({
+
+        });
     }
 
     public zoomToFitSelectedTasks() {
@@ -31,9 +35,9 @@ export class GanttZooming implements IGanttZooming {
 
         // Single task selected — just scroll it into view without changing zoom
         if (selectedRecordIds.length === 1) {
-            const task = gantt.getTask(selectedRecordIds[0]);
+            const task = this._gantt.getTask(selectedRecordIds[0]);
             if (task?.start_date) {
-                gantt.showDate(task.start_date);
+                this._gantt.showDate(task.start_date);
             }
             return;
         }
@@ -42,7 +46,7 @@ export class GanttZooming implements IGanttZooming {
         let maxDate: Date | null = null;
 
         for (const taskId of selectedIds) {
-            const task = gantt.getTask(taskId);
+            const task = this._gantt.getTask(taskId);
             if (!task) continue;
             if (task.start_date && (!minDate || task.start_date < minDate)) minDate = task.start_date;
             if (task.end_date && (!maxDate || task.end_date > maxDate)) maxDate = task.end_date;
@@ -50,11 +54,18 @@ export class GanttZooming implements IGanttZooming {
 
         if (!minDate || !maxDate) return;
 
-        this._applyZoomToFit(minDate, maxDate);
+        this._gantt.ext.zoom.zoomToFit({
+            range: {
+                start_date: minDate,
+                end_date: maxDate,
+            }
+        })
+
+        //this._applyZoomToFit(minDate, maxDate);
     }
 
     private _applyZoomToFit(startDate: Date, endDate: Date) {
-        const areaWidth = (gantt as any).$task?.offsetWidth ?? gantt.$container?.offsetWidth ?? 800;
+        const areaWidth = (this._gantt as any).$task?.offsetWidth ?? this._gantt.$container?.offsetWidth ?? 800;
         const levels = this._getZoomConfig().levels;
 
         let targetLevelIndex = levels.length - 1; // default: coarsest
@@ -64,7 +75,7 @@ export class GanttZooming implements IGanttZooming {
             const bottomScale = scalesArr[scalesArr.length - 1];
             const topScale = scalesArr[0];
             const columnCount = this._getUnitsBetween(startDate, endDate, bottomScale.unit, topScale.step ?? 1);
-            if ((columnCount + 2) * gantt.config.min_column_width <= areaWidth) {
+            if ((columnCount + 2) * this._gantt.config.min_column_width <= areaWidth) {
                 targetLevelIndex = i;
                 break;
             }
@@ -72,9 +83,9 @@ export class GanttZooming implements IGanttZooming {
 
         const level = levels[targetLevelIndex] as any;
         const levelName = level.name ?? targetLevelIndex;
-        gantt.ext.zoom.setLevel(levelName);
-        gantt.render();
-        gantt.showDate(startDate);
+        this._gantt.ext.zoom.setLevel(levelName);
+        this._gantt.render();
+        this._gantt.showDate(startDate);
     }
 
     // Count calendar units between two dates using gantt.date.add for accuracy
@@ -84,7 +95,7 @@ export class GanttZooming implements IGanttZooming {
         let units = 0;
         while (start.valueOf() < end.valueOf()) {
             units++;
-            start = gantt.date.add(start, step, unit as any);
+            start = this._gantt.date.add(start, step, unit as any);
         }
         return units;
     }
@@ -154,8 +165,8 @@ export class GanttZooming implements IGanttZooming {
             ],
             useKey: 'ctrlKey',
             trigger: 'wheel',
-            element: function () {
-                return gantt.$root.querySelector('.gantt_task');
+            element: () => {
+                return this._gantt.$root.querySelector('.gantt_task');
             },
         };
     }

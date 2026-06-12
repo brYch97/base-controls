@@ -49,7 +49,7 @@ export const Gantt = (props: IGanttProps) => {
         if (!ref.current) {
             throw new Error("Gantt container ref is not assigned");
         }
-        ganttManager.onInit({ container: ref.current });
+        ganttManager.init({ container: ref.current });
         ref.current.addEventListener('mousemove', onMouseMove);
         ref.current.addEventListener('mouseout', onMouseOut);
 
