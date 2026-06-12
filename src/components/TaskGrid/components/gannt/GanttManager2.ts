@@ -47,6 +47,7 @@ export class GanttManager2 implements IGanttManager {
     private _registerEventListeners() {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
         this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[result.recordId]));
+        this._dataProvider.addEventListener('onRecordsSelected', (recordIds) => this._onRecordsSelected(recordIds));
         //this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
         this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', () => this._loadTasksToGantt());
@@ -58,6 +59,20 @@ export class GanttManager2 implements IGanttManager {
         gantt.attachEvent('onBeforeTaskDrag', (id) => !!gantt.getTask(id)?.active);
         gantt.attachEvent('onBeforeLinkAdd', (_id, link) => !!gantt.getTask(link.source)?.active && !!gantt.getTask(link.target)?.active);
         gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onTaskDragged(id));
+    }
+
+    private _onRecordsSelected(recordIds: string[]) {
+        const selectedIds = new Set((recordIds ?? []).map(id => String(id)));
+        gantt.eachTask((task: any) => {
+            const taskId = String(task.id);
+            const isSelected = gantt.isSelectedTask(task.id);
+            if (selectedIds.has(taskId) && !isSelected) {
+                (gantt as any).selectTask(task.id, true);
+            }
+            if (!selectedIds.has(taskId) && isSelected) {
+                gantt.unselectTask(task.id);
+            }
+        });
     }
 
     private async _onTaskDragged(taskId: string) {
