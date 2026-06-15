@@ -1,173 +1,111 @@
-import { GanttStatic } from 'dhtmlx-gantt';
+import { GanttStatic, ZoomConfig } from 'dhtmlx-gantt';
 import { ITaskGridDatasetControl } from '../../interfaces';
 import { ITaskDataProvider } from '../../providers';
+import { IGanttDates } from './GanttDates';
 
 export interface IGanttZooming {
-    init: () => void;
-    zoomToFitSelectedTasks: () => void;
 }
 
 interface IGanttZoomingParams {
     datasetControl: ITaskGridDatasetControl;
     gantt: GanttStatic;
+    dates: IGanttDates;
 }
 
 export class GanttZooming implements IGanttZooming {
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
+    private _dates: IGanttDates;
 
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
+        //@ts-ignore
+        window.GANTT = this._gantt;
+        this._dates = params.dates;
+        this._gantt.config.scale_height = 43;
+        this._gantt.ext.zoom.init(this._getZoomConfig());
         this._taskDataProvider = params.datasetControl.getDataProvider();
+        this._registerEventListeners();
+
     }
 
-    public init() {
-        this._gantt.ext.zoom.init({
 
-        });
-    }
-
-    public zoomToFitSelectedTasks() {
-        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
-        const selectedIds = selectedRecordIds.length > 0 ? selectedRecordIds : this._taskDataProvider.getSortedRecordIds();
-
-        // Single task selected — just scroll it into view without changing zoom
-        if (selectedRecordIds.length === 1) {
-            const task = this._gantt.getTask(selectedRecordIds[0]);
-            if (task?.start_date) {
-                this._gantt.showDate(task.start_date);
-            }
-            return;
-        }
-
-        let minDate: Date | null = null;
-        let maxDate: Date | null = null;
-
-        for (const taskId of selectedIds) {
-            const task = this._gantt.getTask(taskId);
-            if (!task) continue;
-            if (task.start_date && (!minDate || task.start_date < minDate)) minDate = task.start_date;
-            if (task.end_date && (!maxDate || task.end_date > maxDate)) maxDate = task.end_date;
-        }
-
-        if (!minDate || !maxDate) return;
-
-        this._gantt.ext.zoom.zoomToFit({
-            range: {
-                start_date: minDate,
-                end_date: maxDate,
-            }
-        })
-
-        //this._applyZoomToFit(minDate, maxDate);
-    }
-
-    private _applyZoomToFit(startDate: Date, endDate: Date) {
-        const areaWidth = (this._gantt as any).$task?.offsetWidth ?? this._gantt.$container?.offsetWidth ?? 800;
-        const levels = this._getZoomConfig().levels;
-
-        let targetLevelIndex = levels.length - 1; // default: coarsest
-
-        for (let i = 0; i < levels.length; i++) {
-            const scalesArr: any[] = (levels[i] as any).scales ?? levels[i];
-            const bottomScale = scalesArr[scalesArr.length - 1];
-            const topScale = scalesArr[0];
-            const columnCount = this._getUnitsBetween(startDate, endDate, bottomScale.unit, topScale.step ?? 1);
-            if ((columnCount + 2) * this._gantt.config.min_column_width <= areaWidth) {
-                targetLevelIndex = i;
-                break;
-            }
-        }
-
-        const level = levels[targetLevelIndex] as any;
-        const levelName = level.name ?? targetLevelIndex;
-        this._gantt.ext.zoom.setLevel(levelName);
-        this._gantt.render();
-        this._gantt.showDate(startDate);
-    }
-
-    // Count calendar units between two dates using gantt.date.add for accuracy
-    private _getUnitsBetween(from: Date, to: Date, unit: string, step: number): number {
-        let start = new Date(from);
-        const end = new Date(to);
-        let units = 0;
-        while (start.valueOf() < end.valueOf()) {
-            units++;
-            start = this._gantt.date.add(start, step, unit as any);
-        }
-        return units;
-    }
-
-    private _getZoomConfig() {
+    private _getZoomConfig(): ZoomConfig {
         return {
             minColumnWidth: 20,
             maxColumnWidth: 300,
-            keepCurrentTime: true,
             levels: [
                 {
                     name: 'day',
+                    scale_height: 43,
+                    min_column_width: 70,
                     scales: [
-                        { unit: 'month', format: '%F %Y', step: 1 },
-                        { unit: 'day', format: '%d %D', step: 1 },
-                    ],
-                },
-                {
-                    name: '3days',
-                    scales: [
-                        { unit: 'month', format: '%F %Y', step: 1 },
-                        { unit: 'day', format: '%d', step: 3 },
+                        { unit: 'day', step: 1, format: '%d %M' },
                     ],
                 },
                 {
                     name: 'week',
+                    scale_height: 43,
                     scales: [
-                        { unit: 'month', format: '%F %Y', step: 1 },
-                        { unit: 'week', format: 'W%W', step: 1 },
-                    ],
-                },
-                {
-                    name: '2weeks',
-                    scales: [
-                        { unit: 'month', format: '%F %Y', step: 2 },
-                        { unit: 'week', format: 'W%W', step: 2 },
+                        {
+                            unit: 'week',
+                            step: 1,
+                            format: (date: Date) => {
+                                const formatDate = this._gantt.date.date_to_str('%d %M');
+                                const endDate = this._gantt.date.add(this._gantt.date.add(date, 1, 'week'), -1, 'day');
+                                return `${formatDate(date)} - ${formatDate(endDate)}`;
+                            },
+                        },
                     ],
                 },
                 {
                     name: 'month',
+                    scale_height: 43,
                     scales: [
-                        { unit: 'year', format: '%Y', step: 1 },
-                        { unit: 'month', format: '%M', step: 1 },
-                    ],
-                },
-                {
-                    name: '2months',
-                    scales: [
-                        { unit: 'year', format: '%Y', step: 1 },
-                        { unit: 'month', format: '%M', step: 2 },
-                    ],
-                },
-                {
-                    name: 'quarter',
-                    scales: [
-                        { unit: 'year', format: '%Y', step: 1 },
-                        { unit: 'month', format: '%M', step: 3 },
+                        { unit: 'month', step: 1, format: '%F, %Y' },
+                        { unit: 'day', step: 1, format: '%j, %D' },
                     ],
                 },
                 {
                     name: 'year',
+                    scale_height: 43,
                     scales: [
-                        { unit: 'year', format: '%Y', step: 1 },
-                        { unit: 'month', format: '%M', step: 6 },
+                        { unit: 'year', step: 1, format: '%Y' },
+                        { unit: 'month', step: 1, format: '%M' },
                     ],
                 },
             ],
             useKey: 'ctrlKey',
             trigger: 'wheel',
             element: () => {
-                return this._gantt.$root.querySelector('.gantt_task');
+                return this._gantt.$root.querySelector('.gantt_task')!;
             },
         };
+    }
+
+    private _zoomToFit() {
+        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
+        if (selectedRecordIds.length === 0) {
+            this._gantt.ext.zoom.zoomToFit();
+        }
+        else {
+            const selectedRecords = selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]);
+            const { startDate, endDate } = this._dates.getStartEndDateFromRecords(selectedRecords);
+            this._gantt.ext.zoom.zoomToFit({
+                range: {
+                    start_date: startDate,
+                    end_date: endDate,
+                },
+                rangeMode: 'preserve'
+            });
+            this._gantt.show
+        }
+    }
+
+    private _registerEventListeners() {
+        this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
+        this._taskDataProvider.addEventListener('onNewDataLoaded', () => this._zoomToFit());
     }
 }

@@ -1,5 +1,4 @@
-import { Task } from 'dhtmlx-gantt';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { useDatasetControl } from '../..';
 import { getGanttStyles } from './styles';
@@ -7,6 +6,8 @@ import { useTheme } from '@fluentui/react';
 import { GanttComponents } from './components/components';
 import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
+import { useTooltip } from './hooks/useTooltip';
+import { useSelectionBox } from './hooks/useSelectionBox';
 
 interface IGanttProps {
     components?: Partial<IGanttComponents>;
@@ -20,48 +21,36 @@ export const Gantt = (props: IGanttProps) => {
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
-    const [tooltip, setTooltip] = useState<{ task: Task; event: MouseEvent } | null>(null);
-
-    const onMouseMove = useCallback((event: MouseEvent) => {
-        const taskAttr = gantt.config.task_attribute;
-        const taskNode = (event.target as HTMLElement).closest<HTMLElement>(`[${taskAttr}]:not(.gantt_task_row)`);
-        if (!taskNode) {
-            setTooltip(null);
-            return;
-        }
-        const taskId = taskNode.getAttribute(taskAttr);
-        if (!taskId || !gantt.isTaskExists(taskId)) {
-            setTooltip(null);
-            return;
-        }
-        setTooltip({ task: gantt.getTask(taskId), event });
-    }, []);
-
-    const onMouseOut = useCallback((event: MouseEvent) => {
-        const taskAttr = gantt.config.task_attribute;
-        const related = event.relatedTarget as HTMLElement | null;
-        if (!related?.closest(`[${taskAttr}]:not(.gantt_task_row)`)) {
-            setTooltip(null);
-        }
-    }, []);
+    const tooltip = useTooltip({ container: ref.current, gantt });
+    const selectionBox = useSelectionBox({ container: ref.current, gantt, dataProvider: datasetControl.getDataProvider() });
 
     useEffect(() => {
         if (!ref.current) {
             throw new Error("Gantt container ref is not assigned");
         }
         ganttManager.init({ container: ref.current });
-        ref.current.addEventListener('mousemove', onMouseMove);
-        ref.current.addEventListener('mouseout', onMouseOut);
-
-        return () => {
-            ref.current?.removeEventListener('mousemove', onMouseMove);
-            ref.current?.removeEventListener('mouseout', onMouseOut);
-        };
     }, []);
 
     return (
         <>
-            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }} />
+            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%', position: 'relative' }}>
+                {selectionBox && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: selectionBox.left,
+                            top: selectionBox.top,
+                            width: selectionBox.width,
+                            height: selectionBox.height,
+                            border: `1px solid ${theme.palette.themePrimary}`,
+                            backgroundColor: theme.palette.themeLighterAlt,
+                            opacity: 0.35,
+                            pointerEvents: 'none',
+                            zIndex: 10,
+                        }}
+                    />
+                )}
+            </div>
             <GanttComponentsContext.Provider value={components}>
                 {tooltip && components.onRenderTaskTooltip({ task: tooltip.task, event: tooltip.event })}
             </GanttComponentsContext.Provider>

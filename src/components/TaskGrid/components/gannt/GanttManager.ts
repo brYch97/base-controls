@@ -5,6 +5,7 @@ import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
 import { GanttZooming, IGanttZooming } from './GanttZooming';
+import { GanttDates } from './GanttDates';
 
 
 interface IInitParams {
@@ -25,8 +26,10 @@ export class GanttManager implements IGanttManager {
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
     private _zooming: IGanttZooming;
+    private _dates: GanttDates;
     private _gantt: GanttStatic;
     private _expandedNodeSet: Set<string> = new Set();
+    private _selectionAnchorTaskId: string | null = null;
 
 
     constructor(params: IGanttManagerParams) {
@@ -34,16 +37,15 @@ export class GanttManager implements IGanttManager {
         this._datasetControl = params.datasetControl;
         this._dataProvider = this._datasetControl.getDataProvider();
         this._bridge = this._datasetControl.ganttGridBridge;
-        this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt });
+        this._dates = new GanttDates({ datasetControl: this._datasetControl });
+        this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
     }
 
     public init(params: IInitParams) {
-        this._gantt.config.multiselect = true;
         this._gantt.config.show_grid = false;
+        this._gantt.config.select_task = false;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
-        this._gantt.config.scale_height = 43;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
-        this._zooming.init();
         this._gantt.init(params.container);
         this._registerEventListeners();
     }
@@ -64,9 +66,13 @@ export class GanttManager implements IGanttManager {
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._gantt.scrollTo(undefined, scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
-        this._gantt.attachEvent('onTaskDrag', (id: string) => this._onTaskDrag(id));
+        this._gantt.attachEvent('onTaskDrag', (id: string, mode) => this._onTaskDrag(id, mode));
         this._gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onAfterTaskDrag(id));
         this._gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
+        this._gantt.attachEvent('onTaskClick', (id: string, e?: MouseEvent) => {
+            this._onRecordSelectedFromGantt(id, e);
+            return true;
+        });
     }
 
     private _getTaskRowClass(task: Task) {
@@ -75,7 +81,7 @@ export class GanttManager implements IGanttManager {
         if (!task.active) {
             classNames.push('gantt_row_inactive');
         }
-        if(this._dataProvider.getSelectedRecordIds().includes(id)) {
+        if (this._dataProvider.getSelectedRecordIds().includes(id)) {
             classNames.push('gantt_selected');
         }
         return classNames.join(' ');
@@ -83,45 +89,113 @@ export class GanttManager implements IGanttManager {
 
     private _onRecordsSelected(recordIds: string[]) {
         this._gantt.render();
-/*         const selectedIds = new Set((recordIds ?? []).map(id => String(id)));
-        this._gantt.eachTask((task: any) => {
-            const taskId = String(task.id);
-            const isSelected = this._gantt.isSelectedTask(task.id);
-            if (selectedIds.has(taskId) && !isSelected) {
-                (this._gantt as any).selectTask(task.id, true);
+        /*         const selectedIds = new Set((recordIds ?? []).map(id => String(id)));
+                this._gantt.eachTask((task: any) => {
+                    const taskId = String(task.id);
+                    const isSelected = this._gantt.isSelectedTask(task.id);
+                    if (selectedIds.has(taskId) && !isSelected) {
+                        (this._gantt as any).selectTask(task.id, true);
+                    }
+                    if (!selectedIds.has(taskId) && isSelected) {
+                        (this._gantt as any).unselectTask(task.id);
+                    }
+                });
+                this._zooming.zoomToFitSelectedTasks(); */
+    }
+
+    private _onRecordSelectedFromGantt(taskId: string, event?: MouseEvent) {
+        if (event?.shiftKey) {
+            const visibleTaskIds = this._getVisibleTaskIds();
+            const anchorTaskId = this._selectionAnchorTaskId ?? taskId;
+            const clickedTaskIndex = visibleTaskIds.indexOf(taskId);
+            const anchorTaskIndex = visibleTaskIds.indexOf(anchorTaskId);
+
+            if (clickedTaskIndex >= 0 && anchorTaskIndex >= 0) {
+                const rangeStart = Math.min(anchorTaskIndex, clickedTaskIndex);
+                const rangeEnd = Math.max(anchorTaskIndex, clickedTaskIndex);
+                const rangeTaskIds = visibleTaskIds.slice(rangeStart, rangeEnd + 1);
+                const selectedRecordIds = this._dataProvider.getSelectedRecordIds();
+                const nextSelectedIds = event.ctrlKey || event.metaKey
+                    ? Array.from(new Set([...selectedRecordIds, ...rangeTaskIds]))
+                    : rangeTaskIds;
+
+                this._dataProvider.setSelectedRecordIds(nextSelectedIds);
             }
-            if (!selectedIds.has(taskId) && isSelected) {
-                (this._gantt as any).unselectTask(task.id);
+
+            return;
+        }
+
+        this._selectionAnchorTaskId = taskId;
+        if (!event?.ctrlKey && !event?.metaKey) {
+            this._dataProvider.setSelectedRecordIds([taskId]);
+        }
+        else {
+            this._dataProvider.toggleSelectedRecordId(taskId, {
+                clearExisting: !(event?.ctrlKey || event?.metaKey)
+            });
+        }
+    }
+
+    private _getVisibleTaskIds(): string[] {
+        const taskIds: string[] = [];
+        this._gantt.eachTask((task: Task) => {
+            if (this._gantt.isTaskVisible(task.id)) {
+                taskIds.push(String(task.id));
             }
         });
-        this._zooming.zoomToFitSelectedTasks(); */
+
+        return taskIds;
     }
 
-    private _onRecordSelectedFromGantt(taskId: string) {
-        //this._dataProvider.setSelectedRecordIds((this._gantt as any).getSelectedTasks());
-    }
-
-    private async _onTaskDrag(taskId: string) {
+    private async _onTaskDrag(taskId: string, mode: string) {
         const draggedTask = this._gantt.getTask(taskId);
-        const record = this._dataProvider.getRecordsMap()[taskId];
+        const startColumnName = this._dates.getStartDateColumnName();
+        const endColumnName = this._dates.getEndDateColumnName();
 
-        const startColumnName = this._getStartDateColumn().name;
-        const endColumnName = this._getEndDateColumn().name;
+        if (mode === 'resize') {
+            const record = this._dataProvider.getRecordsMap()[taskId];
+            record.setValue(startColumnName, draggedTask.start_date);
+            record.setValue(endColumnName, draggedTask.end_date);
+        }
 
-        const selectedTasks = this._dataProvider.getSelectedRecordIds().map(id => this._gantt.getTask(id));
-        for (const selectedTask of selectedTasks) {
-            const selectedRecord = this._dataProvider.getRecordsMap()[selectedTask.id];
-            selectedRecord.setValue(startColumnName, selectedTask.start_date);
-            selectedRecord.setValue(endColumnName, selectedTask.end_date);
-            selectedTask.start_date = draggedTask.start_date;
-            selectedTask.end_date = draggedTask.end_date;
+        else {
+            const selectedRecordIds = this._dataProvider.getSelectedRecordIds();
+            const selectedTaskIds = new Set<string>(
+                selectedRecordIds.includes(taskId) ? selectedRecordIds : [taskId]
+            );
+            const draggedRecord = this._dataProvider.getRecordsMap()[taskId];
+            const originalDraggedStartDate = draggedRecord.getValue(startColumnName);
+            const originalDraggedStartTime = this._dates.getDateFromString(originalDraggedStartDate)?.getTime();
+            const draggedTaskStartTime = draggedTask.start_date?.getTime();
+
+            if (originalDraggedStartTime === undefined || draggedTaskStartTime === undefined) {
+                return;
+            }
+
+            const draggedOffset = draggedTaskStartTime - originalDraggedStartTime;
+
+            for (const selectedTaskId of selectedTaskIds) {
+                const selectedTask = this._gantt.getTask(selectedTaskId);
+                const selectedRecord = this._dataProvider.getRecordsMap()[selectedTaskId];
+                const originalStartDate = this._dates.getDateFromString(selectedRecord.getValue(startColumnName));
+                const originalEndDate = this._dates.getDateFromString(selectedRecord.getValue(endColumnName));
+
+                if (!originalStartDate || !originalEndDate) {
+                    continue;
+                }
+
+                selectedTask.start_date = new Date(originalStartDate.getTime() + draggedOffset);
+                selectedTask.end_date = new Date(originalEndDate.getTime() + draggedOffset);
+
+                selectedRecord.setValue(startColumnName, selectedTask.start_date);
+                selectedRecord.setValue(endColumnName, selectedTask.end_date);
+            }
         }
         this._gantt.render();
     }
 
     private _onAfterTaskDrag(taskId: string) {
         this._dataProvider.save();
-        //this._dataProvider.getRecordsMap()[taskId].save();
     }
 
     private _loadTasksToGantt() {
@@ -131,20 +205,13 @@ export class GanttManager implements IGanttManager {
         this._gantt.parse({
             data: data
         });
-        this._zooming.zoomToFitSelectedTasks();
-
-    }
-
-    private _getDateFromString(date: string | null): Date | null {
-        if (!date) return null;
-        return new Date(date);
     }
 
     private _convertRecordToTask(record: IRecord): any {
         const parentColumnName = this._datasetControl.getNativeColumns().parentId;
         const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
-        let startDate = this._getDateFromString(record.getValue(this._getStartDateColumn().name));
-        let endDate = this._getDateFromString(record.getValue(this._getEndDateColumn().name));
+        let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName()));
+        let endDate = this._dates.getDateFromString(record.getValue(this._dates.getEndDateColumnName()));
 
         if (!startDate) {
             startDate = new Date();
@@ -162,24 +229,6 @@ export class GanttManager implements IGanttManager {
             active: record.isActive(),
             open: this.isTaskExpandedByDefault(record.getRecordId()),
         };
-    }
-
-    private _getStartDateColumn(): IColumn {
-        const startDateColumnName = this._datasetControl.getNativeColumns().startDate;
-        const startDateColumn = this._dataProvider.getColumnsMap()[startDateColumnName!];
-        if (!startDateColumn) {
-            throw new Error("Start date column is not defined in the dataset, cannot render Gantt chart. Please make sure that the dataset contains a start date column and that it is properly mapped in the dataset control.");
-        }
-        return startDateColumn;
-    }
-
-    private _getEndDateColumn(): IColumn {
-        const endDateColumnName = this._datasetControl.getNativeColumns().endDate;
-        const endDateColumn = this._dataProvider.getColumnsMap()[endDateColumnName!];
-        if (!endDateColumn) {
-            throw new Error("End date column is not defined in the dataset, cannot render Gantt chart. Please make sure that the dataset contains an end date column and that it is properly mapped in the dataset control.");
-        }
-        return endDateColumn;
     }
 
     private isTaskExpandedByDefault(recordId: string): boolean {
