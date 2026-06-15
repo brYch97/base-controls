@@ -233,7 +233,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			dragStateRef.current = null;
 			lastMouseEventRef.current = null;
 			bufferedSelectionRef.current = null;
-			updatePreviewClasses([]);
+            setTimeout(() => updatePreviewClasses([]), 0);
 			setSelectionBox(null);
 		};
 
