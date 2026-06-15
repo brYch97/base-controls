@@ -123,25 +123,25 @@ export const getGanttStyles = (theme: ITheme) => {
                     cursor: 'not-allowed',
                 },
             },
-                '.gantt_task_row.gantt_selected': {
-                    backgroundColor: 'transparent !important',
-                    position: 'relative',
-                    '::after': {
-                        content: '""',
-                        opacity: 0.2,
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundColor: theme.palette.themePrimary,
-                        pointerEvents: 'none',
-                        zIndex: 0,
-                    },
+            '.gantt_task_row.gantt_selected': {
+                backgroundColor: 'transparent !important',
+                position: 'relative',
+                '::after': {
+                    content: '""',
+                    opacity: 0.2,
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: theme.palette.themePrimary,
+                    pointerEvents: 'none',
+                    zIndex: 0,
                 },
-            '.gantt_task_line.gantt_selection_preview': {
-                boxShadow: `0 0 0 2px ${theme.palette.themePrimary}, 0 8px 18px ${theme.palette.themeLight}`,
+            },
+            '.gantt_task_line.gantt_task_selected, .gantt_task_line.gantt_selection_preview': {
                 filter: 'brightness(1.06) saturate(1.08)',
-                transition: 'box-shadow 120ms ease, filter 120ms ease',
+                transition: 'outline-color 120ms ease, filter 120ms ease',
                 zIndex: 2,
             },
+            position: 'relative',
             '.gantt_task_content': {
                 textOverflow: 'ellipsis',
                 paddingLeft: 5,
@@ -151,6 +151,14 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_task_scale': {
                 fontWeight: 600
             }
+        },
+        selectionBox: {
+            position: 'absolute',
+            border: `1px solid ${theme.palette.themePrimary}`,
+            backgroundColor: theme.palette.themeLighterAlt,
+            opacity: 0.35,
+            pointerEvents: 'none',
+            zIndex: 10,
         },
         ganttContainer: {
             height: '100%',

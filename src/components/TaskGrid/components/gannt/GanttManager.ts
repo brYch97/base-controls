@@ -46,6 +46,8 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.select_task = false;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
+        this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
+        this._gantt.templates.task
         this._gantt.init(params.container);
         this._registerEventListeners();
     }
@@ -83,6 +85,15 @@ export class GanttManager implements IGanttManager {
         }
         if (this._dataProvider.getSelectedRecordIds().includes(id)) {
             classNames.push('gantt_selected');
+        }
+        return classNames.join(' ');
+    }
+
+    private _getTaskClass(task: Task) {
+        const id = task.id as string;
+        const classNames = [];
+        if(this._dataProvider.getSelectedRecordIds().includes(id)) {
+            classNames.push('gantt_task_selected');
         }
         return classNames.join(' ');
     }

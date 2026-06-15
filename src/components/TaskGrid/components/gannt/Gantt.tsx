@@ -33,20 +33,15 @@ export const Gantt = (props: IGanttProps) => {
 
     return (
         <>
-            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }}>
                 {selectionBox && (
                     <div
+                        className={styles.selectionBox}
                         style={{
-                            position: 'absolute',
                             left: selectionBox.left,
                             top: selectionBox.top,
                             width: selectionBox.width,
                             height: selectionBox.height,
-                            border: `1px solid ${theme.palette.themePrimary}`,
-                            backgroundColor: theme.palette.themeLighterAlt,
-                            opacity: 0.35,
-                            pointerEvents: 'none',
-                            zIndex: 10,
                         }}
                     />
                 )}
