@@ -205,7 +205,7 @@ export class GanttManager implements IGanttManager {
             }
         }
         this._ganttSelectionLock = true;
-        setTimeout(() => this._ganttSelectionLock = false, 0);
+        setTimeout(() => this._ganttSelectionLock = false, 100);
         this._gantt.render();
     }
 
