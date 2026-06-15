@@ -30,7 +30,6 @@ export class GanttManager implements IGanttManager {
     private _gantt: GanttStatic;
     private _expandedNodeSet: Set<string> = new Set();
     private _selectionAnchorTaskId: string | null = null;
-    private _ganttSelectionLock = false;
 
 
     constructor(params: IGanttManagerParams) {
@@ -116,7 +115,6 @@ export class GanttManager implements IGanttManager {
     }
 
     private _onRecordSelectedFromGantt(taskId: string, event?: MouseEvent) {
-        if(this._ganttSelectionLock) return;
         if (event?.shiftKey) {
             const visibleTaskIds = this._getVisibleTaskIds();
             const anchorTaskId = this._selectionAnchorTaskId ?? taskId;
@@ -204,8 +202,6 @@ export class GanttManager implements IGanttManager {
                 selectedRecord.setValue(endColumnName, selectedTask.end_date);
             }
         }
-        this._ganttSelectionLock = true;
-        setTimeout(() => this._ganttSelectionLock = false, 100);
         this._gantt.render();
     }
 

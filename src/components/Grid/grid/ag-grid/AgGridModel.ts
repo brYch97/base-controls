@@ -593,7 +593,7 @@ export class AgGridModel extends EventEmitter<IAgGridModelEvents> {
             selectedNodes = gridApi.getSelectedNodes();
         });
         //if we click a grouped record, do not propagate the selection to children
-        const providerSelectedRecordIdsMap = new Map<IDataProvider, string[]>();
+        const providerSelectedRecordIdsMap = new Map<IDataProvider, string[]>([[this._grid.getDataset().getDataProvider(), []]]);
         selectedNodes.map(node => {
             const record = node.data!;
             const provider = record.getDataProvider();

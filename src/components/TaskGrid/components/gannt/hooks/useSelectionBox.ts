@@ -198,7 +198,12 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			}
 
 			const target = event.target as HTMLElement | null;
-			const timelineArea = target?.closest('.gantt_task_bg, .gantt_task_data, .gantt_bars_area, .gantt_task_cell');
+			const startedOnTask = target?.closest('.gantt_task_line, .gantt_task_content, .gantt_task_drag, .gantt_link_control');
+			if (startedOnTask) {
+				return;
+			}
+
+			const timelineArea = target?.closest('.gantt_task_bg, .gantt_task_cell');
 			if (!timelineArea) {
 				return;
 			}
