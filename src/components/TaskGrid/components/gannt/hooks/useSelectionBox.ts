@@ -28,6 +28,7 @@ interface IDragState {
 const DRAG_THRESHOLD = 4;
 const AUTO_SCROLL_EDGE_SIZE = 32;
 const AUTO_SCROLL_STEP = 24;
+const SELECTION_PREVIEW_CLASS = 'gantt_selection_preview';
 
 export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 	const [selectionBox, setSelectionBox] = useState<ISelectionBoxState | null>(null);
@@ -87,6 +88,26 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			return selectedIds;
 		};
 
+		const updatePreviewClasses = (taskIds: string[]) => {
+			const taskAttr = params.gantt.config.task_attribute;
+			const previewTaskIds = new Set(taskIds);
+			const previewNodes = params.container!.querySelectorAll<HTMLElement>(`.${SELECTION_PREVIEW_CLASS}`);
+
+			previewNodes.forEach(node => node.classList.remove(SELECTION_PREVIEW_CLASS));
+
+			if (previewTaskIds.size === 0) {
+				return;
+			}
+
+			const taskNodes = params.container!.querySelectorAll<HTMLElement>(`[${taskAttr}]`);
+			taskNodes.forEach(taskNode => {
+				const taskId = taskNode.getAttribute(taskAttr);
+				if (taskId && previewTaskIds.has(taskId)) {
+					taskNode.classList.add(SELECTION_PREVIEW_CLASS);
+				}
+			});
+		};
+
 		const updateBufferedSelection = (event: MouseEvent) => {
 			const dragState = dragStateRef.current;
 			if (!dragState) {
@@ -102,6 +123,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			if (width < DRAG_THRESHOLD && height < DRAG_THRESHOLD) {
 				setSelectionBox(null);
 				bufferedSelectionRef.current = null;
+				updatePreviewClasses([]);
 				return;
 			}
 
@@ -114,6 +136,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 				: taskIdsInRect;
 
 			bufferedSelectionRef.current = nextSelectedIds;
+			updatePreviewClasses(taskIdsInRect);
 		};
 
 		const stopAutoScroll = () => {
@@ -187,6 +210,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			};
 			lastMouseEventRef.current = event;
 			bufferedSelectionRef.current = null;
+			updatePreviewClasses([]);
 			setSelectionBox(null);
 		};
 
@@ -209,6 +233,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			dragStateRef.current = null;
 			lastMouseEventRef.current = null;
 			bufferedSelectionRef.current = null;
+			updatePreviewClasses([]);
 			setSelectionBox(null);
 		};
 
@@ -218,6 +243,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 
 		return () => {
 			stopAutoScroll();
+			updatePreviewClasses([]);
 			params.container?.removeEventListener('mousedown', onMouseDown);
 			window.removeEventListener('mousemove', onMouseMove);
 			window.removeEventListener('mouseup', onMouseUp);

@@ -136,6 +136,12 @@ export const getGanttStyles = (theme: ITheme) => {
                         zIndex: 0,
                     },
                 },
+            '.gantt_task_line.gantt_selection_preview': {
+                boxShadow: `0 0 0 2px ${theme.palette.themePrimary}, 0 8px 18px ${theme.palette.themeLight}`,
+                filter: 'brightness(1.06) saturate(1.08)',
+                transition: 'box-shadow 120ms ease, filter 120ms ease',
+                zIndex: 2,
+            },
             '.gantt_task_content': {
                 textOverflow: 'ellipsis',
                 paddingLeft: 5,
