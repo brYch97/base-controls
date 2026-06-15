@@ -31,17 +31,17 @@ const AUTO_SCROLL_STEP = 24;
 
 export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 	const [selectionBox, setSelectionBox] = useState<ISelectionBoxState | null>(null);
-	const [dragState, setDragState] = useState<IDragState | null>(null);
 	const bufferedSelectionRef = useRef<string[] | null>(null);
 	const lastMouseEventRef = useRef<MouseEvent | null>(null);
 	const autoScrollFrameRef = useRef<number | null>(null);
+	const dragStateRef = useRef<IDragState | null>(null);
+	const dragStartSelectionRef = useRef<Set<string>>(new Set<string>());
 
 	useEffect(() => {
 		if (!params.container) {
 			return;
 		}
 
-		let dragStartSelection = new Set<string>();
 		const timelineContainer = params.container.querySelector<HTMLElement>('.gantt_data_area');
 
 		const getContainerPoint = (event: MouseEvent): IPoint => {
@@ -88,6 +88,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		};
 
 		const updateBufferedSelection = (event: MouseEvent) => {
+			const dragState = dragStateRef.current;
 			if (!dragState) {
 				return;
 			}
@@ -109,7 +110,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 
 			const taskIdsInRect = getTaskBarIdsInRect(nextBox);
 			const nextSelectedIds = dragState.additive
-				? Array.from(new Set([...dragStartSelection, ...taskIdsInRect]))
+				? Array.from(new Set([...dragStartSelectionRef.current, ...taskIdsInRect]))
 				: taskIdsInRect;
 
 			bufferedSelectionRef.current = nextSelectedIds;
@@ -123,7 +124,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		};
 
 		const tickAutoScroll = () => {
-			if (!dragState || !timelineContainer || !lastMouseEventRef.current) {
+			if (!dragStateRef.current || !timelineContainer || !lastMouseEventRef.current) {
 				stopAutoScroll();
 				return;
 			}
@@ -179,18 +180,18 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 				return;
 			}
 
-			dragStartSelection = new Set(params.dataProvider.getSelectedRecordIds());
-			setDragState({
+			dragStartSelectionRef.current = new Set(params.dataProvider.getSelectedRecordIds());
+			dragStateRef.current = {
 				anchor: getContainerPoint(event),
 				additive: Boolean(event.ctrlKey || event.metaKey),
-			});
+			};
 			lastMouseEventRef.current = event;
 			bufferedSelectionRef.current = null;
 			setSelectionBox(null);
 		};
 
 		const onMouseMove = (event: MouseEvent) => {
-			if (!dragState) {
+			if (!dragStateRef.current) {
 				return;
 			}
 
@@ -205,9 +206,9 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 				params.dataProvider.setSelectedRecordIds(bufferedSelectionRef.current);
 			}
 
+			dragStateRef.current = null;
 			lastMouseEventRef.current = null;
 			bufferedSelectionRef.current = null;
-			setDragState(null);
 			setSelectionBox(null);
 		};
 
@@ -221,7 +222,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 			window.removeEventListener('mousemove', onMouseMove);
 			window.removeEventListener('mouseup', onMouseUp);
 		};
-	}, [dragState]);
+	}, [params.container, params.dataProvider, params.gantt]);
 
 	return selectionBox;
 }
