@@ -40,6 +40,10 @@ export class GanttZooming implements IGanttZooming {
         { value: 10, unit: 'day', snap: 'hour' },     // minutes
     ];
 
+    // While a fit-to-range is in progress the onAfterZoom handler must not
+    // re-apply the centered per-level window (that would clobber the fitted range).
+    private _isFitting = false;
+
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
@@ -191,26 +195,104 @@ export class GanttZooming implements IGanttZooming {
 
     private _zoomToFit() {
         const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
+        let startDate: Date;
+        let endDate: Date;
+
         if (selectedRecordIds.length === 0) {
-            this._gantt.ext.zoom.zoomToFit();
+            // No selection — fit to every task currently loaded.
+            startDate = this._dates.getStartDate();
+            endDate = this._dates.getEndDate();
         }
         else {
             const selectedRecords = selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]);
-            const { startDate, endDate } = this._dates.getStartEndDateFromRecords(selectedRecords);
-            this._gantt.ext.zoom.zoomToFit({
-                range: {
-                    start_date: startDate,
-                    end_date: endDate,
-                },
-                rangeMode: 'preserve'
-            });
+            const range = this._dates.getStartEndDateFromRecords(selectedRecords);
+            startDate = range.startDate;
+            endDate = range.endDate;
+        }
+
+        this._fitToRange(startDate, endDate);
+    }
+
+    private _fitToRange(startDate: Date, endDate: Date) {
+        if (!startDate || !endDate) {
+            return;
+        }
+        // Guarantee a positive duration even when a single instantaneous task is selected.
+        let start = new Date(Math.min(startDate.getTime(), endDate.getTime()));
+        let end = new Date(Math.max(startDate.getTime(), endDate.getTime()));
+        if (start.getTime() === end.getTime()) {
+            end = this._gantt.date.add(end, 1, 'day');
+        }
+
+        // Pad the range by 5% on each side so the first/last task aren't flush
+        // against the timeline edges.
+        const padding = Math.max((end.getTime() - start.getTime()) * 0.05, 0);
+        start = new Date(start.getTime() - padding);
+        end = new Date(end.getTime() + padding);
+
+        this._isFitting = true;
+        try {
+            // Pick the finest zoom level whose rendered range still fits inside the
+            // viewport, so every task is visible in its entirety without scrolling.
+            // Walk from coarsest to finest and keep the last level that fits.
+            const viewport = this._gantt.$task?.offsetWidth ?? 0;
+            let chosen = 0;
+            for (let level = 0; level < this._levelSpans.length; level++) {
+                try {
+                    this._applyFittedRange(level, start, end);
+                    this._gantt.ext.zoom.setLevel(level);
+                    this._gantt.render();
+                    const width = this._gantt.posFromDate(end) - this._gantt.posFromDate(start);
+                    if (viewport > 0 && width > viewport) {
+                        break;
+                    }
+                    chosen = level;
+                } catch {
+                    break;
+                }
+            }
+
+            this._applyFittedRange(chosen, start, end);
+            this._gantt.ext.zoom.setLevel(chosen);
+            this._gantt.render();
+            this._gantt.showDate(start);
+        }
+        finally {
+            this._isFitting = false;
         }
     }
+
+    private _applyFittedRange(level: number, start: Date, end: Date) {
+        const span = this._levelSpans[level] ?? this._levelSpans[0];
+
+        // The zoom level and scroll target are derived from the fitted range, but
+        // the rendered window must still contain every task — dhtmlx drops any
+        // task whose dates fall outside config.start_date/end_date, which would
+        // make non-selected tasks disappear from the timeline entirely.
+        let rangeStart = start;
+        let rangeEnd = end;
+        const taskStart = this._dates.getStartDate();
+        const taskEnd = this._dates.getEndDate();
+        if (taskStart && taskStart.getTime() < rangeStart.getTime()) {
+            rangeStart = taskStart;
+        }
+        if (taskEnd && taskEnd.getTime() > rangeEnd.getTime()) {
+            rangeEnd = taskEnd;
+        }
+
+        this._gantt.config.start_date = this._snapDown(rangeStart, span.snap);
+        this._gantt.config.end_date = this._snapUp(rangeEnd, span.snap);
+    }
+
 
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._taskDataProvider.addEventListener('onNewDataLoaded', () => this._zoomToFit());
         this._gantt.ext.zoom.attachEvent('onAfterZoom', (level: string | number) => {
+            // A fit-to-range sets the window explicitly; don't override it.
+            if (this._isFitting) {
+                return;
+            }
             // Keep the date that was in the middle of the viewport before the zoom
             // centered after it, and resize the rendered window to the new level so
             // the number of columns stays bounded.
