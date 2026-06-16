@@ -35,7 +35,6 @@ export class GanttZooming implements IGanttZooming {
         { value: 25, unit: 'year', snap: 'year' },    // years / quarters
         { value: 10, unit: 'year', snap: 'year' },    // months
         { value: 3, unit: 'year', snap: 'month' },    // months / weeks
-        { value: 18, unit: 'month', snap: 'month' },  // month / days
         { value: 6, unit: 'month', snap: 'day' },     // week / days
         { value: 1, unit: 'month', snap: 'day' },     // day / hours
         { value: 10, unit: 'day', snap: 'hour' },     // minutes
@@ -71,8 +70,20 @@ export class GanttZooming implements IGanttZooming {
 
     private _applyDateRangeForLevel(levelIndex: number, centerDate: Date) {
         const span = this._levelSpans[levelIndex] ?? this._levelSpans[0];
-        const rawStart = this._gantt.date.add(centerDate, -span.value, span.unit);
-        const rawEnd = this._gantt.date.add(centerDate, span.value, span.unit);
+        let rawStart = this._gantt.date.add(centerDate, -span.value, span.unit);
+        let rawEnd = this._gantt.date.add(centerDate, span.value, span.unit);
+
+        // Always keep every task inside the rendered window so tasks that fall
+        // outside the centered span are never clipped from the timeline.
+        const taskStart = this._dates.getStartDate();
+        const taskEnd = this._dates.getEndDate();
+        if (taskStart && taskStart.getTime() < rawStart.getTime()) {
+            rawStart = taskStart;
+        }
+        if (taskEnd && taskEnd.getTime() > rawEnd.getTime()) {
+            rawEnd = taskEnd;
+        }
+
         this._gantt.config.start_date = this._snapDown(rawStart, span.snap);
         this._gantt.config.end_date = this._snapUp(rawEnd, span.snap);
     }
@@ -151,28 +162,12 @@ export class GanttZooming implements IGanttZooming {
                         },
                     ],
                 },
-                // "Month" — month / days
-                {
-                    name: 'month',
-                    scale_height: 43,
-                    scales: [
-                        { unit: 'month', step: 1, format: '%F %Y' },
-                        { unit: 'day', step: 1, format: '%j' },
-                    ],
-                },
-                // "Week" — week / days
+                // "Week" — couple of weeks in view, wide day columns
                 {
                     name: 'week',
                     scale_height: 43,
                     scales: [
-                        {
-                            unit: 'week',
-                            step: 1,
-                            format: (date: Date) => {
-                                const dateToStr = this._gantt.date.date_to_str('%d %M %Y');
-                                return dateToStr(date);
-                            },
-                        },
+                        { unit: 'month', step: 1, format: '%F %Y' },
                         { unit: 'day', step: 1, format: '%d %M' },
                     ],
                 },
@@ -195,7 +190,6 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _zoomToFit() {
-        return;
         const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
         if (selectedRecordIds.length === 0) {
             this._gantt.ext.zoom.zoomToFit();
