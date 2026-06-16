@@ -8,6 +8,8 @@ import dayjs from 'dayjs';
 export interface IGanttZooming {
 }
 
+type SnapUnit = 'year' | 'quarter' | 'month' | 'week' | 'day' | 'hour' | 'minute';
+
 interface IGanttZoomingParams {
     datasetControl: ITaskGridDatasetControl;
     gantt: GanttStatic;
@@ -21,6 +23,24 @@ export class GanttZooming implements IGanttZooming {
     private _dates: IGanttDates;
     private _formatting = Formatting.Get();
 
+    // Half-width of the visible timeline window per zoom level (centered on the
+    // currently visible date) plus the unit its boundaries snap to. Coarse levels
+    // use a wide window, fine levels a narrow one. This keeps the number of
+    // rendered columns bounded — without it, fine levels (hours/minutes) over a
+    // multi-decade range generate millions of columns and dhtmlx throws
+    // "Too many properties to enumerate". Snapping to a clean unit boundary keeps
+    // the scale labels aligned (e.g. 30-min slots land on :00/:30, quarters on Q1).
+    private readonly _levelSpans: Array<{ value: number; unit: SnapUnit; snap: SnapUnit }> = [
+        { value: 50, unit: 'year', snap: 'year' },    // multiple-years
+        { value: 25, unit: 'year', snap: 'year' },    // years / quarters
+        { value: 10, unit: 'year', snap: 'year' },    // months
+        { value: 3, unit: 'year', snap: 'month' },    // months / weeks
+        { value: 18, unit: 'month', snap: 'month' },  // month / days
+        { value: 6, unit: 'month', snap: 'day' },     // week / days
+        { value: 1, unit: 'month', snap: 'day' },     // day / hours
+        { value: 10, unit: 'day', snap: 'hour' },     // minutes
+    ];
+
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
@@ -29,13 +49,41 @@ export class GanttZooming implements IGanttZooming {
         this._dates = params.dates;
         this._gantt.config.scale_height = 43;
         this._gantt.config.min_column_width = 80;
-        const now = new Date();
-        this._gantt.config.start_date = this._formatting.dateFormattingInfo.calendar.minSupportedDateTime;
-        this._gantt.config.end_date = new Date(2099, 11, 31);
         this._gantt.ext.zoom.init(this._getZoomConfig());
+        this._applyDateRangeForLevel(this._gantt.ext.zoom.getCurrentLevel(), new Date());
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
 
+    }
+
+    private _getCenterDate(): Date {
+        try {
+            const scroll = this._gantt.getScrollState();
+            const taskWidth = this._gantt.$task?.offsetWidth ?? 0;
+            if (scroll && typeof scroll.x === 'number' && taskWidth > 0) {
+                return this._gantt.dateFromPos(scroll.x + taskWidth / 2);
+            }
+        } catch {
+            // fall through to default
+        }
+        return new Date();
+    }
+
+    private _applyDateRangeForLevel(levelIndex: number, centerDate: Date) {
+        const span = this._levelSpans[levelIndex] ?? this._levelSpans[0];
+        const rawStart = this._gantt.date.add(centerDate, -span.value, span.unit);
+        const rawEnd = this._gantt.date.add(centerDate, span.value, span.unit);
+        this._gantt.config.start_date = this._snapDown(rawStart, span.snap);
+        this._gantt.config.end_date = this._snapUp(rawEnd, span.snap);
+    }
+
+    private _snapDown(date: Date, unit: SnapUnit): Date {
+        return this._gantt.date[`${unit}_start`](new Date(date));
+    }
+
+    private _snapUp(date: Date, unit: SnapUnit): Date {
+        const floored = this._gantt.date[`${unit}_start`](new Date(date));
+        return floored.getTime() === date.getTime() ? floored : this._gantt.date.add(floored, 1, unit);
     }
 
 
@@ -137,15 +185,6 @@ export class GanttZooming implements IGanttZooming {
                         { unit: 'hour', step: 1, format: '%H:%i' },
                     ],
                 },
-                // "Minutes" — hour / 30-minute slots
-                {
-                    name: 'minutes',
-                    scale_height: 43,
-                    scales: [
-                        { unit: 'hour', step: 1, format: '%d %M, %H:%i' },
-                        { unit: 'minute', step: 30, format: '%H:%i' },
-                    ],
-                },
             ],
             useKey: 'ctrlKey',
             trigger: 'wheel',
@@ -177,5 +216,15 @@ export class GanttZooming implements IGanttZooming {
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._taskDataProvider.addEventListener('onNewDataLoaded', () => this._zoomToFit());
+        this._gantt.ext.zoom.attachEvent('onAfterZoom', (level: string | number) => {
+            // Keep the date that was in the middle of the viewport before the zoom
+            // centered after it, and resize the rendered window to the new level so
+            // the number of columns stays bounded.
+            const center = this._getCenterDate();
+            this._applyDateRangeForLevel(Number(level), center);
+            this._gantt.render();
+            const pos = this._gantt.posFromDate(center);
+            this._gantt.scrollTo(pos - (this._gantt.$task?.offsetWidth ?? 0) / 2, null);
+        });
     }
 }
