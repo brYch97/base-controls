@@ -92,7 +92,7 @@ export class GanttManager implements IGanttManager {
     private _getTaskClass(task: Task) {
         const id = task.id as string;
         const classNames = [];
-        if(this._dataProvider.getSelectedRecordIds().includes(id)) {
+        if (this._dataProvider.getSelectedRecordIds().includes(id)) {
             classNames.push('gantt_task_selected');
         }
         return classNames.join(' ');
@@ -162,6 +162,7 @@ export class GanttManager implements IGanttManager {
         const draggedTask = this._gantt.getTask(taskId);
         const startColumnName = this._dates.getStartDateColumnName();
         const endColumnName = this._dates.getEndDateColumnName();
+        const selectedRecordIds = this._dataProvider.getSelectedRecordIds();
 
         if (mode === 'resize') {
             const record = this._dataProvider.getRecordsMap()[taskId];
@@ -170,7 +171,6 @@ export class GanttManager implements IGanttManager {
         }
 
         else {
-            const selectedRecordIds = this._dataProvider.getSelectedRecordIds();
             const selectedTaskIds = new Set<string>(
                 selectedRecordIds.includes(taskId) ? selectedRecordIds : [taskId]
             );
@@ -202,7 +202,9 @@ export class GanttManager implements IGanttManager {
                 selectedRecord.setValue(endColumnName, selectedTask.end_date);
             }
         }
-        this._gantt.render();
+        if (selectedRecordIds.length > 1) {
+            this._gantt.render();
+        }
     }
 
     private _onAfterTaskDrag(taskId: string) {

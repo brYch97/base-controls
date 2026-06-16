@@ -8,6 +8,7 @@ import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTooltip } from './hooks/useTooltip';
 import { useSelectionBox } from './hooks/useSelectionBox';
+import ReactDOM from 'react-dom';
 
 interface IGanttProps {
     components?: Partial<IGanttComponents>;

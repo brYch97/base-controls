@@ -25,6 +25,7 @@ export class GanttZooming implements IGanttZooming {
         window.GANTT = this._gantt;
         this._dates = params.dates;
         this._gantt.config.scale_height = 43;
+        this._gantt.config.min_column_width = 80;
         this._gantt.ext.zoom.init(this._getZoomConfig());
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
@@ -32,48 +33,89 @@ export class GanttZooming implements IGanttZooming {
     }
 
 
+    private _hourRangeFormat(step: number): (date: Date) => string {
+        const hourToStr = this._gantt.date.date_to_str('%H:%i');
+        return (date: Date) => {
+            const intervalEnd = new Date(this._gantt.date.add(date, step, 'hour').getTime() - 1);
+            return `${hourToStr(date)} - ${hourToStr(intervalEnd)}`;
+        };
+    }
+
     private _getZoomConfig(): ZoomConfig {
         return {
-            minColumnWidth: 20,
-            maxColumnWidth: 300,
+            minColumnWidth: 80,
+            maxColumnWidth: 150,
             levels: [
                 {
-                    name: 'day',
-                    scale_height: 43,
-                    min_column_width: 70,
-                    scales: [
-                        { unit: 'day', step: 1, format: '%d %M' },
-                    ],
-                },
-                {
-                    name: 'week',
+                    name: 'year+quarter',
                     scale_height: 43,
                     scales: [
+                        { unit: 'year', step: 1, format: '%Y' },
                         {
-                            unit: 'week',
-                            step: 1,
+                            unit: 'month',
+                            step: 3,
                             format: (date: Date) => {
-                                const formatDate = this._gantt.date.date_to_str('%d %M');
-                                const endDate = this._gantt.date.add(this._gantt.date.add(date, 1, 'week'), -1, 'day');
-                                return `${formatDate(date)} - ${formatDate(endDate)}`;
+                                const q = Math.floor(date.getMonth() / 3) + 1;
+                                return `Q${q}`;
                             },
                         },
                     ],
                 },
                 {
-                    name: 'month',
-                    scale_height: 43,
-                    scales: [
-                        { unit: 'month', step: 1, format: '%F, %Y' },
-                        { unit: 'day', step: 1, format: '%j, %D' },
-                    ],
-                },
-                {
-                    name: 'year',
+                    name: 'year+month',
                     scale_height: 43,
                     scales: [
                         { unit: 'year', step: 1, format: '%Y' },
                         { unit: 'month', step: 1, format: '%M' },
+                    ],
+                },
+                {
+                    name: 'month+week',
+                    scale_height: 43,
+                    scales: [
+                        { unit: 'month', step: 1, format: '%M %Y' },
+                        {
+                            unit: 'week',
+                            step: 1,
+                            format: (date: Date) => {
+                                const dateToStr = this._gantt.date.date_to_str('%d %M');
+                                const weekToStr = this._gantt.date.date_to_str('%W');
+                                const endDate = this._gantt.date.add(date, 7 - date.getDay(), 'day');
+                                return `Week #${weekToStr(date)}, ${dateToStr(date)} - ${dateToStr(endDate)}`;
+                            },
+                        },
+                    ],
+                },
+                {
+                    name: 'month+day',
+                    scale_height: 43,
+                    scales: [
+                        { unit: 'month', step: 1, format: '%M %Y' },
+                        { unit: 'day', step: 1, format: '%d %M' },
+                    ],
+                },
+                {
+                    name: 'day+12h',
+                    scale_height: 43,
+                    scales: [
+                        { unit: 'day', step: 1, format: '%d %M' },
+                        { unit: 'hour', step: 12, format: this._hourRangeFormat(12) },
+                    ],
+                },
+                {
+                    name: 'day+6h',
+                    scale_height: 43,
+                    scales: [
+                        { unit: 'day', step: 1, format: '%d %M' },
+                        { unit: 'hour', step: 6, format: this._hourRangeFormat(6) },
+                    ],
+                },
+                {
+                    name: 'day+1h',
+                    scale_height: 43,
+                    scales: [
+                        { unit: 'day', step: 1, format: '%d %M' },
+                        { unit: 'hour', step: 1, format: '%H:%i' },
                     ],
                 },
             ],
@@ -100,7 +142,6 @@ export class GanttZooming implements IGanttZooming {
                 },
                 rangeMode: 'preserve'
             });
-            this._gantt.show
         }
     }
 

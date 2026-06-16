@@ -12,7 +12,7 @@ export interface ITaskTextProps {
 }
 
 export interface IGanttComponents {
-    onRenderTaskText: (props: ITaskTextProps) => React.ReactElement;
+    //onRenderTaskText: (props: ITaskTextProps) => React.ReactElement;
     onRenderTaskTooltip: (props: ITaskTooltipProps) => React.ReactElement;
     onRenderTaskTooltipCallout: (props: ICalloutProps) => React.ReactElement;
 }
