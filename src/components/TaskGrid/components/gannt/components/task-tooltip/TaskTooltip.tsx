@@ -14,10 +14,9 @@ export interface ITaskTooltipProps {
 export const TaskTooltip = (props: ITaskTooltipProps) => {
     const { task, event } = props;
     const theme = useTheme();
-    const styles = useMemo(() => getTaskTooltipStyles(theme), [theme]);
     const components = useGanttComponents();
     const formatting = Formatting.Get();
-    const taskDataProvider = useTaskDataProvider(); 
+    const taskDataProvider = useTaskDataProvider();
     const nativeColumns = taskDataProvider.getNativeColumns();
     const record = taskDataProvider.getRecordsMap()[task.id];
     const name = record.getValue(nativeColumns.subject);
@@ -29,6 +28,22 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
         x: event.clientX + 10,
         y: event.clientY + 12,
     };
+
+    const getStatusCodeColor = (): string => {
+        let color = theme.palette.themePrimary; // Default color
+        if (nativeColumns.statusCode) {
+            const statusCode = record.getValue(nativeColumns.statusCode);
+            const statusCodeColumn = taskDataProvider.getColumnsMap()[nativeColumns.statusCode];
+            const options = statusCodeColumn.metadata?.OptionSet ?? [];
+            color = options.find(option => option.Value == statusCode)?.Color ?? color;
+
+        }
+        return color;
+    }
+
+    const statusDotColor = getStatusCodeColor();
+
+    const styles = useMemo(() => getTaskTooltipStyles(theme, statusDotColor), [theme, statusDotColor]);
 
     return components.onRenderTaskTooltipCallout({
         target,

@@ -30,7 +30,8 @@ export interface IFieldMapping {
     stackRank: string;
     /** Active/inactive status attribute. Used by the "Hide inactive tasks" filter. */
     stateCode: string;
-
+    /** Status code attribute. */
+    statusCode?: string;
     startDate?: string;
     endDate?: string;
 }

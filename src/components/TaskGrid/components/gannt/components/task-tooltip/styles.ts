@@ -1,6 +1,6 @@
 import { ITheme, mergeStyleSets } from '@fluentui/react';
 
-export const getTaskTooltipStyles = (theme: ITheme) => {
+export const getTaskTooltipStyles = (theme: ITheme, statusDotColor: string) => {
     return mergeStyleSets({
         root: {
             padding: '12px 16px',
@@ -20,7 +20,7 @@ export const getTaskTooltipStyles = (theme: ITheme) => {
             height: 8,
             borderRadius: '50%',
             flexShrink: 0,
-            backgroundColor: theme.palette.themePrimary,
+            backgroundColor: statusDotColor,
         },
         title: {
             fontWeight: 600,
