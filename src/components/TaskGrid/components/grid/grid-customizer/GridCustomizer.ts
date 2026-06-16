@@ -429,7 +429,10 @@ export class GridCustomizer implements IGridCustomizer {
 
     private _onGanttScrolled(scrollTop: number) {
         const viewport = this._getAgGridBodyViewport();
-        if (viewport) {
+        // Skip when already aligned. Assigning the same scrollTop would emit a
+        // redundant scroll event that bounces back through the bridge, so this
+        // short-circuit breaks any echo loop regardless of suppression timing.
+        if (viewport && viewport.scrollTop !== scrollTop) {
             viewport.style.scrollBehavior = 'auto';
             viewport.scrollTop = scrollTop;
         }
@@ -437,12 +440,18 @@ export class GridCustomizer implements IGridCustomizer {
 
     private _onGanttRowExpanded(taskId: string) {
         const node = this._gridApi.getRowNode(taskId);
-        node?.setExpanded(true);
+        // Only toggle when the state actually differs; setExpanded re-fires
+        // rowGroupOpened, which would bounce back through the bridge.
+        if (node && !node.expanded) {
+            node.setExpanded(true);
+        }
     }
 
     private _onGanttRowCollapsed(taskId: string) {
         const node = this._gridApi.getRowNode(taskId);
-        node?.setExpanded(false);
+        if (node && node.expanded) {
+            node.setExpanded(false);
+        }
     }
 
 

@@ -66,7 +66,7 @@ export class GanttManager implements IGanttManager {
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
         this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._onAgGridTaskExpanded(taskId));
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
-        this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._gantt.scrollTo(undefined, scrollTop));
+        this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
         this._gantt.attachEvent('onTaskDrag', (id: string, mode) => this._onTaskDrag(id, mode));
         this._gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onAfterTaskDrag(id));
@@ -211,9 +211,33 @@ export class GanttManager implements IGanttManager {
         this._dataProvider.save();
     }
 
+    private _onAgGridScrolled(scrollTop: number) {
+        // Skip when already aligned. Setting the same scroll position would emit a
+        // redundant scroll event that bounces back through the bridge, so this
+        // short-circuit breaks any echo loop regardless of suppression timing.
+        if (this._gantt.getScrollState()?.y === scrollTop) {
+            return;
+        }
+        this._gantt.scrollTo(undefined, scrollTop);
+    }
+
     private _loadTasksToGantt() {
+        // The gantt's current open-state is what is actually in sync with the grid
+        // (it is driven by the grid's live expand/collapse events). Snapshot it so a
+        // reload preserves it instead of recomputing from defaults, which would
+        // collapse groups the grid still shows expanded.
+        const previousOpenState = new Map<string, boolean>();
+        this._gantt.eachTask((task: Task) => previousOpenState.set(String(task.id), !!task.$open));
+
         const records = this._dataProvider.getRecordTree().getNode(null).allChildren;
-        const data = records.map(record => this._convertRecordToTask(record));
+        const data = records.map(record => {
+            const task = this._convertRecordToTask(record);
+            const previousOpen = previousOpenState.get(String(task.id));
+            if (previousOpen !== undefined) {
+                task.open = previousOpen;
+            }
+            return task;
+        });
         this._gantt.clearAll();
         this._gantt.parse({
             data: data
@@ -259,17 +283,26 @@ export class GanttManager implements IGanttManager {
     }
 
     private _onAgGridTaskExpanded(taskId: string) {
-        this._gantt.open(taskId);
+        // Persist intent even if the task is not currently rendered, so it opens
+        // when it next loads. Only call open() when a state change is actually
+        // needed to avoid redundant work and re-render churn.
         this._expandedNodeSet.add(taskId);
+        if (this._gantt.isTaskExists(taskId) && !this._gantt.getTask(taskId).$open) {
+            this._gantt.open(taskId);
+        }
     }
 
     private _onAgGridTaskCollapsed(taskId: string) {
-        this._gantt.close(taskId);
         this._expandedNodeSet.delete(taskId);
+        if (this._gantt.isTaskExists(taskId) && this._gantt.getTask(taskId).$open) {
+            this._gantt.close(taskId);
+        }
     }
 
     private _getScrollingContainer(): Element {
-        const container = document.querySelector('.gantt_data_area');
+        // Scope to this gantt instance's root so multiple TaskGrids on the same
+        // page don't bind to or scroll each other's timeline container.
+        const container = this._gantt.$root?.querySelector('.gantt_data_area');
         if (!container) {
             throw new Error("Could not find Gantt scrolling container");
         }
