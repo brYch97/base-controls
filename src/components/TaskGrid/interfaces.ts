@@ -32,7 +32,11 @@ export interface IFieldMapping {
     stateCode: string;
     /** Status code attribute. */
     statusCode?: string;
+    /** Percent complete attribute. */
+    percentComplete?: string;
+    /** Start date attribute. */
     startDate?: string;
+    /** End date attribute. */
     endDate?: string;
 }
 

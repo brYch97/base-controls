@@ -22,6 +22,7 @@ export interface IGanttManager {
 }
 
 export class GanttManager implements IGanttManager {
+    private static readonly _outsideLabelWidthThreshold = 96;
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
@@ -44,10 +45,12 @@ export class GanttManager implements IGanttManager {
     public init(params: IInitParams) {
         this._gantt.config.show_grid = false;
         this._gantt.config.select_task = false;
+        this._gantt.config.details_on_dblclick = false;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
-        this._gantt.templates.task
+        this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
+        this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
         this._gantt.init(params.container);
         this._registerEventListeners();
     }
@@ -59,8 +62,7 @@ export class GanttManager implements IGanttManager {
     private _registerEventListeners() {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
         this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[result.recordId]));
-        this._dataProvider.addEventListener('onRecordsSelected', (recordIds) => this._onRecordsSelected(recordIds));
-        //this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
+        this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
         this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
@@ -68,6 +70,7 @@ export class GanttManager implements IGanttManager {
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
+        this._gantt.attachEvent('onBeforeTaskDrag', (id: string) => this._canDragTask(id));
         this._gantt.attachEvent('onTaskDrag', (id: string, mode) => this._onTaskDrag(id, mode));
         this._gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onAfterTaskDrag(id));
         this._gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
@@ -75,6 +78,12 @@ export class GanttManager implements IGanttManager {
             this._onRecordSelectedFromGantt(id, e);
             return true;
         });
+        this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
+    }
+
+    private _onTaskDblClick(taskId: string, event?: MouseEvent) {
+        this._dataProvider.openTaskItems([taskId]);
+        return false;
     }
 
     private _getTaskRowClass(task: Task) {
@@ -98,20 +107,17 @@ export class GanttManager implements IGanttManager {
         return classNames.join(' ');
     }
 
-    private _onRecordsSelected(recordIds: string[]) {
-        this._gantt.render();
-        /*         const selectedIds = new Set((recordIds ?? []).map(id => String(id)));
-                this._gantt.eachTask((task: any) => {
-                    const taskId = String(task.id);
-                    const isSelected = this._gantt.isSelectedTask(task.id);
-                    if (selectedIds.has(taskId) && !isSelected) {
-                        (this._gantt as any).selectTask(task.id, true);
-                    }
-                    if (!selectedIds.has(taskId) && isSelected) {
-                        (this._gantt as any).unselectTask(task.id);
-                    }
-                });
-                this._zooming.zoomToFitSelectedTasks(); */
+    private _getTaskInnerText(start: Date, end: Date, task: Task) {
+        return this._shouldRenderTaskLabelOutside(start, end) ? '' : task.text;
+    }
+
+    private _getTaskOutsideLeftText(start: Date, end: Date, task: Task) {
+        return this._shouldRenderTaskLabelOutside(start, end) ? task.text : '';
+    }
+
+    private _shouldRenderTaskLabelOutside(start: Date, end: Date) {
+        const width = this._gantt.posFromDate(end) - this._gantt.posFromDate(start);
+        return width > 0 && width < GanttManager._outsideLabelWidthThreshold;
     }
 
     private _onRecordSelectedFromGantt(taskId: string, event?: MouseEvent) {
@@ -158,6 +164,11 @@ export class GanttManager implements IGanttManager {
         return taskIds;
     }
 
+    private _canDragTask(taskId: string) {
+        const task = this._gantt.getTask(taskId);
+        return !!task?.active;
+    }
+
     private async _onTaskDrag(taskId: string, mode: string) {
         const draggedTask = this._gantt.getTask(taskId);
         const startColumnName = this._dates.getStartDateColumnName();
@@ -172,7 +183,8 @@ export class GanttManager implements IGanttManager {
 
         else {
             const selectedTaskIds = new Set<string>(
-                selectedRecordIds.includes(taskId) ? selectedRecordIds : [taskId]
+                (selectedRecordIds.includes(taskId) ? selectedRecordIds : [taskId])
+                    .filter(selectedTaskId => this._gantt.getTask(selectedTaskId)?.active)
             );
             const draggedRecord = this._dataProvider.getRecordsMap()[taskId];
             const originalDraggedStartDate = draggedRecord.getValue(startColumnName);
@@ -244,7 +256,7 @@ export class GanttManager implements IGanttManager {
         });
     }
 
-    private _convertRecordToTask(record: IRecord): any {
+    private _convertRecordToTask(record: IRecord): Task {
         const parentColumnName = this._datasetControl.getNativeColumns().parentId;
         const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
         let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName()));
@@ -262,10 +274,19 @@ export class GanttManager implements IGanttManager {
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
+            progress: this._getPercentComplete(record),
             parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
             active: record.isActive(),
             open: this.isTaskExpandedByDefault(record.getRecordId()),
         };
+    }
+
+    private _getPercentComplete(record: IRecord): number {
+        const percentCompleteColName = this._datasetControl.getNativeColumns().percentComplete;
+        if(!percentCompleteColName) {
+            return 0;
+        }
+        return (record.getValue(percentCompleteColName) ?? 0) / 100;
     }
 
     private isTaskExpandedByDefault(recordId: string): boolean {

@@ -119,7 +119,7 @@ export const getGanttStyles = (theme: ITheme) => {
                     backgroundColor: theme.semanticColors.disabledBackground,
                     opacity: 0.5,
                     zIndex: 1,
-                    pointerEvents: 'all',
+                    pointerEvents: 'none',
                     cursor: 'not-allowed',
                 },
             },
@@ -144,9 +144,17 @@ export const getGanttStyles = (theme: ITheme) => {
             position: 'relative',
             '.gantt_task_content': {
                 textOverflow: 'ellipsis',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
                 paddingLeft: 5,
                 paddingRight: 5,
                 fontWeight: 600
+            },
+            '.gantt_left': {
+                marginLeft: 8,
+                color: theme.semanticColors.bodyText,
+                fontSize: 14,
+                fontWeight: 600,
             },
             '.gantt_task_scale': {
                 fontWeight: 600

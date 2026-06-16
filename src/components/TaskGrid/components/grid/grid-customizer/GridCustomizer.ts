@@ -187,6 +187,10 @@ export class GridCustomizer implements IGridCustomizer {
 
         columnDefs.sort((a, b) => this._getColumnPriority(a) - this._getColumnPriority(b));
         columnDefs = this._strategy?.onGetColumnDefinitions?.(columnDefs) ?? columnDefs;
+        //gantt
+        if(true) {
+            columnDefs.map(colDef => colDef.autoHeight = false)
+        }
         return columnDefs;
 
     }
