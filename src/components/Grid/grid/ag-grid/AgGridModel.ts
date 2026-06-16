@@ -209,7 +209,7 @@ export class AgGridModel extends EventEmitter<IAgGridModelEvents> {
 
     public onNotifyOutputChanged(record: IRecord, columnName: string, value: any, parameters: any) {
         record.setValue(columnName, value);
-        if(this.getGrid().isAutoSaveEnabled()) {
+        if (this.getGrid().isAutoSaveEnabled()) {
             record.save();
         }
         const { ShouldUnmountWhenOutputChanges } = parameters;
@@ -630,7 +630,7 @@ export class AgGridModel extends EventEmitter<IAgGridModelEvents> {
             gridApi.setServerSideSelectionState({
                 selectAll: false,
                 toggledNodes: this._grid.getDataset().getDataProvider().getSelectedRecordIds({ includeGroupRecordIds: true })
-            })
+            });
             gridApi.refreshCells({
                 columns: [CHECKBOX_COLUMN_KEY],
                 force: true
