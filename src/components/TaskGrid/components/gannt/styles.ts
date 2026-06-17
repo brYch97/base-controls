@@ -37,8 +37,8 @@ export const getGanttStyles = (theme: ITheme) => {
             '--dhx-gantt-offtime-background': theme.semanticColors.bodyBackgroundChecked,
 
             // ── Task bars ────────────────────────────────────────────────
-            '--dhx-gantt-task-background': theme.palette.themePrimary,
-            '--dhx-gantt-task-color': theme.semanticColors.primaryButtonText,
+            '--dhx-gantt-task-background': '#9BCB96',
+            '--dhx-gantt-task-color': theme.semanticColors.bodyText,
             '--dhx-gantt-task-line-text': theme.semanticColors.bodyText,
             '--dhx-gantt-project-background': theme.palette.themeSecondary,
             '--dhx-gantt-project-color': theme.semanticColors.primaryButtonText,
@@ -141,6 +141,31 @@ export const getGanttStyles = (theme: ITheme) => {
                 transition: 'outline-color 120ms ease, filter 120ms ease',
                 zIndex: 2,
             },
+            '.gantt_task_line.gantt_task_summary': {
+                backgroundColor: '#8DB7E8 !important',
+                borderColor: 'transparent !important',
+                boxShadow: 'none',
+            },
+            '.gantt_task_line.gantt_task_summary .gantt_task_progress': {
+                backgroundColor: '#6A9AD6 !important',
+            },
+            '.gantt_task_line.gantt_task_summary .gantt_task_content': {
+                color: `${theme.palette.neutralPrimary} !important`,
+            },
+            '.gantt_task_line:not(.gantt_task_summary)': {
+                backgroundColor: '#9BCB96 !important',
+                borderColor: 'transparent !important',
+                boxShadow: 'none',
+            },
+            '.gantt_task_line:not(.gantt_task_summary) .gantt_task_progress': {
+                backgroundColor: '#69A96B !important',
+            },
+            '.gantt_data_area': {
+                cursor: 'grab',
+            },
+            '.gantt_data_area:active': {
+                cursor: 'grabbing',
+            },
             position: 'relative',
             '.gantt_task_content': {
                 textOverflow: 'ellipsis',
@@ -148,7 +173,8 @@ export const getGanttStyles = (theme: ITheme) => {
                 whiteSpace: 'nowrap',
                 paddingLeft: 5,
                 paddingRight: 5,
-                fontWeight: 600
+                fontWeight: 600,
+                color: 'contrast-color(#9BCB96)'
             },
             '.gantt_left': {
                 marginLeft: 8,

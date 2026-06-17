@@ -51,6 +51,9 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.select_task = false;
         this._gantt.config.details_on_dblclick = false;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
+        this._gantt.plugins({
+            drag_timeline: true
+        })
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
@@ -102,6 +105,9 @@ export class GanttManager implements IGanttManager {
     private _getTaskClass(task: Task) {
         const id = task.id as string;
         const classNames = [];
+        if (this._gantt.hasChild(String(task.id))) {
+            classNames.push('gantt_task_summary');
+        }
         if (this._dataProvider.getSelectedRecordIds().includes(id)) {
             classNames.push('gantt_task_selected');
         }
@@ -109,10 +115,12 @@ export class GanttManager implements IGanttManager {
     }
 
     private _getTaskInnerText(start: Date, end: Date, task: Task) {
+        return '';
         return this._shouldRenderTaskLabelOutside(start, end) ? '' : task.text;
     }
 
     private _getTaskOutsideLeftText(start: Date, end: Date, task: Task) {
+        return task.text;
         return this._shouldRenderTaskLabelOutside(start, end) ? task.text : '';
     }
 
@@ -216,6 +224,7 @@ export class GanttManager implements IGanttManager {
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
+
             progress: this._getPercentComplete(record),
             parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
             active: record.isActive(),

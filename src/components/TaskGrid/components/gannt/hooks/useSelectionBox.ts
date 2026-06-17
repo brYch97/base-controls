@@ -193,7 +193,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		};
 
 		const onMouseDown = (event: MouseEvent) => {
-			if (event.button !== 0) {
+			if (event.button !== 0 || !event.shiftKey) {
 				return;
 			}
 
