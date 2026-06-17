@@ -8,6 +8,7 @@ import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTooltip } from './hooks/useTooltip';
 import { useSelectionBox } from './hooks/useSelectionBox';
+import { useMarkers } from './hooks/useMarkers';
 import ReactDOM from 'react-dom';
 
 interface IGanttProps {
@@ -24,6 +25,12 @@ export const Gantt = (props: IGanttProps) => {
     const styles = useMemo(() => getGanttStyles(theme), []);
     const tooltip = useTooltip({ container: ref.current, gantt });
     const selectionBox = useSelectionBox({ container: ref.current, gantt, dataProvider: datasetControl.getDataProvider() });
+
+    const dummyMarkers = useMemo(() => [
+        { date: new Date(2025, 0, 1), label: 'Project Start', css: 'gantt_marker_project_start' },
+        { date: new Date(2026, 11, 31), label: 'Project End', css: 'gantt_marker_project_end' },
+    ], []);
+    useMarkers({ container: ref.current, gantt, markers: dummyMarkers });
 
     useEffect(() => {
         if (!ref.current) {
