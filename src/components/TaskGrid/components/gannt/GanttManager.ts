@@ -4,6 +4,7 @@ import { ITaskDataProvider } from '../../providers';
 import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
+import { GanttDragging, IGanttDragging } from './GanttDragging';
 import { GanttZooming, IGanttZooming } from './GanttZooming';
 import { GanttDates } from './GanttDates';
 
@@ -26,6 +27,7 @@ export class GanttManager implements IGanttManager {
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
+    private _dragging: IGanttDragging;
     private _zooming: IGanttZooming;
     private _dates: GanttDates;
     private _gantt: GanttStatic;
@@ -39,6 +41,7 @@ export class GanttManager implements IGanttManager {
         this._dataProvider = this._datasetControl.getDataProvider();
         this._bridge = this._datasetControl.ganttGridBridge;
         this._dates = new GanttDates({ datasetControl: this._datasetControl });
+        this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
     }
 
@@ -70,9 +73,6 @@ export class GanttManager implements IGanttManager {
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
-        this._gantt.attachEvent('onBeforeTaskDrag', (id: string) => this._canDragTask(id));
-        this._gantt.attachEvent('onTaskDrag', (id: string, mode) => this._onTaskDrag(id, mode));
-        this._gantt.attachEvent('onAfterTaskDrag', (id: string) => this._onAfterTaskDrag(id));
         this._gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
         this._gantt.attachEvent('onTaskClick', (id: string, e?: MouseEvent) => {
             this._onRecordSelectedFromGantt(id, e);
@@ -162,65 +162,6 @@ export class GanttManager implements IGanttManager {
         });
 
         return taskIds;
-    }
-
-    private _canDragTask(taskId: string) {
-        const task = this._gantt.getTask(taskId);
-        return !!task?.active;
-    }
-
-    private async _onTaskDrag(taskId: string, mode: string) {
-        const draggedTask = this._gantt.getTask(taskId);
-        const startColumnName = this._dates.getStartDateColumnName();
-        const endColumnName = this._dates.getEndDateColumnName();
-        const selectedRecordIds = this._dataProvider.getSelectedRecordIds();
-
-        if (mode === 'resize') {
-            const record = this._dataProvider.getRecordsMap()[taskId];
-            record.setValue(startColumnName, draggedTask.start_date);
-            record.setValue(endColumnName, draggedTask.end_date);
-        }
-
-        else {
-            const selectedTaskIds = new Set<string>(
-                (selectedRecordIds.includes(taskId) ? selectedRecordIds : [taskId])
-                    .filter(selectedTaskId => this._gantt.getTask(selectedTaskId)?.active)
-            );
-            const draggedRecord = this._dataProvider.getRecordsMap()[taskId];
-            const originalDraggedStartDate = draggedRecord.getValue(startColumnName);
-            const originalDraggedStartTime = this._dates.getDateFromString(originalDraggedStartDate)?.getTime();
-            const draggedTaskStartTime = draggedTask.start_date?.getTime();
-
-            if (originalDraggedStartTime === undefined || draggedTaskStartTime === undefined) {
-                return;
-            }
-
-            const draggedOffset = draggedTaskStartTime - originalDraggedStartTime;
-
-            for (const selectedTaskId of selectedTaskIds) {
-                const selectedTask = this._gantt.getTask(selectedTaskId);
-                const selectedRecord = this._dataProvider.getRecordsMap()[selectedTaskId];
-                const originalStartDate = this._dates.getDateFromString(selectedRecord.getValue(startColumnName));
-                const originalEndDate = this._dates.getDateFromString(selectedRecord.getValue(endColumnName));
-
-                if (!originalStartDate || !originalEndDate) {
-                    continue;
-                }
-
-                selectedTask.start_date = new Date(originalStartDate.getTime() + draggedOffset);
-                selectedTask.end_date = new Date(originalEndDate.getTime() + draggedOffset);
-
-                selectedRecord.setValue(startColumnName, selectedTask.start_date);
-                selectedRecord.setValue(endColumnName, selectedTask.end_date);
-            }
-        }
-        if (selectedRecordIds.length > 1) {
-            this._gantt.render();
-        }
-    }
-
-    private _onAfterTaskDrag(taskId: string) {
-        this._dataProvider.save();
     }
 
     private _onAgGridScrolled(scrollTop: number) {
