@@ -56,21 +56,26 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		const getTaskBarIdsInRect = (rect: ISelectionBoxState): string[] => {
 			const taskAttr = params.gantt.config.task_attribute;
 			const containerRect = params.container!.getBoundingClientRect();
-			const taskNodes = params.container!.querySelectorAll<HTMLElement>(`.gantt_task_line[${taskAttr}]`);
 			const selectedIds: string[] = [];
 
-			taskNodes.forEach(taskNode => {
-				const taskId = taskNode.getAttribute(taskAttr);
+			// Check both the task bar and its left-side outside label.
+			const nodes = params.container!.querySelectorAll<HTMLElement>(
+				`.gantt_task_line[${taskAttr}], .gantt_left`
+			);
+
+			nodes.forEach(node => {
+				const taskId = node.getAttribute(taskAttr)
+					?? node.closest<HTMLElement>(`[${taskAttr}]`)?.getAttribute(taskAttr);
 				if (!taskId || !params.gantt.isTaskExists(taskId) || !params.gantt.isTaskVisible(taskId)) {
 					return;
 				}
 
-				const taskRect = taskNode.getBoundingClientRect();
+				const nodeRect = node.getBoundingClientRect();
 				const relativeRect = {
-					left: taskRect.left - containerRect.left,
-					top: taskRect.top - containerRect.top,
-					right: taskRect.right - containerRect.left,
-					bottom: taskRect.bottom - containerRect.top,
+					left: nodeRect.left - containerRect.left,
+					top: nodeRect.top - containerRect.top,
+					right: nodeRect.right - containerRect.left,
+					bottom: nodeRect.bottom - containerRect.top,
 				};
 
 				const intersects = !(
@@ -80,7 +85,7 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 					relativeRect.top > rect.top + rect.height
 				);
 
-				if (intersects) {
+				if (intersects && !selectedIds.includes(taskId)) {
 					selectedIds.push(taskId);
 				}
 			});

@@ -166,6 +166,9 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_data_area:active': {
                 cursor: 'grabbing',
             },
+            '&.gantt_shift_held .gantt_task_bg, &.gantt_shift_held .gantt_task_cell, &.gantt_shift_held .gantt_data_area': {
+                cursor: 'default',
+            },
             position: 'relative',
             '.gantt_task_content': {
                 textOverflow: 'ellipsis',
