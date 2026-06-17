@@ -12,6 +12,7 @@ import { ICustomColumnsDataProvider } from "./providers/custom-columns/CustomCol
 import { ITaskGridDatasetControl, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
 import { ErrorHelper } from "../../utils/error-handling";
 import { GanttGridBridge } from "./bridges";
+import { IProjectDataProvider } from "./extensions/providers/project";
 
 const STATE_CODE_ACTIVE = 0;
 
@@ -97,6 +98,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     }
     public isCustomColumnDeletionEnabled(): boolean {
         return this._gridParameters.enableCustomColumnDeletion ?? false;
+    }
+
+    public getProjectDataProvider(): IProjectDataProvider | null {
+        return this._dataProvider.getProjectDataProvider() ?? null;
     }
 
     public isInlineCreateEnabled(): boolean {

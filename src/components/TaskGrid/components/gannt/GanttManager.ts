@@ -51,19 +51,13 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.show_grid = false;
         this._gantt.config.select_task = false;
         this._gantt.config.details_on_dblclick = false;
-        window.GANTT = this._gantt;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
         this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
         this._gantt.init(params.container);
-/*                 this._gantt.addMarker({
-            start_date: new Date(2020, 5, 20), // Target date: June 20, 2026
-            css: "project_deadline",             // CSS class for styling
-            text: "Deadline",                    // Label text on the line
-            title: 'TESTING'
-        }) */
+        console.log(this._datasetControl.getProjectDataProvider());
         this._registerEventListeners();
     }
 

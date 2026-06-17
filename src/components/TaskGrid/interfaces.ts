@@ -8,6 +8,7 @@ import { ITaskGridLabels } from "./labels";
 import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { ILocalizationService } from "../../utils";
 import { GanttGridBridge } from "./bridges";
+import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -103,6 +104,12 @@ export interface ITaskStrategyDeps {
     templateDataProvider?: IDataProvider;
 }
 
+export interface IExtensions {
+    project?: {
+        onCreateProjectDataProvider?: () => IProjectDataProvider;
+    }
+}
+
 /**
  * Primary configuration entry point for `TaskGridDatasetControlFactory`.
  * Implement this interface to wire the TaskGrid to your business logic.
@@ -130,6 +137,8 @@ export interface ITaskGridDescriptor {
     onLoadDependencies?: () => Promise<void>;
     /** (Optional) Returns UI feature flags. All flags default to `true` when omitted. */
     onGetGridParameters?: () => ITaskGridParameters;
+
+    extensions?: IExtensions;
 }
 
 /** Runtime interface for the TaskGrid control returned by `TaskGridDatasetControlFactory.createInstance`. */
@@ -141,6 +150,8 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     getTemplateDataProvider: () => IDataProvider;
     /** Returns the saved-query data provider managing system and user views. */
     getSavedQueryDataProvider: () => ISavedQueryDataProvider;
+
+    getProjectDataProvider: () => IProjectDataProvider | null;
     /**
      * Returns the custom-columns data provider.
      * @throws If custom columns were not enabled (no `onCreateCustomColumnsStrategy` in the descriptor).

@@ -6,6 +6,7 @@ import { ISavedQuery, ISavedQueryDataProvider, PATH_COLUMN_NAME, SavedQueryDataP
 import { CustomColumnsDataProvider } from "./providers/custom-columns/CustomColumnsDataProvider";
 import { ITaskGridDatasetControl, ITaskGridDescriptor } from "./interfaces";
 import { TaskGridDatasetControl } from "./TaskGridDatasetControl";
+import { IInternalProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
 
 export interface ITaskGridState {
     savedQuery?: Partial<ISavedQuery> & { id: string; linking?: ComponentFramework.PropertyHelper.DataSetApi.LinkEntityExposedExpression[] };
@@ -23,6 +24,10 @@ export class TaskGridDatasetControlFactory {
     public static async createInstance(parameters: ITaskGridDatasetControlFactoryParameters): Promise<ITaskGridDatasetControl> {
         let taskDataProvider: ITaskDataProvider;
         await parameters.taskGridDescriptor.onLoadDependencies?.();
+        const projectDataProvider = parameters.taskGridDescriptor.extensions?.project?.onCreateProjectDataProvider?.() as IInternalProjectDataProvider | undefined;
+        if(projectDataProvider) {
+            await projectDataProvider.load();
+        }
 
         const customColumnsStrategy = parameters.taskGridDescriptor.onCreateCustomColumnsStrategy?.();
         let customColumnsDataProvider: CustomColumnsDataProvider | undefined;
@@ -53,6 +58,7 @@ export class TaskGridDatasetControlFactory {
             nativeColumns: { ...parameters.taskGridDescriptor.onGetFieldMapping(), path: PATH_COLUMN_NAME },
             strategy: taskStrategy,
             savedQueryDataProvider: savedQueryDataProvider,
+            projectDataProvider: projectDataProvider,
             customColumnsDataProvider: customColumnsDataProvider,
             onIsFlatListEnabled: () => TaskGridDatasetControlFactory._getIsFlatlistEnabled(parameters, savedQueryDataProvider)
         });

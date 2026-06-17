@@ -6,6 +6,7 @@ import { ITaskGridLabels } from "../../labels";
 import { INativeColumns } from "../../interfaces";
 import { ISavedQueryDataProvider} from "../saved-query";
 import { ICustomColumnsDataProvider } from "../custom-columns";
+import { IProjectDataProvider } from "../../extensions/providers/project/ProjectDataProvider";
 
 export interface IFailedRecord {
     id: string;
@@ -27,6 +28,7 @@ export interface ITaskDataProviderParameters {
     strategy: ITaskDataProviderStrategy;
     savedQueryDataProvider: ISavedQueryDataProvider;
     customColumnsDataProvider?: ICustomColumnsDataProvider;
+    projectDataProvider?: IProjectDataProvider;
     onIsFlatListEnabled: () => boolean;
 }
 
@@ -123,6 +125,8 @@ export interface ITaskDataProvider extends IDataProvider {
     /** Returns `true` when task creation is allowed (from `ITaskDataProviderStrategy.onIsTaskAddingEnabled`). */
     /** Returns the root task id when the tree is scoped to a subtree, or `null` for a full tree. */
     getRootTaskId: () => string | null;
+
+    getProjectDataProvider: () => IProjectDataProvider | null;
     /** Moves a task to a position relative to another task. Returns the updated raw records, or `null` on cancellation. */
     moveTask(movingTaskId: string, movingToTaskId: string, position: 'above' | 'below' | 'child'): Promise<IRawRecord[] | null>;
 }
@@ -135,6 +139,7 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
     private _strategy: ITaskDataProviderStrategy;
     private _savedQueryDataProvider: ISavedQueryDataProvider;
     private _customColumnsDataProvider?: ICustomColumnsDataProvider;
+    private _projectDataProvider?: IProjectDataProvider;
     private _onFlatListEnabled: () => boolean;
     public readonly taskEvents: EventEmitter<ITaskDataProviderEventListener> = new EventEmitter<ITaskDataProviderEventListener>();
 
@@ -144,6 +149,7 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
             metadata: { PrimaryIdAttribute: 'id' }
         });
         this._savedQueryDataProvider = parameters.savedQueryDataProvider;
+        this._projectDataProvider = parameters.projectDataProvider;
         this._nativeColumns = parameters.nativeColumns;
         this._taskTree = new RecordTree({
             taskDataProvider: this
@@ -172,6 +178,10 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
 
     public getNativeColumns(): INativeColumns {
         return this._nativeColumns;
+    }
+
+    public getProjectDataProvider(): IProjectDataProvider | null {
+        return this._projectDataProvider ?? null;
     }
 
     public async fetchRawRecords(ids: string[]) {

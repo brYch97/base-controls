@@ -154,7 +154,6 @@ export const getGanttStyles = (theme: ITheme) => {
                 marginLeft: 8,
                 color: theme.semanticColors.bodyText,
                 fontSize: 14,
-                fontWeight: 600,
             },
             '.gantt_task_scale': {
                 fontWeight: 600
