@@ -219,6 +219,7 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
     }
 
     public onRecordSave(record: IRecord): Promise<IRecordSaveOperationResult> {
+        //if we have both start date and end date and one of these changed => pro
         return this._strategy.onRecordSave(record);
     }
 

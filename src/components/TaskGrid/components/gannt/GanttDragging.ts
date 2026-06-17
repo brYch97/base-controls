@@ -77,27 +77,37 @@ export class GanttDragging implements IGanttDragging {
 			const originalDraggedStartTime = this._dates.getDateFromString(originalDraggedStartDate)?.getTime();
 			const draggedTaskStartTime = draggedTask.start_date?.getTime();
 
-			if (originalDraggedStartTime === undefined || draggedTaskStartTime === undefined) {
+				if (originalDraggedStartTime === undefined || draggedTaskStartTime === undefined) {
 				return;
 			}
 
 			const draggedOffset = draggedTaskStartTime - originalDraggedStartTime;
 
+			// Expand the move set: for each selected task include all its descendants
+			// so that dragging a parent also moves its children.
+			const recordTree = this._taskDataProvider.getRecordTree();
+			const tasksToMove = new Set<string>(selectedTaskIds);
 			for (const selectedTaskId of selectedTaskIds) {
-				const selectedTask = this._gantt.getTask(selectedTaskId);
-				const selectedRecord = this._taskDataProvider.getRecordsMap()[selectedTaskId];
-				const originalStartDate = this._dates.getDateFromString(selectedRecord.getValue(startColumnName));
-				const originalEndDate = this._dates.getDateFromString(selectedRecord.getValue(endColumnName));
+				for (const descendant of recordTree.getNode(selectedTaskId)?.allChildren ?? []) {
+					tasksToMove.add(descendant.getRecordId());
+				}
+			}
+
+			for (const taskIdToMove of tasksToMove) {
+				const taskToMove = this._gantt.getTask(taskIdToMove);
+				const recordToMove = this._taskDataProvider.getRecordsMap()[taskIdToMove];
+				const originalStartDate = this._dates.getDateFromString(recordToMove.getValue(startColumnName));
+				const originalEndDate = this._dates.getDateFromString(recordToMove.getValue(endColumnName));
 
 				if (!originalStartDate || !originalEndDate) {
 					continue;
 				}
 
-				selectedTask.start_date = new Date(originalStartDate.getTime() + draggedOffset);
-				selectedTask.end_date = new Date(originalEndDate.getTime() + draggedOffset);
+				taskToMove.start_date = new Date(originalStartDate.getTime() + draggedOffset);
+				taskToMove.end_date = new Date(originalEndDate.getTime() + draggedOffset);
 
-				selectedRecord.setValue(startColumnName, selectedTask.start_date);
-				selectedRecord.setValue(endColumnName, selectedTask.end_date);
+				recordToMove.setValue(startColumnName, taskToMove.start_date);
+				recordToMove.setValue(endColumnName, taskToMove.end_date);
 			}
 			this._propagateBoundsToAncestors(taskId, true);
 		}

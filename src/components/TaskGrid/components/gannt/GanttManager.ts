@@ -34,7 +34,6 @@ export class GanttManager implements IGanttManager {
     private _expandedNodeSet: Set<string> = new Set();
     private _selectionAnchorTaskId: string | null = null;
 
-
     constructor(params: IGanttManagerParams) {
         this._gantt = Gantt.getGanttInstance();
         this._gantt.config.project_start_date = new Date(2000, 0, 1);
@@ -57,7 +56,6 @@ export class GanttManager implements IGanttManager {
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
         this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
         this._gantt.init(params.container);
-        console.log(this._datasetControl.getProjectDataProvider());
         this._registerEventListeners();
     }
 
