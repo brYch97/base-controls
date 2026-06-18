@@ -22,7 +22,7 @@ export const Gantt = (props: IGanttProps) => {
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
-    const tooltip = useTooltip({ container: ref.current, gantt });
+    const {tooltip} = useTooltip({ gantt });
     const selectionBox = useSelectionBox({ container: ref.current, gantt, dataProvider: datasetControl.getDataProvider() });
     useMarkers({ gantt, components });
 
@@ -30,6 +30,7 @@ export const Gantt = (props: IGanttProps) => {
         if (!ref.current) {
             throw new Error("Gantt container ref is not assigned");
         }
+        tooltip.init(ref.current);
         ganttManager.init({ container: ref.current });
     }, []);
 
@@ -49,7 +50,7 @@ export const Gantt = (props: IGanttProps) => {
                 )}
             </div>
             <GanttComponentsContext.Provider value={components}>
-                {tooltip && components.onRenderTaskTooltip({ task: tooltip.task, event: tooltip.event })}
+                {tooltip.state && components.onRenderTaskTooltip({ task: tooltip.state.task, event: tooltip.state.event })}
             </GanttComponentsContext.Provider>
         </>
     );

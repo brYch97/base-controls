@@ -4,16 +4,11 @@ import { getMarkerStyles } from './styles';
 import { getClassNames } from '@talxis/react-components';
 import { Formatting } from '@talxis/client-libraries';
 import { IMarkerComponents, MarkerComponents } from './components';
+import { IGanttMarker } from '../../GanttMarkers';
 
 export type MarkerType = 'today' | 'project_start' | 'project_end' | 'milestone' | 'custom';
 
-export interface IMarkerProps {
-    id: number
-    text: string;
-    type: MarkerType;
-    start_date: Date;
-    color?: string;
-    end_date?: Date;
+export interface IMarkerProps extends IGanttMarker {
     components?: Partial<IMarkerComponents>;
 }
 
@@ -26,8 +21,6 @@ export const Marker = (props: IMarkerProps) => {
     const formatting = Formatting.Get();
     const id = useMemo(() => `gantt_marker_${props.id}`, [props.id]);
     const tooltipContent = formatting.formatDateShort(start_date) ?? '';
-    //TODO, this should append to root container
-    document.body.style.setProperty(`--${type}-marker-color`, color);
 
     return components.onRenderTooltipHost({
         id: id,

@@ -59,7 +59,7 @@ export class GanttMarkers implements IGanttMarkers {
         this._addProjectEndMarker();
         this._addMilestoneMarker();
     }
-    public getMarkerIds() {
+    public getMarkers(): IGanttMarker[] {
         return this._markers;
     }
 
@@ -70,7 +70,8 @@ export class GanttMarkers implements IGanttMarkers {
         this._markers = [];
     }
 
-    private _addMarker(config: { start_date: Date; text: string; css: string, type: MarkerType, color: string, end_date?: Date }) {
+    private _addMarker(config: { start_date: Date; text: string; css: string; type: MarkerType; color: string; end_date?: Date }) {
+
         const markerId = this._gantt.addMarker(config);
         this._markers.push({
             id: markerId,
@@ -79,28 +80,67 @@ export class GanttMarkers implements IGanttMarkers {
             type: config.type,
             color: config.color,
             end_date: config.end_date
-        })
+        });
+        const ganttElement = (this._gantt as any).$root as HTMLElement | undefined;
+        ganttElement?.style.setProperty(`--${config.type}-marker-color`, config.color);
     }
 
     private _addTodayMarker() {
-        this._addMarker({ start_date: new Date(), text: 'Today', css: TODAY_MARKER_CLASS });
+        this._addMarker({
+            start_date: new Date(),
+            text: 'Today',
+            css: TODAY_MARKER_CLASS,
+            type: 'today',
+            color: '#0078d4',
+        });
     }
 
     private _addProjectStartMarker() {
         const startDate = this._projectDataProvider?.getProjectStartDate() ?? this._dates.getStartDate();
-        this._addMarker({ start_date: startDate, text: 'Project Start', css: PROJECT_START_MARKER_CLASS });
+        this._addMarker({
+            start_date: startDate,
+            text: 'Project Start',
+            css: PROJECT_START_MARKER_CLASS,
+            type: 'project_start',
+            color: 'rgb(255, 185, 0)',
+        });
     }
 
     private _addMilestoneMarker() {
-        this._addMarker({ start_date: new Date('2025-01-01'), text: 'Milestone', css: MILESTONE_MARKER_CLASS });
+        this._addMarker({
+            start_date: new Date('2025-01-01'),
+            text: 'Milestone',
+            css: MILESTONE_MARKER_CLASS,
+            type: 'milestone',
+            color: '#5c2d91',
+        });
     }
 
     private _addProjectEndMarker() {
         const endDate = this._projectDataProvider?.getProjectEndDate() ?? this._dates.getEndDate();
-        this._addMarker({ start_date: endDate, text: 'Project End', css: PROJECT_END_MARKER_CLASS });
+        this._addMarker({
+            start_date: endDate,
+            text: 'Project End',
+            css: PROJECT_END_MARKER_CLASS,
+            type: 'project_end',
+            color: 'rgb(255, 185, 0)',
+        });
     }
+
     private _addCustomMarkers() {
-        this._addMarker({ start_date: new Date('2025-01-01'), text: 'Custom Marker', css: CUSTOM_MARKER_CLASS });
-        this._addMarker({ start_date: new Date('2025-02-01'), text: 'Custom Marker 2', css: CUSTOM_MARKER_CLASS });
+        this._addMarker({
+            start_date: new Date('2025-01-01'),
+            text: 'Custom Marker',
+            css: CUSTOM_MARKER_CLASS,
+            type: 'custom',
+            color: '#605e5c',
+        });
+        this._addMarker({
+            start_date: new Date('2025-02-01'),
+            text: 'Custom Marker 2',
+            css: CUSTOM_MARKER_CLASS,
+            type: 'custom',
+            color: '#605e5c',
+        });
     }
 }
