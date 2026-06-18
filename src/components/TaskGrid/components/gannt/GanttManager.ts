@@ -66,12 +66,6 @@ export class GanttManager implements IGanttManager {
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
         this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
         this._gantt.init(params.container);
-        this._gantt.addMarker({
-            start_date: new Date(), //a Date object that sets the marker's date
-            css: "today", //a CSS class applied to the marker
-            text: "Now", //the marker title
-            title: 'TEST TITLE'
-        });
         this._registerEventListeners();
     }
 

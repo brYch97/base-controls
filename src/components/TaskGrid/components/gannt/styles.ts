@@ -186,6 +186,38 @@ export const getGanttStyles = (theme: ITheme) => {
             },
             '.gantt_task_scale': {
                 fontWeight: 600
+            },
+            '.gantt_marker, .gantt_marker .gantt_marker_content': {
+                pointerEvents: 'none',
+            },
+            '.gantt_marker': {
+                width: 2,
+                marginLeft: -1,
+                backgroundColor: theme.palette.themePrimary,
+                opacity: 1,
+            },
+            '.gantt_marker .gantt_marker_content': {
+                marginTop: 6,
+                marginLeft: 0,
+                padding: '10px 14px',
+                borderRadius: 6,
+                fontSize: 14,
+                lineHeight: 1,
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+                color: theme.palette.white,
+                backgroundColor: theme.palette.themePrimary,
+                boxShadow: theme.effects.elevation8,
+                whiteSpace: 'nowrap',
+            },
+            '.gantt_marker.gantt_marker_project_start, .gantt_marker.gantt_marker_project_end, .gantt_marker.gantt_marker_project_start .gantt_marker_content, .gantt_marker.gantt_marker_project_end .gantt_marker_content': {
+                backgroundColor: theme.palette.orange
+            },
+            '.gantt_marker.gantt_marker_today': {
+                backgroundColor: theme.palette.themePrimary,
+            },
+            '.gantt_marker.gantt_marker_today .gantt_marker_content': {
+                backgroundColor: theme.palette.themePrimary,
             }
         },
         selectionBox: {
