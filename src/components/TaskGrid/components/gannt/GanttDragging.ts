@@ -1,4 +1,4 @@
-import { GanttStatic } from 'dhtmlx-gantt';
+import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
 import { IGanttDates } from './GanttDates';
@@ -23,7 +23,6 @@ export class GanttDragging implements IGanttDragging {
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._gantt = params.gantt;
         this._dates = params.dates;
-        this._gantt.plugins({ drag_timeline: true });
         this._gantt.config.drag_timeline = { ignore: '.gantt_shift_held, .gantt_task_line' };
         this._registerEventListeners();
     }

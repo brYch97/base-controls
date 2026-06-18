@@ -1,4 +1,4 @@
-import { Gantt, GanttStatic, Task } from 'dhtmlx-gantt';
+import { Gantt, GanttStatic, Task } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
 import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { GanttDragging, IGanttDragging } from './GanttDragging';
 import { GanttZooming, IGanttZooming } from './GanttZooming';
 import { GanttDates } from './GanttDates';
+import { GanttMarkers, IGanttMarkers } from './GanttMarkers';
 
 
 interface IInitParams {
@@ -29,6 +30,7 @@ export class GanttManager implements IGanttManager {
     private _bridge: IGanttGridBridge;
     private _dragging: IGanttDragging;
     private _zooming: IGanttZooming;
+    private _markers: IGanttMarkers;
     private _dates: GanttDates;
     private _gantt: GanttStatic;
     private _expandedNodeSet: Set<string> = new Set();
@@ -38,12 +40,20 @@ export class GanttManager implements IGanttManager {
         this._gantt = Gantt.getGanttInstance();
         this._gantt.config.project_start_date = new Date(2000, 0, 1);
         this._gantt.config.project_end_date = new Date(2100, 11, 31);
+        this._gantt.plugins({
+            drag_timeline: true,
+            marker: true
+        });
+
+        //@ts-ignore
+        window.GANTT = this._gantt; //for debugging
         this._datasetControl = params.datasetControl;
         this._dataProvider = this._datasetControl.getDataProvider();
         this._bridge = this._datasetControl.ganttGridBridge;
         this._dates = new GanttDates({ datasetControl: this._datasetControl });
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
     }
 
     public init(params: IInitParams) {
@@ -56,6 +66,12 @@ export class GanttManager implements IGanttManager {
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
         this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
         this._gantt.init(params.container);
+        this._gantt.addMarker({
+            start_date: new Date(), //a Date object that sets the marker's date
+            css: "today", //a CSS class applied to the marker
+            text: "Now", //the marker title
+            title: 'TEST TITLE'
+        });
         this._registerEventListeners();
     }
 
@@ -201,6 +217,7 @@ export class GanttManager implements IGanttManager {
         this._gantt.parse({
             data: data
         });
+        this._markers.render();
     }
 
     private _convertRecordToTask(record: IRecord): Task {

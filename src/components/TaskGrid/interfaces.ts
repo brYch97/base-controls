@@ -9,6 +9,7 @@ import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { ILocalizationService } from "../../utils";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
+import { IGanttProps } from "./components/gannt";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -107,6 +108,9 @@ export interface ITaskStrategyDeps {
 export interface IExtensions {
     project?: {
         onCreateProjectDataProvider?: () => IProjectDataProvider;
+    }
+    gantt?: {
+        onGetGanttComponent: (props: IGanttProps) => React.ReactElement<IGanttProps>
     }
 }
 

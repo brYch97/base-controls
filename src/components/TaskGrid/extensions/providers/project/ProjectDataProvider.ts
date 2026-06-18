@@ -37,9 +37,11 @@ export class ProjectDataProvider implements IProjectDataProvider {
         this._strategy = strategy;
     }
     public getProjectStartDate(): Date | null {
+        return null;
         return this._startDate;
     }
     public getProjectEndDate(): Date | null {
+        return null;
         return this._endDate;
     }
     public getProjectNamedReferece(): ComponentFramework.EntityReference {

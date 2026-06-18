@@ -15,7 +15,7 @@ import { Header } from "./components/header/Header";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
- //offset of the checkbox control button in ag-grid, used for calculating default grid pane size
+//offset of the checkbox control button in ag-grid, used for calculating default grid pane size
 import { LocalizationService } from "../../utils";
 import { Gantt } from "./components/gannt/Gantt";
 
@@ -28,7 +28,7 @@ interface ITaskGridProps {
     labels?: Partial<ITaskGridLabels>;
     components?: Partial<ITaskGridComponents>;
 }
-    
+
 interface IInternalTaskGridProps extends ITaskGridProps {
     datasetControl: ITaskGridDatasetControl;
     onRemountRequested: () => void;
@@ -93,6 +93,9 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const styles = React.useMemo(() => getDatasetControlStyles(theme, '100%'), [theme]);
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
+    const ganttComponent = taskGridDescriptor.extensions?.gantt?.onGetGanttComponent({
+        components: {}
+    });
 
     const getDefaultGridPaneSize = () => {
         const visibleColumns = datasetControl.getDataset().columns.filter(col => !col.isHidden);
@@ -112,27 +115,24 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                     <RootElementIdContext.Provider value={rootElementId}>
                         <DatasetControlRenderer
                             onGetDatasetControlInstance={() => datasetControl}
-                            onGetControlComponent={(props) => {/* <div className={styles.container}>
-                                <div className={styles.gridContainer}>
-                                    <Grid {...props} />
-                                </div>
-                                <div className={styles.ganttContainer}>
-                                    <GanttChart />
-                                </div>
-                            </div> */
-                                return <div className={styles.container}>
-                                    <PanelGroup direction="horizontal">
-                                        <Panel defaultSize={35}>
-                                             <Grid {...props} />
-                                        </Panel>
-                                        <PanelResizeHandle className={styles.divider}>
-                                        </PanelResizeHandle>
-                                        <Panel className={styles.ganttPanel} defaultSize={65}>
-                                            <Gantt />
-                                        </Panel>
-                                    </PanelGroup>
-                                </div>
-
+                            onGetControlComponent={(props) => {
+                                return (
+                                    <div className={styles.container}>
+                                        {ganttComponent ? (
+                                            <PanelGroup direction="horizontal">
+                                                <Panel defaultSize={35}>
+                                                    <Grid {...props} />
+                                                </Panel>
+                                                <PanelResizeHandle className={styles.divider} />
+                                                <Panel className={styles.ganttPanel} defaultSize={65}>
+                                                    {ganttComponent}
+                                                </Panel>
+                                            </PanelGroup>
+                                        ) : (
+                                            <Grid {...props} />
+                                        )}
+                                    </div>
+                                );
                             }}
                             onOverrideComponentProps={(props) => {
                                 return {

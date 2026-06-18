@@ -55,8 +55,8 @@ const externalDeps = [
     "lexorank",
     'style-inject',
     'react-resizable-panels',
-    "dhtmlx-gantt",
-    'dhtmlx-gantt/codebase/dhtmlxgantt.css'
+    "gantt-trial",
+    'gantt-trial/codebase/dhtmlxgantt.css'
 ]
 
 export default [

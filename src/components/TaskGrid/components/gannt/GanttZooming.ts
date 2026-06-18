@@ -1,4 +1,4 @@
-import { GanttStatic, ZoomConfig } from 'dhtmlx-gantt';
+import { GanttStatic, ZoomConfig } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../../interfaces';
 import { ITaskDataProvider } from '../../providers';
 import { IGanttDates } from './GanttDates';

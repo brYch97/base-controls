@@ -1,4 +1,4 @@
-import { GanttStatic, Task } from 'dhtmlx-gantt';
+import { GanttStatic, Task } from 'gantt-trial'
 import { useCallback, useEffect, useState } from 'react';
 
 interface IUseTooltipParams {

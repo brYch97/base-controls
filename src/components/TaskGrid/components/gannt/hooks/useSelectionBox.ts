@@ -1,4 +1,4 @@
-import { GanttStatic } from 'dhtmlx-gantt';
+import { GanttStatic } from 'gantt-trial';
 import { useEffect, useRef, useState } from 'react';
 import { ITaskDataProvider } from '../../../providers';
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { ICalloutProps } from "@fluentui/react";
-import { Task } from "dhtmlx-gantt";
+import { Task } from "gantt-trial";
 
 export interface ITaskTooltipProps {
     task: Task;

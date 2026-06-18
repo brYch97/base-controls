@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Callout, DirectionalHint, Icon, useTheme } from '@fluentui/react';
-import { Task } from 'dhtmlx-gantt';
+import { Task } from 'gantt-trial';
 import { useTaskDataProvider } from '../../../../context';
 import { getTaskTooltipStyles } from './styles';
 import { Formatting } from '@talxis/client-libraries';

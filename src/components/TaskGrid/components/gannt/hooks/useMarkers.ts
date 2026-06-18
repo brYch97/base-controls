@@ -1,4 +1,4 @@
-import { GanttStatic } from 'dhtmlx-gantt';
+import { GanttStatic } from 'gantt-trial';
 import { useEffect, useRef } from 'react';
 
 export interface IGanttMarker {
