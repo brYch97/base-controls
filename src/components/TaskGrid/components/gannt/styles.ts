@@ -195,6 +195,12 @@ export const getGanttStyles = (theme: ITheme) => {
                 opacity: 1,
                 pointerEvents: 'none',
             },
+            '.gantt_marker.gantt_marker_project_start, .gantt_marker.gantt_marker_project_end': {
+                backgroundColor: theme.palette.orange,
+            },
+            '.gantt_marker.gantt_marker_milestone': {
+                backgroundColor: theme.palette.purple,
+            },
             // Hide the library-rendered chip — labels are injected into the scale header instead
             '.gantt_marker .gantt_marker_content': {
                 display: 'none',

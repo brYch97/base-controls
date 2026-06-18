@@ -10,7 +10,5 @@ export const ProjectMarker = (props: Omit<IMarkerProps, 'type'>) => {
     const theme = useTheme();
     const styles = useMemo(() => getProjectMarkerStyles(theme), [theme]);
 
-    return <Marker {...props} type='project_start' components={{
-        onRenderContent: (props) => MarkerComponents.onRenderContent({ ...props, className: getClassNames([props.className, styles.root])})
-    }} />
+    return <Marker {...props} type='project_start' color={theme.palette.yellow} />
 };

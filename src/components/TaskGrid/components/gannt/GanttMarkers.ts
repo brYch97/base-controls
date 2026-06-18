@@ -22,6 +22,7 @@ export const PROJECT_START_MARKER_CLASS = 'gantt_marker_project_start';
 export const PROJECT_END_MARKER_CLASS = 'gantt_marker_project_end';
 export const SCALE_LABEL_ATTR = 'data-gantt-marker-label';
 export const MILESTONE_MARKER_CLASS = 'gantt_marker_milestone';
+export const CUSTOM_MARKER_CLASS = 'gantt_marker_custom';
 
 //pro feature
 export class GanttMarkers implements IGanttMarkers {
@@ -79,5 +80,9 @@ export class GanttMarkers implements IGanttMarkers {
     private _addProjectEndMarker() {
         const endDate = this._projectDataProvider?.getProjectEndDate() ?? this._dates.getEndDate();
         this._addMarker({ start_date: endDate, text: 'Project End', css: PROJECT_END_MARKER_CLASS });
+    }
+    private _addCustomMarkers() {
+        this._addMarker({ start_date: new Date('2025-01-01'), text: 'Custom Marker', css: CUSTOM_MARKER_CLASS });
+        this._addMarker({ start_date: new Date('2025-02-01'), text: 'Custom Marker 2', css: CUSTOM_MARKER_CLASS });
     }
 }
