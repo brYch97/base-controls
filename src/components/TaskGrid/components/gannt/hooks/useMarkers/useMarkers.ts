@@ -3,14 +3,28 @@ import { useEffect, useMemo } from 'react';
 import { IGanttComponents } from '../../context';
 import ReactDOM from 'react-dom';
 import { getMarkerStyles } from './styles';
+import { LABEL_OVERLAY_ATTR, SCALE_LABEL_ATTR } from '../../GanttMarkers';
+import { MarkerType } from '../../components/marker';
 
 interface IUseMarkersParams {
     gantt: GanttStatic;
     components: IGanttComponents;
 }
 
-const SCALE_LABEL_ATTR = 'data-gantt-marker-label';
-const LABEL_OVERLAY_ATTR = 'data-gantt-marker-overlay';
+const getMarkerType = (css: string): MarkerType => {
+    switch (css) {
+        case 'gantt_marker_today':
+            return 'today';
+        case 'gantt_marker_project_start':
+            return 'project_start';
+        case 'gantt_marker_project_end':
+            return 'project_end';
+        case 'gantt_marker_milestone':
+            return 'milestone';
+        default:
+            return 'custom';
+    }
+}
 
 export const useMarkers = (params: IUseMarkersParams) => {
     const { gantt, components } = params;
@@ -41,9 +55,12 @@ export const useMarkers = (params: IUseMarkersParams) => {
             if (!left && left !== 0) continue;
 
             const chip = document.createElement('div');
-            ReactDOM.render(components.onRenderMarker(marker), chip);
+            ReactDOM.render(components.onRenderMarker({
+                ...marker,
+                type: getMarkerType(marker.css)
+            }), chip);
             chip.setAttribute(SCALE_LABEL_ATTR, String(marker.id));
-            chip.className = `gantt_marker_scale_label${marker.css ? ` ${marker.css}` : ''}`;
+            chip.className = styles.chip;
             chip.style.left = `${left - 7}px`;
             overlay.appendChild(chip);
         }

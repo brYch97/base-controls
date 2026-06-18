@@ -16,6 +16,13 @@ export interface IGanttMarkers {
     getMarkerIds(): string[];
 }
 
+export const LABEL_OVERLAY_ATTR = 'data-marker-label-overlay';
+export const TODAY_MARKER_CLASS = 'gantt_marker_today';
+export const PROJECT_START_MARKER_CLASS = 'gantt_marker_project_start';
+export const PROJECT_END_MARKER_CLASS = 'gantt_marker_project_end';
+export const SCALE_LABEL_ATTR = 'data-gantt-marker-label';
+export const MILESTONE_MARKER_CLASS = 'gantt_marker_milestone';
+
 //pro feature
 export class GanttMarkers implements IGanttMarkers {
     private _gantt: GanttStatic;
@@ -38,6 +45,7 @@ export class GanttMarkers implements IGanttMarkers {
         this._addTodayMarker();
         this._addProjectStartMarker();
         this._addProjectEndMarker();
+        this._addMilestoneMarker();
     }
     public getMarkerIds(): string[] {
         return this._markerIds;
@@ -56,16 +64,20 @@ export class GanttMarkers implements IGanttMarkers {
     }
 
     private _addTodayMarker() {
-        this._addMarker({ start_date: new Date(), text: 'Today', css: 'gantt_marker_today' });
+        this._addMarker({ start_date: new Date(), text: 'Today', css: TODAY_MARKER_CLASS });
     }
 
     private _addProjectStartMarker() {
         const startDate = this._projectDataProvider?.getProjectStartDate() ?? this._dates.getStartDate();
-        this._addMarker({ start_date: startDate, text: 'Project Start', css: 'gantt_marker_project_start' });
+        this._addMarker({ start_date: startDate, text: 'Project Start', css: PROJECT_START_MARKER_CLASS });
+    }
+
+    private _addMilestoneMarker() {
+        this._addMarker({ start_date: new Date('2025-01-01'), text: 'Milestone', css: MILESTONE_MARKER_CLASS });
     }
 
     private _addProjectEndMarker() {
         const endDate = this._projectDataProvider?.getProjectEndDate() ?? this._dates.getEndDate();
-        this._addMarker({ start_date: endDate, text: 'Project End', css: 'gantt_marker_project_end' });
+        this._addMarker({ start_date: endDate, text: 'Project End', css: PROJECT_END_MARKER_CLASS });
     }
 }

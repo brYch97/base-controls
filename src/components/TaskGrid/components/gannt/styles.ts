@@ -199,26 +199,6 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_marker .gantt_marker_content': {
                 display: 'none',
             },
-            '.gantt_marker.gantt_marker_project_start, .gantt_marker.gantt_marker_project_end': {
-                backgroundColor: theme.palette.orange,
-            },
-            '.gantt_marker_scale_label': {
-                position: 'absolute',
-                bottom: 0,
-                transform: 'translateX(6px)',
-                padding: '4px 10px',
-                fontSize: 12,
-                lineHeight: '14px',
-                fontWeight: 600,
-                color: theme.palette.white,
-                backgroundColor: theme.palette.themePrimary,
-                boxShadow: theme.effects.elevation8,
-                whiteSpace: 'nowrap',
-                pointerEvents: 'none',
-            },
-            '.gantt_marker_scale_label.gantt_marker_project_start, .gantt_marker_scale_label.gantt_marker_project_end': {
-                backgroundColor: theme.palette.orange,
-            }
         },
         selectionBox: {
             position: 'absolute',
