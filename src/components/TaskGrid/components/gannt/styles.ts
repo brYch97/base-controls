@@ -187,37 +187,40 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_task_scale': {
                 fontWeight: 600
             },
-            '.gantt_marker, .gantt_marker .gantt_marker_content': {
-                pointerEvents: 'none',
-            },
+            // ── Marker vertical lines ─────────────────────────────────────
             '.gantt_marker': {
                 width: 2,
                 marginLeft: -1,
                 backgroundColor: theme.palette.themePrimary,
                 opacity: 1,
+                pointerEvents: 'none',
             },
+            // Hide the library-rendered chip — labels are injected into the scale header instead
             '.gantt_marker .gantt_marker_content': {
-                marginTop: 6,
-                marginLeft: 0,
-                padding: '10px 14px',
-                borderRadius: 6,
-                fontSize: 14,
-                lineHeight: 1,
-                fontWeight: 700,
-                letterSpacing: '-0.01em',
+                display: 'none',
+            },
+            '.gantt_marker.gantt_marker_project_start, .gantt_marker.gantt_marker_project_end': {
+                backgroundColor: theme.palette.orange,
+            },
+            // ── Scale-header label chips (custom injected) ────────────────
+            '.gantt_marker_scale_label': {
+                position: 'absolute',
+                bottom: 4,
+                transform: 'translateX(6px)',
+                padding: '4px 10px',
+                borderRadius: 4,
+                fontSize: 12,
+                lineHeight: '16px',
+                fontWeight: 600,
                 color: theme.palette.white,
                 backgroundColor: theme.palette.themePrimary,
                 boxShadow: theme.effects.elevation8,
                 whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                zIndex: 5,
             },
-            '.gantt_marker.gantt_marker_project_start, .gantt_marker.gantt_marker_project_end, .gantt_marker.gantt_marker_project_start .gantt_marker_content, .gantt_marker.gantt_marker_project_end .gantt_marker_content': {
-                backgroundColor: theme.palette.orange
-            },
-            '.gantt_marker.gantt_marker_today': {
-                backgroundColor: theme.palette.themePrimary,
-            },
-            '.gantt_marker.gantt_marker_today .gantt_marker_content': {
-                backgroundColor: theme.palette.themePrimary,
+            '.gantt_marker_scale_label.gantt_marker_project_start, .gantt_marker_scale_label.gantt_marker_project_end': {
+                backgroundColor: theme.palette.orange,
             }
         },
         selectionBox: {
