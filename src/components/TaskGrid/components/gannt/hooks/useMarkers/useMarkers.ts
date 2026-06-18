@@ -3,7 +3,15 @@ import { useEffect, useMemo } from 'react';
 import { IGanttComponents } from '../../context';
 import ReactDOM from 'react-dom';
 import { getMarkerStyles } from './styles';
-import { LABEL_OVERLAY_ATTR, SCALE_LABEL_ATTR } from '../../GanttMarkers';
+import {
+    CUSTOM_MARKER_CLASS,
+    LABEL_OVERLAY_ATTR,
+    MILESTONE_MARKER_CLASS,
+    PROJECT_END_MARKER_CLASS,
+    PROJECT_START_MARKER_CLASS,
+    SCALE_LABEL_ATTR,
+    TODAY_MARKER_CLASS,
+} from '../../GanttMarkers';
 import { MarkerType } from '../../components/marker';
 
 interface IUseMarkersParams {
@@ -11,20 +19,22 @@ interface IUseMarkersParams {
     components: IGanttComponents;
 }
 
+
 const getMarkerType = (css: string): MarkerType => {
     switch (css) {
-        case 'gantt_marker_today':
-            return 'today';
-        case 'gantt_marker_project_start':
-            return 'project_start';
-        case 'gantt_marker_project_end':
-            return 'project_end';
-        case 'gantt_marker_milestone':
+        case MILESTONE_MARKER_CLASS:
             return 'milestone';
+        case PROJECT_START_MARKER_CLASS:
+            return 'project_start';
+        case PROJECT_END_MARKER_CLASS:
+            return 'project_end';
+        case TODAY_MARKER_CLASS:
+            return 'today';
+        case CUSTOM_MARKER_CLASS:
         default:
             return 'custom';
     }
-}
+};
 
 export const useMarkers = (params: IUseMarkersParams) => {
     const { gantt, components } = params;

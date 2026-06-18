@@ -1,4 +1,11 @@
 import { ITheme, mergeStyleSets } from "@fluentui/react";
+import {
+    CUSTOM_MARKER_CLASS,
+    MILESTONE_MARKER_CLASS,
+    PROJECT_END_MARKER_CLASS,
+    PROJECT_START_MARKER_CLASS,
+    TODAY_MARKER_CLASS,
+} from "./GanttMarkers";
 
 
 export const getGanttStyles = (theme: ITheme) => {
@@ -191,15 +198,20 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_marker': {
                 width: 2,
                 marginLeft: -1,
-                backgroundColor: theme.palette.themePrimary,
                 opacity: 1,
                 pointerEvents: 'none',
             },
-            '.gantt_marker.gantt_marker_project_start, .gantt_marker.gantt_marker_project_end': {
-                backgroundColor: theme.palette.orange,
+            [`.gantt_marker.${TODAY_MARKER_CLASS}`]: {
+                backgroundColor: 'var(--today-marker-color)',
             },
-            '.gantt_marker.gantt_marker_milestone': {
-                backgroundColor: theme.palette.purple,
+            [`.gantt_marker.${PROJECT_START_MARKER_CLASS}, .gantt_marker.${PROJECT_END_MARKER_CLASS}`]: {
+                backgroundColor: 'var(--project_start-marker-color)',
+            },
+            [`.gantt_marker.${MILESTONE_MARKER_CLASS}`]: {
+                backgroundColor: 'var(--milestone-marker-color)',
+            },
+            [`.gantt_marker.${CUSTOM_MARKER_CLASS}`]: {
+                backgroundColor: 'var(--custom-marker-color)',
             },
             // Hide the library-rendered chip — labels are injected into the scale header instead
             '.gantt_marker .gantt_marker_content': {

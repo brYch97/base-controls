@@ -13,7 +13,18 @@ interface IGanttMarkersParams {
 
 export interface IGanttMarkers {
     render(): void;
-    getMarkerIds(): string[];
+    getMarkers(): IGanttMarker[];
+}
+
+export type MarkerType = 'milestone' | 'project_start' | 'project_end' | 'today' | 'custom';
+
+export interface IGanttMarker {
+    id: number | string;
+    text: string;
+    type: MarkerType;
+    start_date: Date;
+    color?: string;
+    end_date?: Date;
 }
 
 export const LABEL_OVERLAY_ATTR = 'data-marker-label-overlay';
@@ -31,7 +42,7 @@ export class GanttMarkers implements IGanttMarkers {
     private _datasetControl: ITaskGridDatasetControl;
     private _projectDataProvider: IProjectDataProvider | null;
     private _localizationService: ILocalizationService<ITaskGridLabels>;
-    private _markerIds: string[] = [];
+    private _markers: IGanttMarker[] = [];
 
     constructor(params: IGanttMarkersParams) {
         this._datasetControl = params.datasetControl;
@@ -48,20 +59,27 @@ export class GanttMarkers implements IGanttMarkers {
         this._addProjectEndMarker();
         this._addMilestoneMarker();
     }
-    public getMarkerIds(): string[] {
-        return this._markerIds;
+    public getMarkerIds() {
+        return this._markers;
     }
 
     private _clearMarkers() {
-        this._markerIds.forEach((id) => {
-            this._gantt.deleteMarker(id);
+        this._markers.forEach((marker) => {
+            this._gantt.deleteMarker(marker.id);
         });
-        this._markerIds = [];
+        this._markers = [];
     }
 
-    private _addMarker(config: { start_date: Date; text: string; css: string }) {
+    private _addMarker(config: { start_date: Date; text: string; css: string, type: MarkerType, color: string, end_date?: Date }) {
         const markerId = this._gantt.addMarker(config);
-        this._markerIds.push(String(markerId));
+        this._markers.push({
+            id: markerId,
+            text: config.text,
+            start_date: config.start_date,
+            type: config.type,
+            color: config.color,
+            end_date: config.end_date
+        })
     }
 
     private _addTodayMarker() {
