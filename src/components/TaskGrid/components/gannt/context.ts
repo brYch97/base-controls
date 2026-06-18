@@ -1,6 +1,7 @@
 import React from "react";
 import { ICalloutProps } from "@fluentui/react";
 import { Task } from "gantt-trial";
+import { IMarkerProps } from "./components/marker";
 
 export interface ITaskTooltipProps {
     task: Task;
@@ -15,6 +16,7 @@ export interface IGanttComponents {
     //onRenderTaskText: (props: ITaskTextProps) => React.ReactElement;
     onRenderTaskTooltip: (props: ITaskTooltipProps) => React.ReactElement;
     onRenderTaskTooltipCallout: (props: ICalloutProps) => React.ReactElement;
+    onRenderMarker: (props: IMarkerProps) => React.ReactElement;
 }
 
 export const GanttComponentsContext = React.createContext<IGanttComponents | null>(null);

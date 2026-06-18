@@ -11,10 +11,9 @@ interface IGanttMarkersParams {
     datasetControl: ITaskGridDatasetControl;
 }
 
-const SCALE_LABEL_ATTR = 'data-gantt-marker-label';
-
 export interface IGanttMarkers {
     render(): void;
+    getMarkerIds(): string[];
 }
 
 //pro feature
@@ -25,7 +24,6 @@ export class GanttMarkers implements IGanttMarkers {
     private _projectDataProvider: IProjectDataProvider | null;
     private _localizationService: ILocalizationService<ITaskGridLabels>;
     private _markerIds: string[] = [];
-    private _renderEventId: string | number | null = null;
 
     constructor(params: IGanttMarkersParams) {
         this._datasetControl = params.datasetControl;
@@ -33,7 +31,6 @@ export class GanttMarkers implements IGanttMarkers {
         this._dates = params.dates;
         this._localizationService = this._datasetControl.getLocalizationService();
         this._projectDataProvider = this._datasetControl.getProjectDataProvider();
-        this._renderEventId = this._gantt.attachEvent('onGanttRender', () => this._renderScaleLabels());
     }
 
     public render() {
@@ -41,7 +38,9 @@ export class GanttMarkers implements IGanttMarkers {
         this._addTodayMarker();
         this._addProjectStartMarker();
         this._addProjectEndMarker();
-        this._renderScaleLabels();
+    }
+    public getMarkerIds(): string[] {
+        return this._markerIds;
     }
 
     private _clearMarkers() {
@@ -68,30 +67,5 @@ export class GanttMarkers implements IGanttMarkers {
     private _addProjectEndMarker() {
         const endDate = this._projectDataProvider?.getProjectEndDate() ?? this._dates.getEndDate();
         this._addMarker({ start_date: endDate, text: 'Project End', css: 'gantt_marker_project_end' });
-    }
-
-    /** Inject label chips into the scale header DOM so they sit above the task data area. */
-    private _renderScaleLabels() {
-        const scaleEl = (this._gantt as any).$task_scale as HTMLElement | null;
-        if (!scaleEl) {
-            return;
-        }
-
-        scaleEl.querySelectorAll(`[${SCALE_LABEL_ATTR}]`).forEach((el) => el.remove());
-
-        for (const id of this._markerIds) {
-            const marker = this._gantt.getMarker(id);
-            if (!marker) {
-                continue;
-            }
-
-            const left = this._gantt.posFromDate(marker.start_date);
-            const chip = document.createElement('div');
-            chip.setAttribute(SCALE_LABEL_ATTR, id);
-            chip.className = `gantt_marker_scale_label ${marker.css ?? ''}`;
-            chip.textContent = marker.text ?? '';
-            chip.style.left = `${left}px`;
-            scaleEl.appendChild(chip);
-        }
     }
 }

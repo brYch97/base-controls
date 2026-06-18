@@ -8,8 +8,7 @@ import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTooltip } from './hooks/useTooltip';
 import { useSelectionBox } from './hooks/useSelectionBox';
-import { useMarkers } from './hooks/useMarkers';
-import { useRerender } from '@talxis/react-components';
+import { useMarkers } from './hooks/useMarkers/useMarkers';
 
 export interface IGanttProps {
     components?: Partial<IGanttComponents>;
@@ -22,23 +21,16 @@ export const Gantt = (props: IGanttProps) => {
     const ganttManager = useMemo(() => new GanttManager({ datasetControl }), []);
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
-    const rerender = useRerender();
     const styles = useMemo(() => getGanttStyles(theme), []);
     const tooltip = useTooltip({ container: ref.current, gantt });
     const selectionBox = useSelectionBox({ container: ref.current, gantt, dataProvider: datasetControl.getDataProvider() });
-
-/*     const dummyMarkers = useMemo(() => [
-        { date: new Date(2025, 0, 1), label: 'Project Start', css: 'gantt_marker_project_start' },
-        { date: new Date(2026, 11, 31), label: 'Project End', css: 'gantt_marker_project_end' },
-    ], []);
-    useMarkers({ container: ref.current, gantt, markers: dummyMarkers }); */
+    useMarkers({ gantt, components });
 
     useEffect(() => {
         if (!ref.current) {
             throw new Error("Gantt container ref is not assigned");
         }
         ganttManager.init({ container: ref.current });
-        rerender();
     }, []);
 
     return (
