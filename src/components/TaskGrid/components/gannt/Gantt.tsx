@@ -9,6 +9,7 @@ import { GanttManager } from './GanttManager';
 import { useTooltip } from './hooks/useTooltip';
 import { useSelectionBox } from './hooks/useSelectionBox';
 import { useMarkers } from './hooks/useMarkers/useMarkers';
+import { useTopLeftOverlay } from './hooks/useTopLeftOverlay';
 
 export interface IGanttProps {
     components?: Partial<IGanttComponents>;
@@ -24,6 +25,7 @@ export const Gantt = (props: IGanttProps) => {
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
     const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider() });
+    useTopLeftOverlay({ gantt });
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
     useEffect(() => {

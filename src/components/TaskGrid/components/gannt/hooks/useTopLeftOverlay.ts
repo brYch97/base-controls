@@ -6,17 +6,17 @@ const TOP_LEFT_OVERLAY_ATTR = 'data-gantt-top-left-overlay';
 
 interface IUseTopLeftOverlayParams {
     gantt: GanttStatic;
-    render: () => React.ReactElement;
 }
 
 export const useTopLeftOverlay = (params: IUseTopLeftOverlayParams) => {
-    const { gantt, render } = params;
+    const { gantt } = params;
 
     const getOrCreateContainer = (): HTMLElement | null => {
-        const layoutContent = (gantt as any).$task?.closest<HTMLElement>('.gantt_layout_content');
+        const taskEl = (gantt as any).$task as HTMLElement | null | undefined;
+        const layoutContent = taskEl?.closest('.gantt_layout_content') as HTMLElement | null | undefined;
         if (!layoutContent) return null;
 
-        let container = layoutContent.querySelector<HTMLElement>(`[${TOP_LEFT_OVERLAY_ATTR}]`);
+        let container = layoutContent.querySelector(`[${TOP_LEFT_OVERLAY_ATTR}]`) as HTMLElement | null;
         if (!container) {
             container = document.createElement('div');
             container.setAttribute(TOP_LEFT_OVERLAY_ATTR, '');
@@ -33,7 +33,7 @@ export const useTopLeftOverlay = (params: IUseTopLeftOverlayParams) => {
     const renderContent = () => {
         const container = getOrCreateContainer();
         if (!container) return;
-        ReactDOM.render(render(), container);
+        ReactDOM.render(React.createElement('div', null, 'overlay'), container);
     };
 
     useEffect(() => {
@@ -41,8 +41,9 @@ export const useTopLeftOverlay = (params: IUseTopLeftOverlayParams) => {
         renderContent();
 
         return () => {
-            const layoutContent = (gantt as any).$task?.closest<HTMLElement>('.gantt_layout_content');
-            const container = layoutContent?.querySelector<HTMLElement>(`[${TOP_LEFT_OVERLAY_ATTR}]`);
+            const taskEl = (gantt as any).$task as HTMLElement | null | undefined;
+            const layoutContent = taskEl?.closest('.gantt_layout_content') as HTMLElement | null | undefined;
+            const container = layoutContent?.querySelector(`[${TOP_LEFT_OVERLAY_ATTR}]`) as HTMLElement | null | undefined;
             if (container) {
                 ReactDOM.unmountComponentAtNode(container);
                 container.remove();
