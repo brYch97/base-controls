@@ -1,38 +1,48 @@
-import React, { useMemo } from 'react';
-import { useTheme } from '@fluentui/react';
+import React, { useMemo, useState } from 'react';
+import { Dropdown, Icon, IDropdownOption, useTheme } from '@fluentui/react';
 import { getZoomSwitcherStyles } from './styles';
 
 export type ZoomLevel = 'hour' | 'day' | 'week' | 'month' | 'year';
 
-const ZOOM_LEVELS: { key: ZoomLevel; label: string }[] = [
-    { key: 'hour', label: 'Hour' },
-    { key: 'day', label: 'Day' },
-    { key: 'week', label: 'Week' },
-    { key: 'month', label: 'Month' },
-    { key: 'year', label: 'Year' },
+const ZOOM_OPTIONS: IDropdownOption[] = [
+    { key: 'hour', text: 'Hour' },
+    { key: 'day', text: 'Day' },
+    { key: 'week', text: 'Week' },
+    { key: 'month', text: 'Month' },
+    { key: 'year', text: 'Year' },
 ];
 
 export interface IZoomSwitcherProps {
-    selected: ZoomLevel;
-    onChange: (level: ZoomLevel) => void;
+    selected?: ZoomLevel;
+    onChange?: (level: ZoomLevel) => void;
 }
 
 export const ZoomSwitcher = (props: IZoomSwitcherProps) => {
-    const { selected, onChange } = props;
+    const { onChange } = props;
+    const [internalSelected, setInternalSelected] = useState<ZoomLevel>(props.selected ?? 'day');
+    const selected = props.selected ?? internalSelected;
     const theme = useTheme();
     const styles = useMemo(() => getZoomSwitcherStyles(theme), [theme]);
 
-    return (
-        <div className={styles.root}>
-            {ZOOM_LEVELS.map((level, index) => (
-                <button
-                    key={level.key}
-                    className={`${styles.button} ${selected === level.key ? styles.buttonSelected : ''} ${index === 0 ? styles.buttonFirst : ''} ${index === ZOOM_LEVELS.length - 1 ? styles.buttonLast : ''}`}
-                    onClick={() => onChange(level.key)}
-                >
-                    {level.label}
-                </button>
-            ))}
+    const onRenderTitle = (options?: IDropdownOption[]) => (
+        <div className={styles.option}>
+            <Icon iconName="Calendar" />
+            <span>{options?.[0]?.text}</span>
         </div>
+    );
+
+    return (
+        <Dropdown
+            className={styles.root}
+            options={ZOOM_OPTIONS}
+            selectedKey={selected}
+            onRenderTitle={onRenderTitle}
+            onChange={(_e, option) => {
+                if (!option) return;
+                const level = option.key as ZoomLevel;
+                setInternalSelected(level);
+                onChange?.(level);
+            }}
+        />
     );
 };

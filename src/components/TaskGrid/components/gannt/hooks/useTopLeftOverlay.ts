@@ -1,6 +1,7 @@
 import { GanttStatic } from 'gantt-trial';
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { ZoomSwitcher } from '../components/zoom-switcher';
 
 const TOP_LEFT_OVERLAY_ATTR = 'data-gantt-top-left-overlay';
 
@@ -33,7 +34,7 @@ export const useTopLeftOverlay = (params: IUseTopLeftOverlayParams) => {
     const renderContent = () => {
         const container = getOrCreateContainer();
         if (!container) return;
-        ReactDOM.render(React.createElement('div', null, 'overlay'), container);
+        ReactDOM.render(React.createElement(ZoomSwitcher), container);
     };
 
     useEffect(() => {
