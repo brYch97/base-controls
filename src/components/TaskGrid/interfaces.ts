@@ -10,6 +10,7 @@ import { ILocalizationService } from "../../utils";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
 import { IGanttProps } from "./components/gannt";
+import { ICustomMarker, IGanttMarker } from "./components/gannt/GanttMarkers";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -111,6 +112,7 @@ export interface IExtensions {
     }
     gantt?: {
         onGetGanttComponent: (props: IGanttProps) => React.ReactElement<IGanttProps>
+        onGetCustomMarkers?: () => ICustomMarker[];
     }
 }
 
@@ -147,6 +149,9 @@ export interface ITaskGridDescriptor {
 
 /** Runtime interface for the TaskGrid control returned by `TaskGridDatasetControlFactory.createInstance`. */
 export interface ITaskGridDatasetControl extends IDatasetControl {
+    extensions: IExtensions;
+    /** Bridge for view-level sync between AG Grid and the Gantt chart (scroll, expand/collapse). */
+    ganttGridBridge: GanttGridBridge;
     /**
      * Returns the template `IDataProvider`.
      * @throws If templating was not enabled (no `onCreateTemplateDataProvider` in the descriptor).
@@ -220,6 +225,4 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     isUserQueriesFeatureEnabled: () => boolean;
     /** Whether inline task creation is enabled (from `ITaskGridParameters.enableInlineCreation`). */
     isInlineCreateEnabled: () => boolean;
-    /** Bridge for view-level sync between AG Grid and the Gantt chart (scroll, expand/collapse). */
-    ganttGridBridge: GanttGridBridge;
 }

@@ -9,11 +9,12 @@ import { IGanttMarker } from '../../GanttMarkers';
 export type MarkerType = 'today' | 'project_start' | 'project_end' | 'milestone' | 'custom';
 
 export interface IMarkerProps extends IGanttMarker {
+    innerProps?: React.HtmlHTMLAttributes<HTMLDivElement>;
     components?: Partial<IMarkerComponents>;
 }
 
 export const Marker = (props: IMarkerProps) => {
-    const { text, start_date, type } = props;
+    const { text, start_date, type, innerProps } = props;
     const theme = useTheme();
     const color = props.color ?? theme.palette.themePrimary;
     const styles = useMemo(() => getMarkerStyles(theme, color), [theme, color]);
@@ -22,9 +23,12 @@ export const Marker = (props: IMarkerProps) => {
     const id = useMemo(() => `gantt_marker_${props.id}`, [props.id]);
     const tooltipContent = formatting.formatDateShort(start_date) ?? '';
 
-    return components.onRenderTooltipHost({
-        id: id,
-        content: tooltipContent,
-        children: components.onRenderContent({ className: styles.root, children: text })
+    return components.onRenderContainer({
+        ...innerProps,
+        children: components.onRenderTooltipHost({
+            id: id,
+            content: tooltipContent,
+            children: components.onRenderContent({ className: styles.root, children: text })
+        })
     });
 };

@@ -67,11 +67,14 @@ export const useMarkers = (params: IUseMarkersParams) => {
             const chip = document.createElement('div');
             ReactDOM.render(components.onRenderMarker({
                 ...marker,
-                type: getMarkerType(marker.css)
+                type: getMarkerType(marker.css),
+                innerProps: {
+
+                    className: styles.chip,
+                    style: { left: `${left - 1}px` }
+                },
             }), chip);
             chip.setAttribute(SCALE_LABEL_ATTR, String(marker.id));
-            chip.className = styles.chip;
-            chip.style.left = `${left - 7}px`;
             overlay.appendChild(chip);
         }
     };

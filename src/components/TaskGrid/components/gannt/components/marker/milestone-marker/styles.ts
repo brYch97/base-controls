@@ -11,14 +11,6 @@ export const getMilestoneMarkerStyles = (theme: ITheme) => {
             transform: 'rotate(-45deg)',
             transformOrigin: 'center',
             boxShadow: theme.effects.elevation8,
-            left: -12,
-            top: -5,
-            position: 'relative',
-            selectors: {
-                '& > *': {
-                    display: 'none',
-                },
-            },
         }
     })
 }

@@ -7,6 +7,11 @@ export const MilestoneMarker = (props: Omit<IMarkerProps, 'type'>) => {
     const theme = useTheme();
     const styles = useMemo(() => getMilestoneMarkerStyles(theme), [theme]);
     return <Marker {...props} type='milestone' components={{
+        onRenderContainer: (props) => <div {...props} style={{
+            ...props.style,
+            left: `calc(${props.style?.left} - 12px)`,
+            bottom: 5
+        }} />,
         onRenderTooltipHost: (tooltipHostProps) => <TooltipHost
             {...tooltipHostProps}
             content={<div>

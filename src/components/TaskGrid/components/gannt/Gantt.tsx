@@ -22,29 +22,30 @@ export const Gantt = (props: IGanttProps) => {
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
-    const {tooltip} = useTooltip({ gantt });
-    const selectionBox = useSelectionBox({ container: ref.current, gantt, dataProvider: datasetControl.getDataProvider() });
+    const { tooltip } = useTooltip({ gantt });
+    const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider() });
     useMarkers({ gantt, components });
 
     useEffect(() => {
         if (!ref.current) {
             throw new Error("Gantt container ref is not assigned");
         }
-        tooltip.init(ref.current);
         ganttManager.init({ container: ref.current });
+        tooltip.init(ref.current);
+        selectionBox.init(ref.current);
     }, []);
 
     return (
         <>
             <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }}>
-                {selectionBox && (
+                {selectionBox.state && (
                     <div
                         className={styles.selectionBox}
                         style={{
-                            left: selectionBox.left,
-                            top: selectionBox.top,
-                            width: selectionBox.width,
-                            height: selectionBox.height,
+                            left: selectionBox.state.left,
+                            top: selectionBox.state.top,
+                            width: selectionBox.state.width,
+                            height: selectionBox.state.height,
                         }}
                     />
                 )}

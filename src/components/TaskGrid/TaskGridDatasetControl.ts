@@ -54,6 +54,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         return new EditColumns({ datasetControl: this });
     }
 
+    public get extensions() {
+        return this._descriptor.extensions ?? {};
+    }
+
     public getNativeColumns() {
         return {
             ...this._descriptor.onGetFieldMapping(),

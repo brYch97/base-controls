@@ -37,29 +37,27 @@ export class GanttManager implements IGanttManager {
     private _selectionAnchorTaskId: string | null = null;
 
     constructor(params: IGanttManagerParams) {
-        this._gantt = Gantt.getGanttInstance();
-        this._gantt.config.project_start_date = new Date(2000, 0, 1);
-        this._gantt.config.project_end_date = new Date(2100, 11, 31);
-        this._gantt.plugins({
-            drag_timeline: true,
-            marker: true
-        });
-
-        //@ts-ignore
-        window.GANTT = this._gantt; //for debugging
         this._datasetControl = params.datasetControl;
         this._dataProvider = this._datasetControl.getDataProvider();
+        this._gantt = Gantt.getGanttInstance();
         this._bridge = this._datasetControl.ganttGridBridge;
         this._dates = new GanttDates({ datasetControl: this._datasetControl });
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        
+        this._gantt.plugins({
+            drag_timeline: true,
+            marker: true
+        });
     }
 
     public init(params: IInitParams) {
         this._gantt.config.show_grid = false;
         this._gantt.config.select_task = false;
         this._gantt.config.details_on_dblclick = false;
+        this._gantt.config.show_links = false;
+        this._gantt.config.drag_links = false;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);

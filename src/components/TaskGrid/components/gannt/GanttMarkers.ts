@@ -4,6 +4,7 @@ import { ILocalizationService } from "../../../..";
 import { ITaskGridLabels } from "../../labels";
 import { GanttDates, IGanttDates } from "./GanttDates";
 import { IProjectDataProvider } from "../../extensions/providers/project";
+import { getClassNames } from "@talxis/react-components";
 
 interface IGanttMarkersParams {
     gantt: GanttStatic;
@@ -23,8 +24,13 @@ export interface IGanttMarker {
     text: string;
     type: MarkerType;
     start_date: Date;
+    css?: string;
     color?: string;
     end_date?: Date;
+}
+
+export interface ICustomMarker extends Omit<IGanttMarker, 'id' | 'type'> {
+
 }
 
 export const LABEL_OVERLAY_ATTR = 'data-marker-label-overlay';
@@ -43,6 +49,7 @@ export class GanttMarkers implements IGanttMarkers {
     private _projectDataProvider: IProjectDataProvider | null;
     private _localizationService: ILocalizationService<ITaskGridLabels>;
     private _markers: IGanttMarker[] = [];
+    private _getCustomMarkers: () => ICustomMarker[];
 
     constructor(params: IGanttMarkersParams) {
         this._datasetControl = params.datasetControl;
@@ -50,6 +57,7 @@ export class GanttMarkers implements IGanttMarkers {
         this._dates = params.dates;
         this._localizationService = this._datasetControl.getLocalizationService();
         this._projectDataProvider = this._datasetControl.getProjectDataProvider();
+        this._getCustomMarkers = this._datasetControl.extensions.gantt?.onGetCustomMarkers ?? (() => []);
     }
 
     public render() {
@@ -58,6 +66,7 @@ export class GanttMarkers implements IGanttMarkers {
         this._addProjectStartMarker();
         this._addProjectEndMarker();
         this._addMilestoneMarker();
+        this._addCustomMarkers();
     }
     public getMarkers(): IGanttMarker[] {
         return this._markers;
@@ -70,19 +79,13 @@ export class GanttMarkers implements IGanttMarkers {
         this._markers = [];
     }
 
-    private _addMarker(config: { start_date: Date; text: string; css: string; type: MarkerType; color: string; end_date?: Date }) {
-
-        const markerId = this._gantt.addMarker(config);
-        this._markers.push({
-            id: markerId,
-            text: config.text,
-            start_date: config.start_date,
-            type: config.type,
-            color: config.color,
-            end_date: config.end_date
-        });
+    private _addMarker(marker: Omit<IGanttMarker, 'id'>) {
+        const markerId = this._gantt.addMarker(marker);
+        this._markers.push({ ...marker, id: markerId });
         const ganttElement = (this._gantt as any).$root as HTMLElement | undefined;
-        ganttElement?.style.setProperty(`--${config.type}-marker-color`, config.color);
+        if (marker.color) {
+            ganttElement?.style.setProperty(`--${marker.type}-marker-color`, marker.color);
+        }
     }
 
     private _addTodayMarker() {
@@ -128,19 +131,9 @@ export class GanttMarkers implements IGanttMarkers {
     }
 
     private _addCustomMarkers() {
-        this._addMarker({
-            start_date: new Date('2025-01-01'),
-            text: 'Custom Marker',
-            css: CUSTOM_MARKER_CLASS,
-            type: 'custom',
-            color: '#605e5c',
-        });
-        this._addMarker({
-            start_date: new Date('2025-02-01'),
-            text: 'Custom Marker 2',
-            css: CUSTOM_MARKER_CLASS,
-            type: 'custom',
-            color: '#605e5c',
+        this._getCustomMarkers().forEach((marker) => {
+            const classNames = getClassNames([CUSTOM_MARKER_CLASS, marker.css]);
+            this._addMarker({...marker, css: classNames, type: 'custom' });
         });
     }
 }

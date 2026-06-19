@@ -13,7 +13,6 @@ export const getMarkerStyles = () => {
         chip: {
             position: 'absolute',
             bottom: 0,
-            transform: 'translateX(6px)',
         }
     });
 }
