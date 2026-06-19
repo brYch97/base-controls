@@ -20,6 +20,7 @@ interface IGanttManagerParams {
 
 export interface IGanttManager {
     init: (params: IInitParams) => void;
+    getMarkers: () => IGanttMarkers;
     getGanttInstance: () => GanttStatic;
 }
 
@@ -45,7 +46,7 @@ export class GanttManager implements IGanttManager {
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
-        
+
         this._gantt.plugins({
             drag_timeline: true,
             marker: true
@@ -69,6 +70,10 @@ export class GanttManager implements IGanttManager {
 
     public getGanttInstance() {
         return this._gantt;
+    }
+
+    public getMarkers() {
+        return this._markers;
     }
 
     private _registerEventListeners() {
@@ -179,9 +184,6 @@ export class GanttManager implements IGanttManager {
     }
 
     private _onAgGridScrolled(scrollTop: number) {
-        // Skip when already aligned. Setting the same scroll position would emit a
-        // redundant scroll event that bounces back through the bridge, so this
-        // short-circuit breaks any echo loop regardless of suppression timing.
         if (this._gantt.getScrollState()?.y === scrollTop) {
             return;
         }
@@ -189,10 +191,6 @@ export class GanttManager implements IGanttManager {
     }
 
     private _loadTasksToGantt() {
-        // The gantt's current open-state is what is actually in sync with the grid
-        // (it is driven by the grid's live expand/collapse events). Snapshot it so a
-        // reload preserves it instead of recomputing from defaults, which would
-        // collapse groups the grid still shows expanded.
         const previousOpenState = new Map<string, boolean>();
         this._gantt.eachTask((task: Task) => previousOpenState.set(String(task.id), !!task.$open));
 
@@ -205,11 +203,11 @@ export class GanttManager implements IGanttManager {
             }
             return task;
         });
+        
         this._gantt.clearAll();
         this._gantt.parse({
             data: data
         });
-        this._markers.render();
     }
 
     private _convertRecordToTask(record: IRecord): Task {
@@ -225,12 +223,13 @@ export class GanttManager implements IGanttManager {
             endDate = dayjs(startDate).add(7, 'day').toDate();
         }
 
+        const hasChildren = this._dataProvider.getRecordTree().hasChildren(record.getRecordId());
         return {
             id: record.getRecordId(),
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
-            bar_height: this._dataProvider.getRecordTree().hasChildren(record.getRecordId()) ? 16 : 26,
+            bar_height: hasChildren ? 16 : 26,
             progress: this._getPercentComplete(record),
             parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
             active: record.isActive(),
@@ -261,9 +260,6 @@ export class GanttManager implements IGanttManager {
     }
 
     private _onAgGridTaskExpanded(taskId: string) {
-        // Persist intent even if the task is not currently rendered, so it opens
-        // when it next loads. Only call open() when a state change is actually
-        // needed to avoid redundant work and re-render churn.
         this._expandedNodeSet.add(taskId);
         if (this._gantt.isTaskExists(taskId) && !this._gantt.getTask(taskId).$open) {
             this._gantt.open(taskId);
@@ -278,8 +274,6 @@ export class GanttManager implements IGanttManager {
     }
 
     private _getScrollingContainer(): Element {
-        // Scope to this gantt instance's root so multiple TaskGrids on the same
-        // page don't bind to or scroll each other's timeline container.
         const container = this._gantt.$root?.querySelector('.gantt_data_area');
         if (!container) {
             throw new Error("Could not find Gantt scrolling container");

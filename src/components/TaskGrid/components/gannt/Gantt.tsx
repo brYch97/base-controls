@@ -24,7 +24,7 @@ export const Gantt = (props: IGanttProps) => {
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
     const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider() });
-    useMarkers({ gantt, components });
+    useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
     useEffect(() => {
         if (!ref.current) {

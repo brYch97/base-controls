@@ -4,7 +4,7 @@ import { ErrorHelper } from "../../../../utils/error-handling";
 import { ILocalizationService } from "../../../../utils";
 import { ITaskGridLabels } from "../../labels";
 import { INativeColumns } from "../../interfaces";
-import { ISavedQueryDataProvider} from "../saved-query";
+import { ISavedQueryDataProvider } from "../saved-query";
 import { ICustomColumnsDataProvider } from "../custom-columns";
 import { IProjectDataProvider } from "../../extensions/providers/project/ProjectDataProvider";
 
@@ -218,9 +218,12 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
         return [];
     }
 
-    public onRecordSave(record: IRecord): Promise<IRecordSaveOperationResult> {
-        //if we have both start date and end date and one of these changed => pro
-        return this._strategy.onRecordSave(record);
+    public async onRecordSave(record: IRecord): Promise<IRecordSaveOperationResult> {
+        const result = await this._strategy.onRecordSave(record);
+        if (result.success && this._hasDateBeenChanged(result.fields)) {
+            await this._projectDataProvider?.refreshStartEndDates(this.getAllRecords());
+        }
+        return result;
     }
 
     public updateTaskData(newData: IRawRecord[]) {
@@ -319,7 +322,7 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
         ErrorHelper.executeWithErrorHandling({
             operation: async () => {
                 const result = await this._strategy.onOpenDatasetItems([entityReference], isTaskEntity);
-                if(result) this.updateTaskData(result.updatedRecords);
+                if (result) this.updateTaskData(result.updatedRecords);
                 this.taskEvents.dispatchEvent('onAfterDatasetItemsOpened', [entityReference], isTaskEntity, result);
             },
             onError: (error, message) => this.taskEvents.dispatchEvent('onError', error, message)
@@ -441,9 +444,12 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
             await this._loadDataFromStrategy();
             //we need to artificially wait in order for any sync outside stuff to finish (like loading grid  to register events)
             await new Promise(resolve => setTimeout(resolve, 0));
-            this._hasDataBeenLoaded = true;
         }
         await super.refresh();
+        if(!this._hasDataBeenLoaded) {
+            this._hasDataBeenLoaded = true;
+            await this._projectDataProvider?.refreshStartEndDates(this.getAllRecords());
+        }
         return this.getAllRecords();
     }
 
@@ -460,6 +466,16 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
             hasNextPage: false,
             totalRecordCount: this.getDataSource().length
         }
+    }
+
+    private _getRecordDate(record: IRecord, kind: 'startDate' | 'endDate'): Date | null {
+        const columnName = this.getNativeColumns()[kind];
+        if (!columnName) {
+            return null;
+        }
+
+        const value = record.getValue(columnName);
+        return value ? new Date(value) : null;
     }
 
     private async _loadDataFromStrategy() {
@@ -498,4 +514,9 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
             this.taskEvents.dispatchEvent('onRecordTreeUpdated', [parentId]);
         }
     }
+
+    private _hasDateBeenChanged(fields: string[]): boolean {
+        return !!fields.find(field => field === this.getNativeColumns().startDate || field === this.getNativeColumns().endDate);
+    }
+
 }

@@ -5,6 +5,8 @@ import ReactDOM from 'react-dom';
 import { getMarkerStyles } from './styles';
 import {
     CUSTOM_MARKER_CLASS,
+    IGanttMarkers,
+    IGanttMarkersEvents,
     LABEL_OVERLAY_ATTR,
     MILESTONE_MARKER_CLASS,
     PROJECT_END_MARKER_CLASS,
@@ -13,9 +15,11 @@ import {
     TODAY_MARKER_CLASS,
 } from '../../GanttMarkers';
 import { MarkerType } from '../../components/marker';
+import { useEventEmitter } from '../../../../../../hooks';
 
 interface IUseMarkersParams {
     gantt: GanttStatic;
+    markers: IGanttMarkers;
     components: IGanttComponents;
 }
 
@@ -37,8 +41,11 @@ const getMarkerType = (css: string): MarkerType => {
 };
 
 export const useMarkers = (params: IUseMarkersParams) => {
-    const { gantt, components } = params;
+    const { gantt, markers, components } = params;
     const styles = useMemo(() => getMarkerStyles(), []);
+    useEventEmitter<IGanttMarkersEvents>(markers.events, 'onMarkersUpdated', () => {
+        renderScaleLabels();
+    })
 
     const renderScaleLabels = () => {
         // Overlay lives as a sibling of $task_scale inside $task so the library
@@ -84,9 +91,9 @@ export const useMarkers = (params: IUseMarkersParams) => {
         renderScaleLabels();
 
         return () => {
-            gantt.detachEvent(eventId);
             const taskEl = (gantt as any).$task as HTMLElement | null | undefined;
             taskEl?.querySelector<HTMLElement>(`[${LABEL_OVERLAY_ATTR}]`)?.remove();
+            gantt.detachEvent(eventId);
         };
     }, [gantt]);
 };

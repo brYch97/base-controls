@@ -81,8 +81,8 @@ export class GanttDates implements IGanttDates {
     }
 
     private _registerEventListeners() {
-        this._provider.addEventListener('onNewDataLoaded', () => {
-            const { startDate, endDate } = this.getStartEndDateFromRecords(this._provider.getRecordTree().getNode(null).allChildren);
+        this._provider.addEventListener(('onFirstDataLoaded'), () => {
+            const { startDate, endDate } = this.getStartEndDateFromRecords(this._provider.getAllRecords());
             this._startDate = startDate;
             this._endDate = endDate;
         });
