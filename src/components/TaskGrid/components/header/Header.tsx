@@ -149,19 +149,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
                     onRenderMenuList: () => <SettingsCallout />
                 },
                 iconProps: { iconName: 'Settings' },
-            }] : []),
-            {
-                key: 'zoom-switcher',
-                disabled: isLoading,
-                text: 'text',
-                onRender: (item) => <CommandBarButton {...item} onRenderMenuIcon={() => <></>} onRenderIcon={() => <></>} onRenderText={() => <></>} onRenderChildren={() => <ZoomSwitcher />} />
-            },
-            {
-                key: 'jump-today',
-                disabled: isLoading,
-                text: 'Today',
-                iconProps: { iconName: 'Calendar' },
-            }
+            }] : [])
         ];
     }
 
