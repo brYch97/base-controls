@@ -35,6 +35,10 @@ export const Gantt = (props: IGanttProps) => {
         ganttManager.init({ container: ref.current });
         tooltip.init(ref.current);
         selectionBox.init(ref.current);
+
+        return () => {
+            ganttManager.destroy();
+        };
     }, []);
 
     return (

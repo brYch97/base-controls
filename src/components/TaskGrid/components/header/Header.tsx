@@ -1,14 +1,13 @@
 import { IHeaderProps } from "../../../DatasetControl/interfaces"
 import { ICommandBarItemProps } from "@talxis/react-components";
 import * as React from "react"
-import { CommandBarButton, ContextualMenuItemType, useTheme } from "@fluentui/react";
+import { CommandBarButton, ContextualMenuItemType } from "@fluentui/react";
 import { getHeaderStyles } from "./styles";
 import { SettingsCallout } from "./settings-callout";
 import { useDatasetControl, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
 import { RecordSelector } from "../grid/record-selector";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
-import { ZoomSwitcher } from "../gannt/components/zoom-switcher";
 
 interface ITaskGridHeaderProps {
     headerProps: IHeaderProps;
@@ -25,6 +24,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
     const components = useTaskGridComponents();
 
     const hasContent = () => {
+        const isGanttEnabled = !!datasetControl.extensions.gantt;
         return datasetControl.isViewSwitcherEnabled() ||
             datasetControl.isTaskCreatingEnabled() ||
             datasetControl.isTemplatingEnabled() ||
@@ -32,7 +32,8 @@ export const Header = (props: ITaskGridHeaderProps) => {
             datasetControl.isTaskDeletingEnabled() ||
             datasetControl.isEditColumnsVisible() ||
             datasetControl.isShowHierarchyToggleVisible() ||
-            datasetControl.isHideInactiveTasksToggleVisible();
+            datasetControl.isHideInactiveTasksToggleVisible() ||
+            isGanttEnabled;
     }
 
     const createTaskFromTemplate = (templateId: string) => {
@@ -95,6 +96,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
         const isTaskDeletingEnabled = datasetControl.isTaskDeletingEnabled();
         const isShowHierarchyToggleVisible = datasetControl.isShowHierarchyToggleVisible();
         const isHideInactiveTasksToggleVisible = datasetControl.isHideInactiveTasksToggleVisible();
+        const isGanttEnabled = !!datasetControl.extensions.gantt;
         const selectedIds = provider.getSelectedRecordIds();
         const isLoading = provider.isLoading();
 
@@ -149,6 +151,13 @@ export const Header = (props: ITaskGridHeaderProps) => {
                     onRenderMenuList: () => <SettingsCallout />
                 },
                 iconProps: { iconName: 'Settings' },
+            }] : []),
+            ...(isGanttEnabled ? [{
+                key: 'goToToday',
+                disabled: isLoading,
+                text: localizationService.getLocalizedString('goToToday'),
+                iconProps: { iconName: 'CalendarDay' },
+                onClick: () => datasetControl.requestJumpToToday(),
             }] : [])
         ];
     }

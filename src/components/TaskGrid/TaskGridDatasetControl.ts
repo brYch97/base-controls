@@ -1,7 +1,7 @@
 import { IDatasetControlParameters } from "../DatasetControl";
 import { IDatasetControlEvents } from "../../utils/dataset-control";
 import { EditColumns, IEditColumns } from "../../utils/dataset-control/EditColumns";
-import { IDataset, ICommand, EventEmitter, IDataProvider, Operators, Filtering } from "@talxis/client-libraries";
+import { IDataset, ICommand, EventEmitter, IDataProvider, IEventEmitter, Operators, Filtering } from "@talxis/client-libraries";
 import { IDeleteTasksResult, ITaskDataProvider } from "./providers/task";
 import { ILocalizationService } from "../../utils";
 import { ITaskGridLabels } from "./labels";
@@ -9,7 +9,7 @@ import { ISavedQueryDataProvider, PATH_COLUMN_NAME } from "./providers/saved-que
 import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { Type } from "@talxis/client-libraries/dist/utils/fetch-xml/filter/Type";
 import { ICustomColumnsDataProvider } from "./providers/custom-columns/CustomColumnsDataProvider";
-import { ITaskGridDatasetControl, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
+import { ITaskGridDatasetControl, ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
 import { ErrorHelper } from "../../utils/error-handling";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project";
@@ -30,6 +30,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     private _commands: ICommand[] = [];
     private _getPcfContext: () => ComponentFramework.Context<any, any>;
     private _changeToQueryId!: string;
+    public readonly events: IEventEmitter<ITaskGridDatasetControlEvents> = new EventEmitter<ITaskGridDatasetControlEvents>();
     public readonly ganttGridBridge = new GanttGridBridge();
 
     constructor(parameters: ITaskGridDatasetControlParameters) {
@@ -110,6 +111,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
 
     public isInlineCreateEnabled(): boolean {
         return this._gridParameters.enableInlineCreation ?? false;
+    }
+
+    public requestJumpToToday(): void {
+        this.events.dispatchEvent('onJumpToTodayRequested');
     }
 
     public isShowHierarchyToggleVisible(): boolean {
@@ -319,6 +324,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     }
     public destroy(): void {
         this.saveState();
+        this.events.clearEventListeners();
         this.ganttGridBridge.clearEventListeners();
         this._dataProvider.destroy();
         this._savedQueryDataProvider.destroy();

@@ -58,6 +58,7 @@ export interface ITaskGridLabels {
     canNotEditCompletedTask: string;
     selectMaximumOneTask: string;
     hideInactiveTasks: string;
+    goToToday: string;
     successfulOperationDialogTitle: string;
     warningDialogTitle: string;
     informationDialogTitle: string;
@@ -136,6 +137,7 @@ export const TASK_GRID_LABELS: ITaskGridLabels = {
     canNotEditCompletedTask: "You can't edit completed task.",
     selectMaximumOneTask: 'Select maximum one task.',
     hideInactiveTasks: 'Hide inactive tasks',
+    goToToday: 'Go to today',
     successfulOperationDialogTitle: 'Success',
     warningDialogTitle: 'Warning',
     informationDialogTitle: 'Information',

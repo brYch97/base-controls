@@ -22,6 +22,7 @@ export interface IGanttManager {
     init: (params: IInitParams) => void;
     getMarkers: () => IGanttMarkers;
     getGanttInstance: () => GanttStatic;
+    destroy: () => void;
 }
 
 export class GanttManager implements IGanttManager {
@@ -74,6 +75,10 @@ export class GanttManager implements IGanttManager {
 
     public getMarkers() {
         return this._markers;
+    }
+
+    public destroy() {
+        this._zooming.destroy();
     }
 
     private _registerEventListeners() {
