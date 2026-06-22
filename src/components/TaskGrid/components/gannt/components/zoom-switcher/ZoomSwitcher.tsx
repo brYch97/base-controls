@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Dropdown, Icon, IDropdownOption, useTheme } from '@fluentui/react';
+import { ComboBox, Dropdown, Icon, IDropdownOption, useTheme } from '@fluentui/react';
 import { getZoomSwitcherStyles } from './styles';
 
 export type ZoomLevel = 'hour' | 'day' | 'week' | 'month' | 'year';
@@ -24,19 +24,11 @@ export const ZoomSwitcher = (props: IZoomSwitcherProps) => {
     const theme = useTheme();
     const styles = useMemo(() => getZoomSwitcherStyles(theme), [theme]);
 
-    const onRenderTitle = (options?: IDropdownOption[]) => (
-        <div className={styles.option}>
-            <Icon iconName="Calendar" />
-            <span>{options?.[0]?.text}</span>
-        </div>
-    );
-
     return (
-        <Dropdown
+        <ComboBox
             className={styles.root}
             options={ZOOM_OPTIONS}
             selectedKey={selected}
-            onRenderTitle={onRenderTitle}
             onChange={(_e, option) => {
                 if (!option) return;
                 const level = option.key as ZoomLevel;

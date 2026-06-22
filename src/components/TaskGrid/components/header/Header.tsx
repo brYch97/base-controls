@@ -8,6 +8,7 @@ import { useDatasetControl, useLocalizationService, usePcfContext, useTaskDataPr
 import { RecordSelector } from "../grid/record-selector";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
+import { ZoomSwitcher } from "../gannt/components/zoom-switcher";
 
 interface ITaskGridHeaderProps {
     headerProps: IHeaderProps;
@@ -148,7 +149,19 @@ export const Header = (props: ITaskGridHeaderProps) => {
                     onRenderMenuList: () => <SettingsCallout />
                 },
                 iconProps: { iconName: 'Settings' },
-            }] : [])
+            }] : []),
+            {
+                key: 'zoom-switcher',
+                disabled: isLoading,
+                text: 'text',
+                onRender: (item) => <CommandBarButton {...item} onRenderMenuIcon={() => <></>} onRenderIcon={() => <></>} onRenderText={() => <></>} onRenderChildren={() => <ZoomSwitcher />} />
+            },
+            {
+                key: 'jump-today',
+                disabled: isLoading,
+                text: 'Today',
+                iconProps: { iconName: 'Calendar' },
+            }
         ];
     }
 

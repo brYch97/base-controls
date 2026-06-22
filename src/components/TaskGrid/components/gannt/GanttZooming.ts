@@ -56,6 +56,12 @@ export class GanttZooming implements IGanttZooming {
         this._applyDateRangeForLevel(this._gantt.ext.zoom.getCurrentLevel(), new Date());
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
+        this._gantt.ext.zoom.zoomToFit({
+            rangeMode: ''           
+            range: {
+
+            }
+        })
 
     }
 
