@@ -5,9 +5,9 @@ import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
 import { GanttDragging, IGanttDragging } from './GanttDragging';
-import { GanttZooming, IGanttZooming } from './GanttZooming';
 import { GanttDates } from './GanttDates';
 import { GanttMarkers, IGanttMarkers } from './GanttMarkers';
+import { GanttZooming, IGanttZooming } from './zooming';
 
 
 interface IInitParams {
