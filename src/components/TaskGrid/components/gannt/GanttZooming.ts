@@ -290,7 +290,6 @@ export class GanttZooming implements IGanttZooming {
         const today = new Date();
         const level = Number(this._gantt.ext.zoom.getCurrentLevel());
         this._applyDateRangeForLevel(level, today);
-        this._gantt.render();
         const position = this._gantt.posFromDate(today);
         this._gantt.scrollTo(position - (this._gantt.$task?.offsetWidth ?? 0) / 2, null);
     }
