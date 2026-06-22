@@ -11,9 +11,11 @@ import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
 import { IGanttProps } from "./components/gannt";
 import { ICustomMarker, IGanttMarker } from "./components/gannt/GanttMarkers";
+import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
 
 export interface ITaskGridDatasetControlEvents {
     onJumpToTodayRequested: () => void;
+    onZoomLevelChangeRequested: (level: ZoomLevel) => void;
 }
 
 export interface ITaskGridDatasetControlParameters {
@@ -232,4 +234,6 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     isInlineCreateEnabled: () => boolean;
     /** Requests the gantt timeline to navigate to today. */
     requestJumpToToday: () => void;
+    /** Requests the gantt timeline zoom level to change. */
+    requestZoomLevelChange: (level: ZoomLevel) => void;
 }

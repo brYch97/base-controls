@@ -4,6 +4,7 @@ import { ITaskDataProvider } from '../../providers';
 import { IGanttDates } from './GanttDates';
 import { Formatting } from '@talxis/client-libraries';
 import dayjs from 'dayjs';
+import { ZoomLevel } from './components/zoom-switcher';
 
 export interface IGanttZooming {
     destroy: () => void;
@@ -23,7 +24,6 @@ export class GanttZooming implements IGanttZooming {
     private _gantt: GanttStatic;
     private _dates: IGanttDates;
     private _formatting = Formatting.Get();
-    private _onJumpToTodayRequested = () => this._jumpToToday();
 
     // Half-width of the visible timeline window per zoom level (centered on the
     // currently visible date) plus the unit its boundaries snap to. Coarse levels
@@ -46,6 +46,7 @@ export class GanttZooming implements IGanttZooming {
     // re-apply the centered per-level window (that would clobber the fitted range).
     private _isFitting = false;
 
+
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
@@ -55,6 +56,7 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.config.scale_height = 43;
         this._gantt.config.min_column_width = 80;
         this._gantt.ext.zoom.init(this._getZoomConfig());
+        this._gantt.ext.co
         this._applyDateRangeForLevel(this._gantt.ext.zoom.getCurrentLevel(), new Date());
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
@@ -294,11 +296,20 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.scrollTo(position - (this._gantt.$task?.offsetWidth ?? 0) / 2, null);
     }
 
+    private _changeZoomLevel(level: ZoomLevel) {
+        this._gantt.config.scales = [
+            { unit: "year", step: 1, format: "%Y" },
+            { unit: "month", step: 1, format: "%F" },
+        ]
+        this._gantt.render()
+    }
+
 
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._taskDataProvider.addEventListener('onNewDataLoaded', () => this._zoomToFit());
-        this._datasetControl.events.addEventListener('onJumpToTodayRequested', this._onJumpToTodayRequested);
+        this._datasetControl.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
+        this._datasetControl.events.addEventListener('onZoomLevelChangeRequested', (level: ZoomLevel) => this._changeZoomLevel(level));
         this._gantt.ext.zoom.attachEvent('onAfterZoom', (level: string | number) => {
             // A fit-to-range sets the window explicitly; don't override it.
             if (this._isFitting) {
@@ -316,6 +327,5 @@ export class GanttZooming implements IGanttZooming {
     }
 
     public destroy() {
-        this._datasetControl.events.removeEventListener('onJumpToTodayRequested', this._onJumpToTodayRequested);
     }
 }

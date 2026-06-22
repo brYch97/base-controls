@@ -8,6 +8,7 @@ import { useDatasetControl, useLocalizationService, usePcfContext, useTaskDataPr
 import { RecordSelector } from "../grid/record-selector";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
+import { ZoomSwitcher } from "../gannt/components/zoom-switcher";
 
 interface ITaskGridHeaderProps {
     headerProps: IHeaderProps;
@@ -170,6 +171,9 @@ export const Header = (props: ITaskGridHeaderProps) => {
             return <div className={styles.root}>
                 {datasetControl.isViewSwitcherEnabled() &&
                     <ViewSwitcher />
+                }
+                {datasetControl.extensions.gantt &&
+                    <ZoomSwitcher onChange={(level) => datasetControl.requestZoomLevelChange(level)} />
                 }
                 {defaultRender({
                     ...props,

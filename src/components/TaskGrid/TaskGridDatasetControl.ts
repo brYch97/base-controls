@@ -13,6 +13,7 @@ import { ITaskGridDatasetControl, ITaskGridDatasetControlEvents, ITaskGridDescri
 import { ErrorHelper } from "../../utils/error-handling";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project";
+import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
 
 const STATE_CODE_ACTIVE = 0;
 
@@ -115,6 +116,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
 
     public requestJumpToToday(): void {
         this.events.dispatchEvent('onJumpToTodayRequested');
+    }
+
+    public requestZoomLevelChange(level: ZoomLevel): void {
+        this.events.dispatchEvent('onZoomLevelChangeRequested', level);
     }
 
     public isShowHierarchyToggleVisible(): boolean {
