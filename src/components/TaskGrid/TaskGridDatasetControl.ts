@@ -122,6 +122,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         this.events.dispatchEvent('onZoomLevelChangeRequested', level);
     }
 
+    public requestWeekendVisibility(visible: boolean): void {
+        this.events.dispatchEvent('onWeekendVisibilityRequested', visible);
+    }
+
     public isShowHierarchyToggleVisible(): boolean {
         return this._gridParameters.enableShowHierarchyToggle ?? false;
     }

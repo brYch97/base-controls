@@ -27,6 +27,7 @@ export interface IGanttManager {
 
 export class GanttManager implements IGanttManager {
     private static readonly _outsideLabelWidthThreshold = 96;
+    private _showWeekends = false;
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
@@ -60,8 +61,7 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.details_on_dblclick = false;
         this._gantt.config.show_links = false;
         this._gantt.config.drag_links = false;
-        this._gantt.config.work_time = true;
-        this._gantt.config.skip_off_time = true;
+        this._applyWeekendVisibility();
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
@@ -90,6 +90,7 @@ export class GanttManager implements IGanttManager {
         this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
+        this._datasetControl.events.addEventListener('onWeekendVisibilityRequested', (visible) => this._setWeekendVisibility(visible));
         this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._onAgGridTaskExpanded(taskId));
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
@@ -100,6 +101,21 @@ export class GanttManager implements IGanttManager {
             return true;
         });
         this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
+    }
+
+    private _applyWeekendVisibility() {
+        this._gantt.config.work_time = !this._showWeekends;
+        this._gantt.config.skip_off_time = !this._showWeekends;
+    }
+
+    private _setWeekendVisibility(visible: boolean) {
+        if (this._showWeekends === visible) {
+            return;
+        }
+
+        this._showWeekends = visible;
+        this._applyWeekendVisibility();
+        this._gantt.render();
     }
 
     private _onTaskDblClick(taskId: string, event?: MouseEvent) {

@@ -16,6 +16,7 @@ import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
 export interface ITaskGridDatasetControlEvents {
     onJumpToTodayRequested: () => void;
     onZoomLevelChangeRequested: (level: ZoomLevel) => void;
+    onWeekendVisibilityRequested: (visible: boolean) => void;
 }
 
 export interface ITaskGridDatasetControlParameters {
@@ -236,4 +237,6 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     requestJumpToToday: () => void;
     /** Requests the gantt timeline zoom level to change. */
     requestZoomLevelChange: (level: ZoomLevel) => void;
+    /** Requests the gantt timeline to show or hide weekends. */
+    requestWeekendVisibility: (visible: boolean) => void;
 }
