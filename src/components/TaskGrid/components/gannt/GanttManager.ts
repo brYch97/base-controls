@@ -61,12 +61,9 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.details_on_dblclick = false;
         this._gantt.config.show_links = false;
         this._gantt.config.drag_links = false;
-        this._applyWeekendVisibility();
+        //this._applyWeekendVisibility();
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
-        this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
-        this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
-        this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
-        this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
+        this._setUpClasses();
         this._gantt.init(params.container);
         this._registerEventListeners();
     }
@@ -106,6 +103,27 @@ export class GanttManager implements IGanttManager {
     private _applyWeekendVisibility() {
         this._gantt.config.work_time = !this._showWeekends;
         this._gantt.config.skip_off_time = !this._showWeekends;
+    }
+
+    private _setUpClasses() {
+        this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
+        this._gantt.templates.timeline_cell_class = (date) => this._getTimelineCellClass(date);
+        this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
+        this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
+        this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
+        this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
+    }
+
+    private _getScaleCellClass(date: Date): string | undefined {
+        return this._isWeekend(date) ? 'weekend' : undefined;
+    }
+
+    private _getTimelineCellClass(date: Date): string | undefined {
+        return this._isWeekend(date) ? 'weekend' : undefined;
+    }
+
+    private _isWeekend(date: Date) {
+        return date.getDay() === 0 || date.getDay() === 6;
     }
 
     private _setWeekendVisibility(visible: boolean) {
@@ -226,7 +244,7 @@ export class GanttManager implements IGanttManager {
             }
             return task;
         });
-        
+
         this._gantt.clearAll();
         this._gantt.parse({
             data: data

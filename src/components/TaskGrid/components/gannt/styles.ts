@@ -194,6 +194,12 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_task_scale': {
                 fontWeight: 600
             },
+            '.gantt_scale_cell.weekend, .gantt_task_cell.weekend': {
+                backgroundColor: theme.palette.themeLighterAlt,
+            },
+            '.gantt_scale_cell.weekend': {
+                color: theme.semanticColors.bodySubtext,
+            },
             // ── Marker vertical lines ─────────────────────────────────────
             '.gantt_marker': {
                 width: 2,
