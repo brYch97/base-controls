@@ -22,6 +22,7 @@ export interface ISelectionBoxState {
 interface IDragState {
 	anchor: IPoint;
 	additive: boolean;
+	hasDragged: boolean;
 }
 
 const DRAG_THRESHOLD = 4;
@@ -215,11 +216,14 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		dragStateRef.current = {
 			anchor: getContainerPoint(event),
 			additive: Boolean(event.ctrlKey || event.metaKey),
+			hasDragged: false,
 		};
 		lastMouseEventRef.current = event;
 		bufferedSelectionRef.current = null;
 		updatePreviewClasses([]);
 		setSelectionBox(null);
+		event.preventDefault();
+		event.stopPropagation();
 	}, []);
 
 	const onMouseMove = useCallback((event: MouseEvent) => {
@@ -229,10 +233,21 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 
 		lastMouseEventRef.current = event;
 		updateBufferedSelection(event);
+		if (dragStateRef.current?.hasDragged || bufferedSelectionRef.current) {
+			dragStateRef.current!.hasDragged = true;
+			event.preventDefault();
+		}
 		scheduleAutoScroll(event);
 	}, []);
 
-	const onMouseUp = useCallback(() => {
+	const onMouseUp = useCallback((event: MouseEvent) => {
+		if (dragStateRef.current?.hasDragged || bufferedSelectionRef.current) {
+			event.preventDefault();
+			if ('stopPropagation' in event) {
+				event.stopPropagation();
+			}
+		}
+
 		stopAutoScroll();
 		if (bufferedSelectionRef.current) {
 			dataProvider.setSelectedRecordIds(bufferedSelectionRef.current);
