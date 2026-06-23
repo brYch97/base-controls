@@ -1,26 +1,16 @@
 import { Scale, ZoomConfig } from "gantt-trial";
 import { ZoomLevel } from "../components/zoom-switcher";
 export class ZoomingConfig {
+    public static readonly scrollZoomMinColumnWidth = 80;
+    public static readonly scrollZoomMaxColumnWidth = 140;
+    public static readonly scrollZoomWidthStep = 3;
+
     public static getScrollZoomConfig(gantt: any, locale: string): ZoomConfig {
         return {
-            minColumnWidth: 60,
-            maxColumnWidth: 200,
+            minColumnWidth: ZoomingConfig.scrollZoomMinColumnWidth,
+            maxColumnWidth: ZoomingConfig.scrollZoomMaxColumnWidth,
+            widthStep: ZoomingConfig.scrollZoomWidthStep,
             levels: [
-                {
-                    name: "multiple-years",
-                    scale_height: 43,
-                    scales: [
-                        {
-                            unit: "year",
-                            step: 4,
-                            format: (date: Date) => {
-                                const end = gantt.date.add(date, 3, "year");
-                                return `${date.getFullYear()} – ${end.getFullYear()}`;
-                            },
-                        },
-                        { unit: "year", step: 1, format: "%Y" },
-                    ],
-                },
                 {
                     name: "years",
                     scale_height: 43,
@@ -68,6 +58,14 @@ export class ZoomingConfig {
                     scales: [
                         { unit: "month", step: 1, format: "%F %Y" },
                         { unit: "day", step: 1, format: "%d %M" },
+                    ],
+                },
+                {
+                    name: "week-hours",
+                    scale_height: 43,
+                    scales: [
+                        { unit: "week", step: 1, format: "Week %W" },
+                        { unit: "day", step: 1, format: "%D %d/%m" },
                     ],
                 },
                 {
