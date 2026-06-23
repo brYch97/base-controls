@@ -21,9 +21,10 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
     const record = taskDataProvider.getRecordsMap()[task.id];
     const name = record.getValue(nativeColumns.subject);
     const startDate = record.getFormattedValue(nativeColumns.startDate!);
-    const endDate = record.getFormattedValue(nativeColumns.endDate!);
-    const durationDays = task.duration ?? 0;
-    const durationFormatted = formatting.formatDuration(durationDays * 24 * 60);
+    const hasEndDate = Boolean(nativeColumns.endDate && record.getValue(nativeColumns.endDate));
+    const endDate = hasEndDate ? record.getFormattedValue(nativeColumns.endDate!) : null;
+    const durationDays = hasEndDate ? task.duration ?? 0 : null;
+    const durationFormatted = durationDays !== null ? formatting.formatDuration(durationDays * 24 * 60) : null;
     const target = {
         x: event.clientX + 10,
         y: event.clientY + 12,
@@ -60,21 +61,25 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
                 <div className={styles.rows}>
                     <div className={styles.row}>
                         <Icon iconName="Calendar" className={styles.icon} />
-                        <span className={styles.label}>Start</span>
+                        <span className={styles.label}>{hasEndDate ? 'Start' : 'Date'}</span>
                         <span className={styles.value}>{startDate}</span>
                     </div>
-                    <div className={styles.row}>
-                        <Icon iconName="CalendarReply" className={styles.icon} />
-                        <span className={styles.label}>End</span>
-                        <span className={styles.value}>{endDate}</span>
-                    </div>
-                    <div className={styles.row}>
-                        <Icon iconName="Clock" className={styles.icon} />
-                        <span className={styles.label}>Duration</span>
-                        <span className={styles.durationBadge}>
-                            {durationFormatted}
-                        </span>
-                    </div>
+                    {hasEndDate && endDate && (
+                        <div className={styles.row}>
+                            <Icon iconName="CalendarReply" className={styles.icon} />
+                            <span className={styles.label}>End</span>
+                            <span className={styles.value}>{endDate}</span>
+                        </div>
+                    )}
+                    {durationFormatted && (
+                        <div className={styles.row}>
+                            <Icon iconName="Clock" className={styles.icon} />
+                            <span className={styles.label}>Duration</span>
+                            <span className={styles.durationBadge}>
+                                {durationFormatted}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
         )
