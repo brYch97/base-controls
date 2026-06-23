@@ -220,20 +220,24 @@ export class GanttManager implements IGanttManager {
         const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
         let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName()));
         let endDate = this._dates.getDateFromString(record.getValue(this._dates.getEndDateColumnName()));
+        const isMilestone = !endDate;
 
         if (!startDate) {
             startDate = new Date();
         }
-        if (!endDate) {
+        if (!endDate && !isMilestone) {
             endDate = dayjs(startDate).add(7, 'day').toDate();
         }
+        endDate ??= startDate;
 
         const hasChildren = this._dataProvider.getRecordTree().hasChildren(record.getRecordId());
+        const taskType = String(isMilestone ? this._gantt.config.types.milestone : this._gantt.config.types.task);
         return {
             id: record.getRecordId(),
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
+            type: taskType,
             bar_height: hasChildren ? 16 : 26,
             progress: this._getPercentComplete(record),
             parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
