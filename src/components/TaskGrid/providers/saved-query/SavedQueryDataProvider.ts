@@ -4,6 +4,7 @@ import { ICustomColumnsDataProvider } from "../custom-columns/CustomColumnsDataP
 import { IFieldMapping, INativeColumns } from "../../interfaces";
 import { ErrorHelper, ILocalizationService } from "../../../../utils";
 import { ITaskGridLabels } from "../../labels";
+import { ITaskGridState } from "../../TaskGridDatasetControlFactory";
 
 
 export interface ICreateUserQueryParams {
@@ -41,6 +42,7 @@ export interface ISavedQueryMetadata {
     filtering?: ComponentFramework.PropertyHelper.DataSetApi.FilterExpression;
     linking?: ComponentFramework.PropertyHelper.DataSetApi.LinkEntityExposedExpression[];
     isFlatListEnabled?: boolean;
+    showWeekends?: boolean;
     searchQuery?: string | undefined;
     quickFindColumns?: string[];
 }
@@ -91,6 +93,7 @@ interface ISavedQueryDataProviderParameters {
     fieldMapping: IFieldMapping;
     localizationService: ILocalizationService<ITaskGridLabels>;
     customColumnsDataProvider?: ICustomColumnsDataProvider;
+    onGetState: () => ITaskGridState;
     preferredQuery?: Partial<ISavedQuery> & { id: string };
 }
     
@@ -105,6 +108,7 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
     private _localizationService: ILocalizationService<ITaskGridLabels>;
     private _systemQueriesColumnsMap: Map<string, IColumn> = new Map();
     private _preferredQuery?: Partial<ISavedQuery> & { id: string };
+    private _getState: () => ITaskGridState;
     public queryEvents = new EventEmitter<ISavedQueryDataProviderEvents>();
 
     constructor(strategy: ISavedQueryStrategy, parameters: ISavedQueryDataProviderParameters) {
@@ -113,6 +117,7 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
         this._fieldMapping = parameters.fieldMapping;
         this._nativeColumns = { ...parameters.fieldMapping, path: PATH_COLUMN_NAME };
         this._customColumnsDataProvider = parameters.customColumnsDataProvider;
+        this._getState = parameters.onGetState;
         this._localizationService = parameters.localizationService;
     }
 
@@ -295,6 +300,7 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
             linking: provider.getLinking(),
             searchQuery: provider.getSearchQuery(),
             isFlatListEnabled: provider.isFlatListEnabled(),
+            showWeekends: this._getState().savedQuery?.showWeekends ?? false,
             quickFindColumns: provider.getQuickFindColumns().map(col => col.name),
             columns: [
                 ...provider.getColumns().map((col: any) => {
@@ -329,7 +335,7 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
             const systemCol = this._systemQueriesColumnsMap.get(col.name);
             return systemCol ? { ...systemCol, ...col, metadata: { ...systemCol.metadata, ...col.metadata } } : col;
         });
-
+        
         return { ...parsed, columns };
     }
 }

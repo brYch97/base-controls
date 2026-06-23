@@ -42,6 +42,7 @@ export class TaskGridDatasetControlFactory {
             fieldMapping: parameters.taskGridDescriptor.onGetFieldMapping(),
             customColumnsDataProvider: customColumnsDataProvider,
             preferredQuery: parameters.state.savedQuery,
+            onGetState: () => parameters.state,
         })
         const templateDataProvider = parameters.taskGridDescriptor.onCreateTemplateDataProvider?.();
         await savedQueryDataProvider.refresh();
@@ -80,6 +81,12 @@ export class TaskGridDatasetControlFactory {
     private static _getIsFlatlistEnabled(parameters: ITaskGridDatasetControlFactoryParameters, savedQueryDataProvider: ISavedQueryDataProvider): boolean {
         const currentQueryId = savedQueryDataProvider.getCurrentQuery().id;
         return parameters.state.savedQuery?.isFlatListEnabled ?? savedQueryDataProvider.getSavedQuery(currentQueryId).isFlatListEnabled ?? false;
+    }
+
+    //TODO: should 
+    private static _getShowWeekends(parameters: ITaskGridDatasetControlFactoryParameters, savedQueryDataProvider: ISavedQueryDataProvider): boolean {
+        const currentQueryId = savedQueryDataProvider.getCurrentQuery().id;
+        return parameters.state.savedQuery?.showWeekends ?? savedQueryDataProvider.getSavedQuery(currentQueryId).showWeekends ?? true;
     }
 
 }

@@ -122,8 +122,12 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         this.events.dispatchEvent('onZoomLevelChangeRequested', level);
     }
 
-    public requestWeekendVisibility(visible: boolean): void {
-        this.events.dispatchEvent('onWeekendVisibilityRequested', visible);
+    public toggleShowWeekends(showWeekends: boolean): void {
+        if (!this._state.savedQuery) {
+            throw new Error('Cannot toggle show weekends when there is no saved query in state');
+        }
+        this._state.savedQuery.showWeekends = showWeekends;
+        this._dataProvider.requestRender();
     }
 
     public isShowHierarchyToggleVisible(): boolean {
@@ -141,6 +145,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
                 return true;
             }
         }
+    }
+
+    public getShowWeekends(): boolean {
+        return this._state.savedQuery?.showWeekends ?? false;
     }
     
     public isViewManagerEnabled(): boolean {
@@ -169,7 +177,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         }
         return this._templateDataProvider;
     }
-
 
     public createUserQueryDataProvider(): IDataProvider {
         return this._descriptor.onCreateUserQueryDataProvider();
@@ -371,6 +378,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
                 searchQuery: this._dataProvider.getSearchQuery() ?? undefined,
                 linking: this._dataProvider.getLinking(),
                 isFlatListEnabled: this._dataProvider.isFlatListEnabled(),
+                showWeekends: this.getShowWeekends(),
             }
         }
     }
@@ -379,6 +387,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         let currentQuery = this._savedQueryDataProvider.getCurrentQuery();
         if (!state.savedQuery) {
             state.savedQuery = currentQuery;
+        }
+        state.savedQuery = {
+            ...currentQuery,
+            ...state.savedQuery
         }
         //at this point current query might be missing required properties
         let { filtering, sorting, columns, searchQuery, linking } = currentQuery;

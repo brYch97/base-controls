@@ -16,7 +16,6 @@ import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
 export interface ITaskGridDatasetControlEvents {
     onJumpToTodayRequested: () => void;
     onZoomLevelChangeRequested: (level: ZoomLevel) => void;
-    onWeekendVisibilityRequested: (visible: boolean) => void;
 }
 
 export interface ITaskGridDatasetControlParameters {
@@ -184,8 +183,12 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     getLocalizationService: () => ILocalizationService<ITaskGridLabels>;
     /** Returns `true` when inactive tasks (stateCode = 1) are currently visible in the grid. */
     getInactiveTasksVisibility: () => boolean;
+    /** Returns `true` when weekends should be shown in the gantt timeline for the active saved query. */
+    getShowWeekends: () => boolean;
     /** Switches between hierarchical (tree) and flat-list view modes. Triggers a column re-sort. */
     toggleFlatList: (enabled: boolean) => void;
+    /** Updates weekend visibility on the active saved query. */
+    toggleShowWeekends: (showWeekends: boolean) => void;
     /** Adds or removes the `stateCode = 0` filter to show/hide inactive tasks. */
     toggleHideInactiveTasks: (hide: boolean) => void;
     /**
@@ -237,6 +240,4 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     requestJumpToToday: () => void;
     /** Requests the gantt timeline zoom level to change. */
     requestZoomLevelChange: (level: ZoomLevel) => void;
-    /** Requests the gantt timeline to show or hide weekends. */
-    requestWeekendVisibility: (visible: boolean) => void;
 }

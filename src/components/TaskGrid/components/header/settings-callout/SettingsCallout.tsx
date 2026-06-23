@@ -10,10 +10,10 @@ export const SettingsCallout = () => {
     const styles = React.useMemo(() => getSettingsCalloutStyles(), []);
     const inactiveTasksVisibility = datasetControl.getInactiveTasksVisibility();
     const isFlatListEnabled = taskDataProvider.isFlatListEnabled();
+    const showWeekends = datasetControl.getShowWeekends();
     const isHierarchyToggleVisible = datasetControl.isShowHierarchyToggleVisible();
     const isHideInactiveTasksToggleVisible = datasetControl.isHideInactiveTasksToggleVisible();
     const isGanttEnabled = Boolean(datasetControl.extensions.gantt);
-    const [showWeekends, setShowWeekends] = React.useState(false);
 
 
     return (<div className={styles.settingsCallout}>
@@ -37,14 +37,12 @@ export const SettingsCallout = () => {
         </>}
         {isGanttEnabled && <>
             <Label>
-                {localizationService.getLocalizedString('showWeekends')}
+                {localizationService.getLocalizedString('hideWeekends')}
             </Label>
             <Toggle
-                checked={showWeekends}
+                checked={!showWeekends}
                 onClick={() => {
-                    const nextValue = !showWeekends;
-                    setShowWeekends(nextValue);
-                    datasetControl.requestWeekendVisibility(nextValue);
+                    datasetControl.toggleShowWeekends(!showWeekends);
                 }} />
         </>}
     </div>);
