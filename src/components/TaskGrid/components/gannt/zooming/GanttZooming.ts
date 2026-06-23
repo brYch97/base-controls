@@ -45,7 +45,6 @@ export class GanttZooming implements IGanttZooming {
         window.GANTT = this._gantt;
         this._dates = params.dates;
         this._gantt.config.scale_height = 43;
-        this._gantt.config.min_column_width = 80;
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._applyDateRangeForLevel(this._gantt.ext.zoom.getCurrentLevel(), new Date());
         this._taskDataProvider = params.datasetControl.getDataProvider();

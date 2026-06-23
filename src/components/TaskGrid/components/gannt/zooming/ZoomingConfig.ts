@@ -3,7 +3,7 @@ import { ZoomLevel } from "../components/zoom-switcher";
 export class ZoomingConfig {
     public static getScrollZoomConfig(gantt: any, locale: string): ZoomConfig {
         return {
-            minColumnWidth: 40,
+            minColumnWidth: 60,
             maxColumnWidth: 200,
             levels: [
                 {
