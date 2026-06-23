@@ -60,6 +60,8 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.details_on_dblclick = false;
         this._gantt.config.show_links = false;
         this._gantt.config.drag_links = false;
+        this._gantt.config.work_time = true;
+        this._gantt.config.skip_off_time = true;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
