@@ -107,7 +107,7 @@ export class GanttManager implements IGanttManager {
 
     private _setUpClasses() {
         this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
-        this._gantt.templates.timeline_cell_class = (date) => this._getTimelineCellClass(date);
+        this._gantt.templates.timeline_cell_class = (task, date) => this._getTimelineCellClass(date);
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
@@ -115,11 +115,15 @@ export class GanttManager implements IGanttManager {
     }
 
     private _getScaleCellClass(date: Date): string | undefined {
-        return this._isWeekend(date) ? 'weekend' : undefined;
+        return this._isWeekend(date) && this._isZoomingLevelWithDaysVisible() ? 'weekend' : undefined;
     }
 
     private _getTimelineCellClass(date: Date): string | undefined {
-        return this._isWeekend(date) ? 'weekend' : undefined;
+        return this._isWeekend(date) && this._isZoomingLevelWithDaysVisible() ? 'weekend' : undefined;
+    }
+
+    private _isZoomingLevelWithDaysVisible(): boolean {
+        return this._gantt.ext.zoom.getCurrentLevel() > 3;
     }
 
     private _isWeekend(date: Date) {
