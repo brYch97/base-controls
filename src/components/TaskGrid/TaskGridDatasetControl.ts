@@ -122,6 +122,10 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         this.events.dispatchEvent('onZoomLevelChangeRequested', level);
     }
 
+    public requestSettingsSliderValue(value: number): void {
+        this.events.dispatchEvent('onSettingsSliderMoved', value);
+    }
+
     public toggleShowWeekends(showWeekends: boolean): void {
         if (!this._state.savedQuery) {
             throw new Error('Cannot toggle show weekends when there is no saved query in state');

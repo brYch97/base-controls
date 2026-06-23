@@ -6,6 +6,7 @@ import { getHeaderStyles } from "./styles";
 import { SettingsCallout } from "./settings-callout";
 import { useDatasetControl, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
 import { RecordSelector } from "../grid/record-selector";
+import { SettingsSlider } from "./settings-slider";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
 import { ZoomSwitcher } from "../gannt/components/zoom-switcher";
@@ -170,7 +171,10 @@ export const Header = (props: ITaskGridHeaderProps) => {
         onRenderRibbonQuickFindWrapper: (props, defaultRender) => {
             return <div className={styles.root}>
                 {datasetControl.isViewSwitcherEnabled() &&
-                    <ViewSwitcher />
+                    <>
+                        <ViewSwitcher />
+                        <SettingsSlider />
+                    </>
                 }
                 {defaultRender({
                     ...props,

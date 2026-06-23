@@ -59,6 +59,7 @@ export interface ITaskGridLabels {
     selectMaximumOneTask: string;
     hideInactiveTasks: string;
     hideWeekends: string;
+    settingsSlider: string;
     goToToday: string;
     successfulOperationDialogTitle: string;
     warningDialogTitle: string;
@@ -139,6 +140,7 @@ export const TASK_GRID_LABELS: ITaskGridLabels = {
     selectMaximumOneTask: 'Select maximum one task.',
     hideInactiveTasks: 'Hide inactive tasks',
     hideWeekends: 'Hide weekends',
+    settingsSlider: 'Settings slider',
     goToToday: 'Go to today',
     successfulOperationDialogTitle: 'Success',
     warningDialogTitle: 'Warning',

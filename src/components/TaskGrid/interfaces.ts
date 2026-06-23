@@ -17,6 +17,7 @@ export interface ITaskGridDatasetControlEvents {
     onJumpToTodayRequested: () => void;
     onZoomLevelChangeRequested: (level: ZoomLevel) => void;
     onShowWeekendsRequested: (showWeekends: boolean) => void;
+    onSettingsSliderMoved: (value: number) => void;
 }
 
 export interface ITaskGridDatasetControlParameters {
@@ -241,4 +242,6 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     requestJumpToToday: () => void;
     /** Requests the gantt timeline zoom level to change. */
     requestZoomLevelChange: (level: ZoomLevel) => void;
+    /** Dispatches a transient settings slider value between 0 and 100. */
+    requestSettingsSliderValue: (value: number) => void;
 }
