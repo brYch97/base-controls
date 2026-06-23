@@ -127,7 +127,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
             throw new Error('Cannot toggle show weekends when there is no saved query in state');
         }
         this._state.savedQuery.showWeekends = showWeekends;
-        this._dataProvider.requestRender();
+        this.events.dispatchEvent('onShowWeekendsRequested', showWeekends);
     }
 
     public isShowHierarchyToggleVisible(): boolean {

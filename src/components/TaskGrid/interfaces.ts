@@ -16,6 +16,7 @@ import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
 export interface ITaskGridDatasetControlEvents {
     onJumpToTodayRequested: () => void;
     onZoomLevelChangeRequested: (level: ZoomLevel) => void;
+    onShowWeekendsRequested: (showWeekends: boolean) => void;
 }
 
 export interface ITaskGridDatasetControlParameters {
