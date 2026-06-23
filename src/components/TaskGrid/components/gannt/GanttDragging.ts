@@ -45,7 +45,6 @@ export class GanttDragging implements IGanttDragging {
     private _onBeforeTaskDrag(taskId: string, mode?: string) {
         const task = this._gantt.getTask(taskId);
         if (!task?.active) return false;
-        if (mode === 'resize' && this._taskDataProvider.getRecordTree().hasChildren(taskId)) return false;
         return true;
     }
 

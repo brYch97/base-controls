@@ -106,7 +106,7 @@ export class GanttManager implements IGanttManager {
     }
 
     private _setUpClasses() {
-        this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
+        //this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
         this._gantt.templates.timeline_cell_class = (task, date) => this._getTimelineCellClass(date);
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
