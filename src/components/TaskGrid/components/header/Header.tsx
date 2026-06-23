@@ -172,9 +172,6 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 {datasetControl.isViewSwitcherEnabled() &&
                     <ViewSwitcher />
                 }
-                {datasetControl.extensions.gantt &&
-                    <ZoomSwitcher onChange={(level) => datasetControl.requestZoomLevelChange(level)} />
-                }
                 {defaultRender({
                     ...props,
                     ribbonQuickFindContainerProps: {

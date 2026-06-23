@@ -1,6 +1,5 @@
-import { Scale, ZoomConfig } from 'gantt-trial';
-import { ZoomLevel } from '../components/zoom-switcher';
-
+import { Scale, ZoomConfig } from "gantt-trial";
+import { ZoomLevel } from "../components/zoom-switcher";
 export class ZoomingConfig {
     public static getScrollZoomConfig(gantt: any, locale: string): ZoomConfig {
         return {
@@ -8,95 +7,87 @@ export class ZoomingConfig {
             maxColumnWidth: 200,
             levels: [
                 {
-                    name: 'multiple-years',
+                    name: "multiple-years",
                     scale_height: 43,
-                    min_column_width: 80,
                     scales: [
                         {
-                            unit: 'year',
+                            unit: "year",
                             step: 4,
                             format: (date: Date) => {
-                                const end = gantt.date.add(date, 3, 'year');
+                                const end = gantt.date.add(date, 3, "year");
                                 return `${date.getFullYear()} – ${end.getFullYear()}`;
                             },
                         },
-                        { unit: 'year', step: 1, format: '%Y' },
+                        { unit: "year", step: 1, format: "%Y" },
                     ],
                 },
                 {
-                    name: 'years',
+                    name: "years",
                     scale_height: 43,
-                    min_column_width: 60,
                     scales: [
-                        { unit: 'year', step: 1, format: '%Y' },
+                        { unit: "year", step: 1, format: "%Y" },
                         {
-                            unit: 'quarter',
+                            unit: "quarter",
                             step: 1,
-                            format: (date: Date) =>
-                                `Q${Math.floor(date.getMonth() / 3) + 1}`,
+                            format: (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1}`,
                         },
                     ],
                 },
                 {
-                    name: 'months',
+                    name: "months",
                     scale_height: 43,
-                    min_column_width: 80,
                     scales: [
-                        { unit: 'year', step: 1, format: '%Y' },
+                        { unit: "year", step: 1, format: "%Y" },
                         {
-                            unit: 'month',
+                            unit: "month",
                             step: 1,
                             format: (date: Date) =>
-                                new Intl.DateTimeFormat(locale, { month: 'long' }).format(date),
+                                new Intl.DateTimeFormat(locale, { month: "long" }).format(date),
                         },
                     ],
                 },
                 {
-                    name: 'months-weeks',
+                    name: "months-weeks",
                     scale_height: 43,
-                    min_column_width: 60,
                     scales: [
-                        { unit: 'month', step: 1, format: '%F %Y' },
+                        { unit: "month", step: 1, format: "%F %Y" },
                         {
-                            unit: 'week',
+                            unit: "week",
                             step: 1,
                             format: (date: Date) => {
-                                const dateToStr = gantt.date.date_to_str('%d');
-                                const endDate = gantt.date.add(date, 6, 'day');
+                                const dateToStr = gantt.date.date_to_str("%d");
+                                const endDate = gantt.date.add(date, 6, "day");
                                 return `${dateToStr(date)}–${dateToStr(endDate)}`;
                             },
                         },
                     ],
                 },
                 {
-                    name: 'week',
+                    name: "week",
                     scale_height: 43,
-                    min_column_width: 30,
                     scales: [
-                        { unit: 'month', step: 1, format: '%F %Y' },
-                        { unit: 'day', step: 1, format: '%d %M' },
+                        { unit: "month", step: 1, format: "%F %Y" },
+                        { unit: "day", step: 1, format: "%d %M" },
                     ],
                 },
                 {
-                    name: 'day',
+                    name: "day",
                     scale_height: 43,
-                    min_column_width: 40,
                     scales: [
-                        { unit: 'day', step: 1, format: '%D %d/%m' },
-                        { unit: 'hour', step: 1, format: '%H:%i' },
+                        { unit: "day", step: 1, format: "%D %d/%m" },
+                        { unit: "hour", step: 1, format: "%H:%i" },
                     ],
                 },
             ],
-            useKey: 'ctrlKey',
-            trigger: 'wheel',
-            element: () => gantt.$root.querySelector('.gantt_task')!,
+            useKey: "ctrlKey",
+            trigger: "wheel",
+            element: () => gantt.$root.querySelector(".gantt_task")!,
         };
     }
-
     /**
-     * Column width config for each manual zoom level.
-     * Apply with: gantt.config.min_column_width = ZoomingConfig.getManualZoomColumnWidth(level)
-     */
+   * Column width config for each manual zoom level.
+   * Apply with: gantt.config.min_column_width = ZoomingConfig.getManualZoomColumnWidth(level)
+   */
     public static getManualZoomColumnWidth(level: ZoomLevel): number {
         switch (level) {
             case 'hour':
@@ -116,22 +107,22 @@ export class ZoomingConfig {
             case 'hour':
             case 'day':
                 return [
-                    { unit: 'day',  step: 1, format: '%D %d/%m' },
+                    { unit: 'day', step: 1, format: '%D %d/%m' },
                     { unit: 'hour', step: 1, format: '%H:%i' },
                 ];
             case 'week':
                 return [
                     { unit: 'week', step: 1, format: 'Week %W' },
-                    { unit: 'day',  step: 1, format: '%D %d/%m' },
+                    { unit: 'day', step: 1, format: '%D %d/%m' },
                 ];
             case 'month':
                 return [
                     { unit: 'month', step: 1, format: '%F %Y' },
-                    { unit: 'day',   step: 1, format: '%d' },
+                    { unit: 'day', step: 1, format: '%d' },
                 ] as Scale[];
             case 'year':
                 return [
-                    { unit: 'year',  step: 1, format: '%Y' },
+                    { unit: 'year', step: 1, format: '%Y' },
                     { unit: 'month', step: 1, format: '%M' },
                 ];
         }

@@ -183,17 +183,10 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.scrollTo(position - (this._gantt.$task?.offsetWidth ?? 0) / 2, null);
     }
 
-    private _changeZoomLevel(level: ZoomLevel) {
-        this._gantt.config.scales = ZoomingConfig.getManualZoomLevelScales(level) as any;
-        //this._gantt.config.min_column_width = ZoomingConfig.getManualZoomColumnWidth(level);
-        this._gantt.render();
-    }
-
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._taskDataProvider.addEventListener('onNewDataLoaded', () => this._zoomToFit());
         this._datasetControl.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._datasetControl.events.addEventListener('onZoomLevelChangeRequested', (level: ZoomLevel) => this._changeZoomLevel(level));
         /*         this._gantt.ext.zoom.attachEvent('onAfterZoom', (level: string | number) => {
                     if (this._isFitting) {
                         return;
