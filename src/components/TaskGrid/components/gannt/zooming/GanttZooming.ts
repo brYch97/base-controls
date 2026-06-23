@@ -20,6 +20,7 @@ interface IGanttZoomingParams {
 }
 
 export class GanttZooming implements IGanttZooming {
+    private _lastSliderValue = 0;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -182,10 +183,62 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.scrollTo(position - (this._gantt.$task?.offsetWidth ?? 0) / 2, null);
     }
 
+    private _onSettingsSliderMoved(value: number) {
+        const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
+            _handler?: (event: { clientX: number; deltaY: number; wheelDelta: number; preventDefault: () => void; stopPropagation: () => void; }) => void;
+        };
+        const taskArea = this._gantt.$task;
+        if (!zoom?._handler || !taskArea || value === this._lastSliderValue) {
+            this._lastSliderValue = value;
+            return;
+        }
+
+        const sliderDelta = value - this._lastSliderValue;
+        this._lastSliderValue = value;
+
+        const maxWheelSteps = Math.max(1, (this._levelSpans.length - 2) * 5 + 4);
+        const currentLevel = Number(this._gantt.ext.zoom.getCurrentLevel());
+        const clampedValue = Math.max(0, Math.min(100, value));
+        const targetWheelStep = Math.round((clampedValue / 100) * maxWheelSteps);
+        const currentWheelStep = this._getCurrentWheelStep(currentLevel);
+        const wheelStepDelta = targetWheelStep - currentWheelStep;
+
+        if (wheelStepDelta === 0 || sliderDelta === 0) {
+            return;
+        }
+
+        const centerX = taskArea.getBoundingClientRect().x + taskArea.clientWidth / 2;
+        const zoomDirection = wheelStepDelta > 0 ? 1 : -1;
+        const steps = Math.abs(wheelStepDelta);
+
+        for (let step = 0; step < steps; step++) {
+            zoom._handler({
+                clientX: centerX,
+                deltaY: zoomDirection > 0 ? -120 : 120,
+                wheelDelta: zoomDirection > 0 ? 120 : -120,
+                preventDefault() { },
+                stopPropagation() { },
+            });
+        }
+    }
+
+    private _getCurrentWheelStep(currentLevel: number) {
+        if (currentLevel <= 0) {
+            return 0;
+        }
+
+        const minColumnWidth = this._gantt.config.min_column_width ?? 0;
+        const normalizedWidth = Math.max(80, Math.min(200, minColumnWidth));
+        const widthStepOffset = Math.max(0, Math.round((normalizedWidth - 80) / 30));
+
+        return Math.max(0, (currentLevel - 1) * 5 + widthStepOffset);
+    }
+
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._taskDataProvider.addEventListener('onNewDataLoaded', () => this._zoomToFit());
         this._datasetControl.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
+        this._datasetControl.events.addEventListener('onSettingsSliderMoved', (value) => this._onSettingsSliderMoved(value));
         /*         this._gantt.ext.zoom.attachEvent('onAfterZoom', (level: string | number) => {
                     if (this._isFitting) {
                         return;
