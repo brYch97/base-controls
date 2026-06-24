@@ -6,6 +6,7 @@ import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
 import { GanttDragging, IGanttDragging } from './GanttDragging';
 import { GanttDates } from './GanttDates';
+import { GanttInfiniteTimeline, IGanttInfiniteTimeline } from './GanttInfiniteTimeline';
 import { GanttMarkers, IGanttMarkers } from './GanttMarkers';
 import { GanttZooming, IGanttZooming } from './zooming';
 
