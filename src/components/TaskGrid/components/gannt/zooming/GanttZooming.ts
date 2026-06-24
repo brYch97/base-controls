@@ -17,6 +17,7 @@ interface IGanttZoomingParams {
 
 export class GanttZooming implements IGanttZooming {
     private _zoomTickStep = 1;
+    private _pendingAnchorX: number | undefined;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -63,11 +64,15 @@ export class GanttZooming implements IGanttZooming {
             const next = Math.max(0, Math.min(100, current + (zoomIn ? getTickStep() : -getTickStep())));
             e.preventDefault();
             e.stopPropagation();
+            const taskArea = gantt.$task;
+            this._pendingAnchorX = taskArea ? e.clientX - taskArea.getBoundingClientRect().x : undefined;
             bridge.setZoomLevel(next);
         };
     }
 
     private _setZoomPercent(percent: number) {
+        const anchorX = this._pendingAnchorX;
+        this._pendingAnchorX = undefined;
         const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
             _initialized: boolean;
             _exitFitMode: () => void;
@@ -89,7 +94,7 @@ export class GanttZooming implements IGanttZooming {
             return;
         }
 
-        const anchorX = (this._gantt.$task?.offsetWidth ?? 0) / 2;
+        const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
         const step = zoom._widthStep;
@@ -97,7 +102,7 @@ export class GanttZooming implements IGanttZooming {
         if (!step) {
             const levelIndex = Math.round((clamped / 100) * (levelCount - 1));
             zoom._exitFitMode();
-            zoom._setLevel(levelIndex, anchorX);
+            zoom._setLevel(levelIndex, resolvedAnchorX);
             return;
         }
 
@@ -110,7 +115,7 @@ export class GanttZooming implements IGanttZooming {
         zoom._exitFitMode();
         zoom._setScaleDates();
         this._gantt.config.min_column_width = min + widthIndex * step;
-        zoom._setLevel(levelIndex, anchorX);
+        zoom._setLevel(levelIndex, resolvedAnchorX);
     }
 
     private _zoomToFit() {
