@@ -40,7 +40,7 @@ export class GanttZooming implements IGanttZooming {
         this._registerEventListeners();
     }
 
-    private _onSettingsSliderMoved(value: number) {
+    private _onZoomToValue(value: number) {
         const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
             _handler?: (event: { clientX: number; deltaY: number; wheelDelta: number; preventDefault: () => void; stopPropagation: () => void; }) => void;
         };
@@ -136,6 +136,7 @@ export class GanttZooming implements IGanttZooming {
     private _registerEventListeners() {
         //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
+        this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._onZoomToValue(value));
     }
 
     public destroy() {
