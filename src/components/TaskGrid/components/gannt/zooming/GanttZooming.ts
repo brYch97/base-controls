@@ -32,8 +32,6 @@ export class GanttZooming implements IGanttZooming {
         //@ts-ignore
         window.GANTT = this._gantt;
         this._dates = params.dates;
-        this._gantt.config.scale_height = 43;
-        this._gantt.config.show_tasks_outside_timescale = true;
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
         this._overrideWheelHandler();
