@@ -82,10 +82,32 @@ export class ZoomingConfig {
             element: () => gantt.$root.querySelector(".gantt_task")!,
         };
     }
-    /**
-   * Column width config for each manual zoom level.
-   * Apply with: gantt.config.min_column_width = ZoomingConfig.getManualZoomColumnWidth(level)
-   */
+   /**
+    * Duration-to-level mapping used by range fitting.
+    */
+   private static readonly _rangeZoomLevels: Array<{ maxDurationMs: number; level: number }> = [
+       { maxDurationMs: 2 * 24 * 60 * 60 * 1000, level: 5 },        // ≤ 2 days   → hour grid
+       { maxDurationMs: 21 * 24 * 60 * 60 * 1000, level: 4 },       // ≤ 3 weeks  → day grid (week header)
+       { maxDurationMs: 90 * 24 * 60 * 60 * 1000, level: 3 },       // ≤ 3 months → day grid (month header)
+       { maxDurationMs: 180 * 24 * 60 * 60 * 1000, level: 2 },      // ≤ 6 months → week grid
+       { maxDurationMs: 2 * 365 * 24 * 60 * 60 * 1000, level: 1 },  // ≤ 2 years  → month grid
+   ];
+
+   /**
+    * Returns the zoom level index for the given date range based only on its duration.
+    */
+   public static getZoomLevelForRange(start: Date, end: Date): number {
+       const durationMs = Math.max(Math.abs(end.getTime() - start.getTime()), 24 * 60 * 60 * 1000);
+
+       for (const zoomLevel of ZoomingConfig._rangeZoomLevels) {
+           if (durationMs <= zoomLevel.maxDurationMs) {
+               return zoomLevel.level;
+           }
+       }
+
+       return 0;
+   }
+
     public static getManualZoomColumnWidth(level: ZoomLevel): number {
         switch (level) {
             case 'hour':
