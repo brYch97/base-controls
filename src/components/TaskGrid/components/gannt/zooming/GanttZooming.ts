@@ -18,13 +18,13 @@ interface IGanttZoomingParams {
 export class GanttZooming implements IGanttZooming {
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
+    private _isFitting = false;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _dates: IGanttDates;
     private _formatting = Formatting.Get();
 
-    private _isFitting = false;
 
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
@@ -119,24 +119,98 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _zoomToFit() {
-        let records = this._taskDataProvider.getAllRecords();
         const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
-        if (selectedRecordIds.length > 0) {
-            records = selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]);
-        }
-        const { startDate, endDate } = this._dates.getStartEndDateFromRecords(records);
-        if (!this._gantt.$task) {
+        const records = selectedRecordIds.length > 0
+            ? selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]).filter(Boolean)
+            : this._taskDataProvider.getAllRecords();
+
+        if (!records.length || !this._gantt.$task) {
             return;
         }
-        const level = ZoomingConfig.getZoomLevelForRange(startDate, endDate);
-        this._gantt.ext.zoom.zoomToFit({
-            maxLevel: level,
-            minLevel: level,
-            range: {
-                end_date: endDate,
-                start_date: startDate,
-            },
-        });
+
+        const { startDate, endDate } = this._dates.getStartEndDateFromRecords(records);
+        if (!startDate || !endDate) {
+            return;
+        }
+
+        const rangeMs = endDate.getTime() - startDate.getTime();
+        const padding = Math.max(rangeMs * 0.05, 3_600_000); // min 1 hour padding
+        const paddedStart = new Date(startDate.getTime() - padding);
+        const paddedEnd = new Date(endDate.getTime() + padding);
+
+        const percent = this._findFitPercent(paddedStart, paddedEnd);
+        this._datasetControl.ganttGridBridge.setZoomLevel(percent);
+
+        const midDate = new Date((paddedStart.getTime() + paddedEnd.getTime()) / 2);
+        setTimeout(() => this._gantt.showDate(midDate), 0);
+    }
+
+    private _findFitPercent(startDate: Date, endDate: Date): number {
+        const zoom = this._gantt.ext.zoom as any;
+        const levels = zoom.getLevels() as any[];
+        const levelCount = levels.length;
+        const min = zoom._minColumnWidth as number;
+        const max = zoom._maxColumnWidth as number;
+        const step = zoom._widthStep as number | undefined;
+        const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
+
+        if (!viewportWidth || !levelCount) return 0;
+
+        const widthSlots = step ? Math.round((max - min) / step) + 1 : 1;
+        const totalStates = levelCount * widthSlots;
+
+        // Iterate from most zoomed in (high index) to most zoomed out (0)
+        // Return the highest zoom level where all tasks still fit
+        for (let stateIndex = totalStates - 1; stateIndex >= 0; stateIndex--) {
+            const levelIndex = Math.floor(stateIndex / widthSlots);
+            const widthIndex = stateIndex % widthSlots;
+            const columnWidth = min + widthIndex * (step ?? 0);
+
+            const level = levels[levelIndex];
+            const finest = this._getFinestScale(level);
+            if (!finest) continue;
+
+            const columnCount = this._countColumnsInRange(startDate, endDate, finest.unit, finest.step);
+            if (columnCount * columnWidth <= viewportWidth) {
+                return totalStates > 1 ? (stateIndex / (totalStates - 1)) * 100 : 100;
+            }
+        }
+
+        return 0; // fall back to fully zoomed out
+    }
+
+    private _getFinestScale(level: any): { unit: string; step: number } | null {
+        if (!level?.scales?.length) return null;
+        const unitOrder = ['hour', 'day', 'week', 'month', 'quarter', 'year'];
+        let finest: { unit: string; step: number } | null = null;
+        for (const scale of level.scales as Array<{ unit: string; step?: number }>) {
+            if (!finest
+                || unitOrder.indexOf(scale.unit) < unitOrder.indexOf(finest.unit)
+                || (scale.unit === finest.unit && (scale.step ?? 1) < finest.step)) {
+                finest = { unit: scale.unit, step: scale.step ?? 1 };
+            }
+        }
+        return finest;
+    }
+
+    private _countColumnsInRange(start: Date, end: Date, unit: string, step: number): number {
+        const MS: Record<string, number> = {
+            minute: 60_000,
+            hour: 3_600_000,
+            day: 86_400_000,
+            week: 604_800_000,
+        };
+        if (MS[unit]) {
+            return Math.ceil((end.getTime() - start.getTime()) / (step * MS[unit]));
+        }
+        // month / quarter / year — use gantt date arithmetic
+        let current = new Date(start);
+        let count = 0;
+        while (current < end && count < 10_000) {
+            current = this._gantt.date.add(current, step, unit as any);
+            count++;
+        }
+        return count;
     }
 
     private _fitToRange(startDate: Date, endDate: Date) {
@@ -179,7 +253,7 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _registerEventListeners() {
-        //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
+        this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
         this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
     }
