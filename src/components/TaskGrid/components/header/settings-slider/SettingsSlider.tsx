@@ -1,27 +1,23 @@
-import { Slider, useTheme } from "@fluentui/react";
-import * as React from "react";
-import { useDatasetControl, useLocalizationService } from "../../../context";
-import { getSettingsSliderStyles } from "./styles";
+import { Slider } from "@fluentui/react";
+import { useDatasetControl } from "../../../context";
+import { useEventEmitter } from "../../../../../hooks";
+import { IGanttGridBridgeEvents } from "../../../bridges";
+import { useRerender } from "@talxis/react-components";
 
 export const SettingsSlider = () => {
     const datasetControl = useDatasetControl();
-    const localizationService = useLocalizationService();
-    const theme = useTheme();
-    const styles = React.useMemo(() => getSettingsSliderStyles(theme), [theme]);
-    const [value, setValue] = React.useState(0);
-
+    const value = datasetControl.ganttGridBridge.getZoomLevel();
+    const rerender = useRerender();
+    useEventEmitter<IGanttGridBridgeEvents>(datasetControl.ganttGridBridge, 'onZoomLevelChanged', rerender);
+    
     return (
-        <div className={styles.root}>
-            <Slider
-                min={0}
-                max={100}
-                value={value}
-                showValue
-                label={localizationService.getLocalizedString('settingsSlider')}
-                onChange={(nextValue) => {
-                    setValue(nextValue);
-                    datasetControl.requestSettingsSliderValue(nextValue);
-                }} />
-        </div>
+        <Slider
+            min={0}
+            max={100}
+            value={value}
+            showValue
+            onChange={(nextValue) => {
+                datasetControl.ganttGridBridge.setZoomLevel(nextValue);
+            }} />
     );
 }

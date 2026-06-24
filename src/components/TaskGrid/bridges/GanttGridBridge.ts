@@ -8,6 +8,7 @@ export interface IGanttGridBridgeEvents {
     onGanttScrolled: (scrollTop: number) => void;
     onGanttTaskExpanded: (taskId: string) => void;
     onGanttTaskCollapsed: (taskId: string) => void;
+    onZoomLevelChanged: (level: number) => void;
 }
 
 export interface IGanttGridBridge extends IEventEmitter<IGanttGridBridgeEvents> { }
@@ -26,10 +27,22 @@ const MIRROR_EVENTS: Partial<Record<BridgeEventName, BridgeEventName>> = {
 export class GanttGridBridge extends EventEmitter<IGanttGridBridgeEvents> implements IGanttGridBridge {
     private _suppressedEvents = new Set<BridgeEventName>();
     private _debouncedClean: debounce.DebouncedFunction<() => void>;
+    private _zoomLevel: number = 0;
 
     constructor() {
         super();
         this._debouncedClean = debounce(() => this._suppressedEvents.clear(), 0);
+    }
+
+    public setZoomLevel(zoomLevel: number) {
+        if (this._zoomLevel !== zoomLevel) {
+            this._zoomLevel = zoomLevel;
+            this.dispatchEvent('onZoomLevelChanged', zoomLevel);
+        }
+    }
+
+    public getZoomLevel(): number {
+        return this._zoomLevel;
     }
 
     public dispatchEvent<K extends BridgeEventName>(event: K, ...args: Parameters<IGanttGridBridgeEvents[K]>): boolean {
