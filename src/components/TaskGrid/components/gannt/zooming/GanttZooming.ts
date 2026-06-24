@@ -16,8 +16,6 @@ interface IGanttZoomingParams {
 }
 
 export class GanttZooming implements IGanttZooming {
-    private static readonly WHEEL_TICKS_PER_SLIDER_UNIT = 1;
-
     private _lastSliderValue = 0;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
@@ -40,37 +38,50 @@ export class GanttZooming implements IGanttZooming {
         this._registerEventListeners();
     }
 
-    private _onZoomToValue(value: number) {
+    private _setZoomPercent(percent: number) {
         const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
-            _handler?: (event: { clientX: number; deltaY: number; wheelDelta: number; preventDefault: () => void; stopPropagation: () => void; }) => void;
+            _initialized: boolean;
+            _exitFitMode: () => void;
+            _setScaleDates: () => void;
+            _setLevel: (levelIndex: number, anchorX: number) => void;
+            _minColumnWidth: number;
+            _maxColumnWidth: number;
+            _widthStep: number | undefined;
         };
-        const taskArea = this._gantt.$task;
-        if (!zoom?._handler || !taskArea || value === this._lastSliderValue) {
-            this._lastSliderValue = value;
+
+        if (!zoom?._initialized) {
             return;
         }
 
-        const delta = value - this._lastSliderValue;
-        this._lastSliderValue = value;
-
-        const steps = Math.abs(delta) * GanttZooming.WHEEL_TICKS_PER_SLIDER_UNIT;
-        if (steps === 0) {
+        const clamped = Math.max(0, Math.min(100, percent));
+        const levels = zoom.getLevels();
+        const levelCount = levels.length;
+        if (!levelCount) {
             return;
         }
 
-        const deltaY = delta > 0 ? -120 : 120;
-        const wheelDelta = -deltaY;
-        const centerX = taskArea.getBoundingClientRect().x + taskArea.clientWidth / 2;
+        const anchorX = (this._gantt.$task?.offsetWidth ?? 0) / 2;
+        const min = zoom._minColumnWidth;
+        const max = zoom._maxColumnWidth;
+        const step = zoom._widthStep;
 
-        for (let i = 0; i < steps; i++) {
-            zoom._handler({
-                clientX: centerX,
-                deltaY,
-                wheelDelta,
-                preventDefault() { },
-                stopPropagation() { },
-            });
+        if (!step) {
+            const levelIndex = Math.round((clamped / 100) * (levelCount - 1));
+            zoom._exitFitMode();
+            zoom._setLevel(levelIndex, anchorX);
+            return;
         }
+
+        const widthSlots = Math.round((max - min) / step) + 1;
+        const totalStates = levelCount * widthSlots;
+        const stateIndex = Math.round((clamped / 100) * (totalStates - 1));
+        const levelIndex = Math.floor(stateIndex / widthSlots);
+        const widthIndex = stateIndex % widthSlots;
+
+        zoom._exitFitMode();
+        zoom._setScaleDates();
+        this._gantt.config.min_column_width = min + widthIndex * step;
+        zoom._setLevel(levelIndex, anchorX);
     }
 
     private _zoomToFit() {
@@ -136,7 +147,7 @@ export class GanttZooming implements IGanttZooming {
     private _registerEventListeners() {
         //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._onZoomToValue(value));
+        this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
     }
 
     public destroy() {
