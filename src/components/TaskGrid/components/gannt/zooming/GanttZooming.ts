@@ -16,7 +16,7 @@ interface IGanttZoomingParams {
 }
 
 export class GanttZooming implements IGanttZooming {
-    private _lastSliderValue = 0;
+    private _zoomTickStep = 1;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -34,8 +34,37 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.config.scale_height = 43;
         this._gantt.config.show_tasks_outside_timescale = true;
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
+        this._initZoomTickStep();
+        this._overrideWheelHandler();
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
+    }
+
+    private _initZoomTickStep() {
+        const zoom = this._gantt.ext.zoom as any;
+        const min: number = zoom._minColumnWidth ?? ZoomingConfig.scrollZoomMinColumnWidth;
+        const max: number = zoom._maxColumnWidth ?? ZoomingConfig.scrollZoomMaxColumnWidth;
+        const step: number | undefined = zoom._widthStep;
+        const levelCount: number = zoom.getLevels().length;
+        const widthSlots = step ? Math.round((max - min) / step) + 1 : 1;
+        const totalStates = levelCount * widthSlots;
+        this._zoomTickStep = totalStates > 1 ? 100 / (totalStates - 1) : 100;
+    }
+
+    private _overrideWheelHandler() {
+        const zoom = this._gantt.ext.zoom as any;
+        const bridge = this._datasetControl.ganttGridBridge;
+        const gantt = this._gantt;
+        const getTickStep = () => this._zoomTickStep;
+
+        zoom._handler = (e: { clientX: number; deltaY: number; wheelDelta: number; preventDefault: () => void; stopPropagation: () => void; }) => {
+            const zoomIn = (gantt.env.isFF ? -40 * e.deltaY : e.wheelDelta) > 0;
+            const current = bridge.getZoomLevel();
+            const next = Math.max(0, Math.min(100, current + (zoomIn ? getTickStep() : -getTickStep())));
+            e.preventDefault();
+            e.stopPropagation();
+            bridge.setZoomLevel(next);
+        };
     }
 
     private _setZoomPercent(percent: number) {
