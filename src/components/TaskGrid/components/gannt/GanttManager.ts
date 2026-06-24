@@ -60,6 +60,7 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.details_on_dblclick = false;
         this._gantt.config.show_links = false;
         this._gantt.config.drag_links = false;
+        this._gantt.config.static_background = true;
         this._gantt.config.scale_height = 43;
         this._gantt.config.show_tasks_outside_timescale = true;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
