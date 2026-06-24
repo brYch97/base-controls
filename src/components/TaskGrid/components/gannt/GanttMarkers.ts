@@ -78,12 +78,6 @@ export class GanttMarkers implements IGanttMarkers {
         return Array.from(this._markers.values());
     }
 
-    private _clearMarkers() {
-        for (const id of Array.from(this._markers.keys())) {
-            this._deleteMarker(id);
-        }
-    }
-
     private _addMarker(marker: Omit<IGanttMarker, 'id'>): IGanttMarker {
         const id = this._gantt.addMarker(marker);
         const stored: IGanttMarker = { ...marker, id };
