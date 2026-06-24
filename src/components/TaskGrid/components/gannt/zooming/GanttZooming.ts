@@ -7,6 +7,7 @@ import { ZoomingConfig } from './ZoomingConfig';
 
 export interface IGanttZooming {
     destroy: () => void;
+    isLevelWithDaysVisible: () => boolean;
 }
 
 interface IGanttZoomingParams {
@@ -38,6 +39,11 @@ export class GanttZooming implements IGanttZooming {
         this._overrideWheelHandler();
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
+    }
+
+
+    public isLevelWithDaysVisible(): boolean {
+        return this._gantt.ext.zoom.getCurrentLevel() > 4;
     }
 
     private _initZoomTickStep() {

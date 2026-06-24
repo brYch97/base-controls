@@ -119,17 +119,11 @@ export class GanttManager implements IGanttManager {
         this._gantt.templates.leftside_text = (start, end, task) => this._getTaskOutsideLeftText(start, end, task);
     }
 
-    private _getScaleCellClass(date: Date): string | undefined {
-        return this._isWeekend(date) && this._isZoomingLevelWithDaysVisible() ? 'weekend' : undefined;
-    }
 
     private _getTimelineCellClass(date: Date): string | undefined {
-        return this._isWeekend(date) && this._isZoomingLevelWithDaysVisible() ? 'weekend' : undefined;
+        return this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? 'weekend' : undefined;
     }
 
-    private _isZoomingLevelWithDaysVisible(): boolean {
-        return this._gantt.ext.zoom.getCurrentLevel() > 3;
-    }
 
     private _isWeekend(date: Date) {
         return date.getDay() === 0 || date.getDay() === 6;

@@ -1,5 +1,4 @@
-import { Scale, ZoomConfig } from "gantt-trial";
-import { ZoomLevel } from "../components/zoom-switcher";
+import { ZoomConfig } from "gantt-trial";
 export class ZoomingConfig {
     public static readonly scrollZoomMinColumnWidth = 60;
     public static readonly scrollZoomMaxColumnWidth = 120;
@@ -152,76 +151,5 @@ export class ZoomingConfig {
             trigger: "wheel",
             element: () => gantt.$root.querySelector(".gantt_task")!,
         };
-    }
-   /**
-    * Duration-to-level mapping used by range fitting (_fitToRange / getZoomLevelForRange).
-    * Indices correspond to the 10-level chain in getScrollZoomConfig.
-    */
-   private static readonly _rangeZoomLevels: Array<{ maxDurationMs: number; level: number }> = [
-       { maxDurationMs: 1 * 24 * 60 * 60 * 1000, level: 9 },               // ≤ 1 day    → 1 h grid
-       { maxDurationMs: 2 * 24 * 60 * 60 * 1000, level: 8 },               // ≤ 2 days   → 2 h grid
-       { maxDurationMs: 5 * 24 * 60 * 60 * 1000, level: 7 },               // ≤ 5 days   → 6 h grid
-       { maxDurationMs: 7 * 24 * 60 * 60 * 1000, level: 6 },               // ≤ 1 week   → 12 h grid
-       { maxDurationMs: 21 * 24 * 60 * 60 * 1000, level: 5 },              // ≤ 3 weeks  → day grid
-       { maxDurationMs: 42 * 24 * 60 * 60 * 1000, level: 4 },              // ≤ 6 weeks  → 3-day grid
-       { maxDurationMs: 90 * 24 * 60 * 60 * 1000, level: 3 },              // ≤ 3 months → week grid
-       { maxDurationMs: 180 * 24 * 60 * 60 * 1000, level: 2 },             // ≤ 6 months → 2-week grid
-       { maxDurationMs: 2 * 365 * 24 * 60 * 60 * 1000, level: 1 },         // ≤ 2 years  → month grid
-       // fallback: level 0 (year/quarter)
-   ];
-
-   /**
-    * Returns the zoom level index for the given date range based only on its duration.
-    */
-   public static getZoomLevelForRange(start: Date, end: Date): number {
-       const durationMs = Math.max(Math.abs(end.getTime() - start.getTime()), 24 * 60 * 60 * 1000);
-
-       for (const zoomLevel of ZoomingConfig._rangeZoomLevels) {
-           if (durationMs <= zoomLevel.maxDurationMs) {
-               return zoomLevel.level;
-           }
-       }
-
-       return 0;
-   }
-
-    public static getManualZoomColumnWidth(level: ZoomLevel): number {
-        switch (level) {
-            case 'hour':
-            case 'day':
-                return 40;   // 40px per hour — enough to label HH:MM
-            case 'week':
-                return 30;   // 30px per day — shows all 7 days clearly
-            case 'month':
-                return 24;   // 24px per day — shows all ~30 days in a month
-            case 'year':
-                return 60;   // 60px per month — shows all 12 months
-        }
-    }
-
-    public static getManualZoomLevelScales(level: ZoomLevel): Scale[] {
-        switch (level) {
-            case 'hour':
-            case 'day':
-                return [
-                    { unit: 'day', step: 1, format: '%D %d/%m' },
-                    { unit: 'hour', step: 1, format: '%H:%i' },
-                ];
-            case 'week':
-                return [
-                    { unit: 'week', step: 1, format: 'Week %W' },
-                    { unit: 'day', step: 1, format: '%D %d/%m' },
-                ];
-            case 'month':
-                return [
-                    { unit: 'month', step: 1, format: '%F %Y' },
-                    { unit: 'day', step: 1, format: '%d' },
-                ] as Scale[];
-            case 'year':
-                return [
-                    { unit: 'year', step: 1, format: '%Y' },
-                    { unit: 'month', step: 1, format: '%M' },
-                ];
-        }
     }
 }
