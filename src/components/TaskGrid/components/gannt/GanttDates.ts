@@ -3,9 +3,9 @@ import { ITaskGridDatasetControl } from "../../interfaces";
 import { ITaskDataProvider } from "../../providers";
 
 export interface IGanttDates {
-    getStartDate: (records?: IRecord[]) => Date;
-    getEndDate: (records?: IRecord[]) => Date;
-    getStartEndDateFromRecords: (records: IRecord[]) => { startDate: Date, endDate: Date };
+    getStartDate: (records?: IRecord[]) => Date | null;
+    getEndDate: (records?: IRecord[]) => Date | null;
+    getStartEndDateFromRecords: (records: IRecord[]) => { startDate: Date | null, endDate: Date | null, startRecord: IRecord | null, endRecord: IRecord | null };
     getStartDateColumnName: () => string;
     getEndDateColumnName: () => string;
     getDateFromString: (dateStr: string) => Date | null;
@@ -18,8 +18,8 @@ export interface IGanttDateHelperParams {
 export class GanttDates implements IGanttDates {
     private _datasetControl: ITaskGridDatasetControl;
     private _provider: ITaskDataProvider;
-    private _startDate: Date = new Date();
-    private _endDate: Date = new Date(new Date().setFullYear(new Date().getFullYear() + 2));
+    private _startDate: Date | null = null;
+    private _endDate: Date | null = null;
 
     constructor(params: IGanttDateHelperParams) {
         this._datasetControl = params.datasetControl;
@@ -48,19 +48,21 @@ export class GanttDates implements IGanttDates {
         return new Date(date);
     }
 
-    public getStartDate(): Date {
+    public getStartDate(): Date | null {
         return this._startDate;
     }
 
-    public getEndDate(): Date {
+    public getEndDate(): Date | null {
         return this._endDate;
     }
 
-    public getStartEndDateFromRecords(records: IRecord[]): { startDate: Date, endDate: Date } {
+    public getStartEndDateFromRecords(records: IRecord[]): { startDate: Date | null, endDate: Date | null, startRecord: IRecord | null, endRecord: IRecord | null } {
         const startDateColumnName = this.getStartDateColumnName();
         const endDateColumnName = this.getEndDateColumnName();
         let minDate: Date | null = null;
         let maxDate: Date | null = null;
+        let startRecord: IRecord | null = null;
+        let endRecord: IRecord | null = null;
 
         for (const record of records) {
             const startDate = this.getDateFromString(record.getValue(startDateColumnName));
@@ -68,15 +70,19 @@ export class GanttDates implements IGanttDates {
 
             if (startDate && (!minDate || startDate.getTime() < minDate.getTime())) {
                 minDate = startDate;
+                startRecord = record;
             }
 
             if (endDate && (!maxDate || endDate.getTime() > maxDate.getTime())) {
                 maxDate = endDate;
+                endRecord = record;
             }
         }
         return {
-            startDate: minDate ?? new Date(),
-            endDate: maxDate ?? new Date(new Date().setFullYear(new Date().getFullYear() + 2)),
+            startDate: minDate,
+            endDate: maxDate,
+            startRecord,
+            endRecord,
         }
     }
 

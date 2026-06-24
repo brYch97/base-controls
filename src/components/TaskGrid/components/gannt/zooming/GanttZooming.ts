@@ -18,7 +18,6 @@ interface IGanttZoomingParams {
 export class GanttZooming implements IGanttZooming {
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
-    private _isFitting = false;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -128,21 +127,13 @@ export class GanttZooming implements IGanttZooming {
             return;
         }
 
-        const { startDate, endDate } = this._dates.getStartEndDateFromRecords(records);
+        const { startDate, endDate, startRecord } = this._dates.getStartEndDateFromRecords(records);
         if (!startDate || !endDate) {
             return;
         }
-
-        const rangeMs = endDate.getTime() - startDate.getTime();
-        const padding = Math.max(rangeMs * 0.05, 3_600_000); // min 1 hour padding
-        const paddedStart = new Date(startDate.getTime() - padding);
-        const paddedEnd = new Date(endDate.getTime() + padding);
-
-        const percent = this._findFitPercent(paddedStart, paddedEnd);
+        const percent = this._findFitPercent(startDate, endDate);
         this._datasetControl.ganttGridBridge.setZoomLevel(percent);
-
-        const midDate = new Date((paddedStart.getTime() + paddedEnd.getTime()) / 2);
-        setTimeout(() => this._gantt.showDate(midDate), 0);
+        this._gantt.showTask(startRecord?.getRecordId()!);
     }
 
     private _findFitPercent(startDate: Date, endDate: Date): number {
@@ -213,39 +204,6 @@ export class GanttZooming implements IGanttZooming {
         return count;
     }
 
-    private _fitToRange(startDate: Date, endDate: Date) {
-        if (!startDate || !endDate) {
-            return;
-        }
-
-        if (!this._gantt.$task) {
-            return;
-        }
-
-        let start = new Date(Math.min(startDate.getTime(), endDate.getTime()));
-        let end = new Date(Math.max(startDate.getTime(), endDate.getTime()));
-        if (start.getTime() === end.getTime()) {
-            end = this._gantt.date.add(end, 1, 'day');
-        }
-        const padding = Math.max((end.getTime() - start.getTime()) * 0.05, 0);
-        start = new Date(start.getTime() - padding);
-        end = new Date(end.getTime() + padding);
-
-        const level = ZoomingConfig.getZoomLevelForRange(start, end);
-
-        this._isFitting = true;
-        try {
-            this._gantt.ext.zoom.setLevel(level);
-            this._gantt.config.min_column_width = ZoomingConfig.scrollZoomMinColumnWidth;
-            this._gantt.config.start_date = start;
-            this._gantt.config.end_date = end;
-            this._gantt.render();
-            this._gantt.showDate(start);
-        }
-        finally {
-            this._isFitting = false;
-        }
-    }
 
     private _jumpToToday() {
         const today = new Date();
