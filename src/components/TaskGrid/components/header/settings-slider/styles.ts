@@ -13,6 +13,30 @@ export const getSettingsSliderStyles = (theme: ITheme) => {
                 color: theme.semanticColors.bodyText,
                 fontWeight: 600,
             }
+        },
+        thumb: {
+            borderRadius: '50%',
+            width: 20,
+            height: 20,
+            top: -8,
+            border: 'none !important',
+            boxShadow: theme.effects.elevation8,
+            backgroundColor: theme.palette.themePrimary,
+            '::after': {
+                content: '"\\E721"',
+                fontFamily: 'FabricMDL2Icons',
+                display: 'block',
+                fontWeight: 600,
+                fontSize: 12,
+                position: 'relative',
+                top: -4,
+                left: 5,
+                transform: 'scaleX(-1)',
+                color: theme.palette.white
+            }
+        },
+        activeSection: {
+            backgroundColor: `${theme.palette.themePrimary} !important`,
         }
     })
 }

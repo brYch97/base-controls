@@ -20,7 +20,11 @@ export const SettingsSlider = () => {
                 min={0}
                 max={100}
                 value={value}
-                showValue
+                showValue={false}
+                styles={{
+                    thumb: styles.thumb,
+                    activeSection: styles.activeSection
+                }}
                 onChange={(nextValue) => {
                     datasetControl.ganttGridBridge.setZoomLevel(nextValue);
                 }} />
