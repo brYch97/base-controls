@@ -1,4 +1,4 @@
-import { IDataset, IDataProvider, IEventEmitter } from "@talxis/client-libraries";
+import { IDataset, IDataProvider } from "@talxis/client-libraries";
 import { IDatasetControl } from "../../utils/dataset-control";
 import { IGridCustomizerStrategy } from "./components/grid/grid-customizer";
 import { ICustomColumnsDataProvider, ICustomColumnsStrategy } from "./providers/custom-columns/CustomColumnsDataProvider";
@@ -12,13 +12,6 @@ import { IProjectDataProvider } from "./extensions/providers/project/ProjectData
 import { IGanttProps } from "./components/gannt";
 import { ICustomMarker, IGanttMarker } from "./components/gannt/GanttMarkers";
 import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
-
-export interface ITaskGridDatasetControlEvents {
-    onJumpToTodayRequested: () => void;
-    onZoomLevelChangeRequested: (level: ZoomLevel) => void;
-    onShowWeekendsRequested: (showWeekends: boolean) => void;
-    onSettingsSliderMoved: (value: number) => void;
-}
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -158,7 +151,6 @@ export interface ITaskGridDescriptor {
 /** Runtime interface for the TaskGrid control returned by `TaskGridDatasetControlFactory.createInstance`. */
 export interface ITaskGridDatasetControl extends IDatasetControl {
     extensions: IExtensions;
-    events: IEventEmitter<ITaskGridDatasetControlEvents>;
     /** Bridge for view-level sync between AG Grid and the Gantt chart (scroll, expand/collapse). */
     ganttGridBridge: GanttGridBridge;
     /**
@@ -238,10 +230,4 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     isUserQueriesFeatureEnabled: () => boolean;
     /** Whether inline task creation is enabled (from `ITaskGridParameters.enableInlineCreation`). */
     isInlineCreateEnabled: () => boolean;
-    /** Requests the gantt timeline to navigate to today. */
-    requestJumpToToday: () => void;
-    /** Requests the gantt timeline zoom level to change. */
-    requestZoomLevelChange: (level: ZoomLevel) => void;
-    /** Dispatches a transient settings slider value between 0 and 100. */
-    requestSettingsSliderValue: (value: number) => void;
 }

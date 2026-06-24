@@ -86,7 +86,7 @@ export class GanttManager implements IGanttManager {
         this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', () => this._loadTasksToGantt());
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
-        this._datasetControl.events.addEventListener('onShowWeekendsRequested', () => this._onShowWeekendsRequested());
+        this._bridge.addEventListener('onShowWeekendsChanged', () => this._onShowWeekendsRequested());
         this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._onAgGridTaskExpanded(taskId));
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));

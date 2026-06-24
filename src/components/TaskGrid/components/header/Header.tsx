@@ -159,7 +159,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 disabled: isLoading,
                 text: localizationService.getLocalizedString('goToToday'),
                 iconProps: { iconName: 'CalendarDay' },
-                onClick: () => datasetControl.requestJumpToToday(),
+                onClick: () => datasetControl.ganttGridBridge.requestJumpToToday(),
             }] : [])
         ];
     }

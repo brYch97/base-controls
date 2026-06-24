@@ -9,11 +9,10 @@ import { ISavedQueryDataProvider, PATH_COLUMN_NAME } from "./providers/saved-que
 import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { Type } from "@talxis/client-libraries/dist/utils/fetch-xml/filter/Type";
 import { ICustomColumnsDataProvider } from "./providers/custom-columns/CustomColumnsDataProvider";
-import { ITaskGridDatasetControl, ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
+import { ITaskGridDatasetControl, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
 import { ErrorHelper } from "../../utils/error-handling";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project";
-import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
 
 const STATE_CODE_ACTIVE = 0;
 
@@ -31,7 +30,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     private _commands: ICommand[] = [];
     private _getPcfContext: () => ComponentFramework.Context<any, any>;
     private _changeToQueryId!: string;
-    public readonly events: IEventEmitter<ITaskGridDatasetControlEvents> = new EventEmitter<ITaskGridDatasetControlEvents>();
+    public readonly events: IEventEmitter<IDatasetControlEvents> = new EventEmitter<IDatasetControlEvents>();
     public readonly ganttGridBridge = new GanttGridBridge();
 
     constructor(parameters: ITaskGridDatasetControlParameters) {
@@ -114,24 +113,12 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         return this._gridParameters.enableInlineCreation ?? false;
     }
 
-    public requestJumpToToday(): void {
-        this.events.dispatchEvent('onJumpToTodayRequested');
-    }
-
-    public requestZoomLevelChange(level: ZoomLevel): void {
-        this.events.dispatchEvent('onZoomLevelChangeRequested', level);
-    }
-
-    public requestSettingsSliderValue(value: number): void {
-        this.events.dispatchEvent('onSettingsSliderMoved', value);
-    }
-
     public toggleShowWeekends(showWeekends: boolean): void {
         if (!this._state.savedQuery) {
             throw new Error('Cannot toggle show weekends when there is no saved query in state');
         }
         this._state.savedQuery.showWeekends = showWeekends;
-        this.events.dispatchEvent('onShowWeekendsRequested', showWeekends);
+        this.ganttGridBridge.setShowWeekends(showWeekends);
     }
 
     public isShowHierarchyToggleVisible(): boolean {

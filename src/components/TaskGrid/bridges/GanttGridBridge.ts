@@ -8,6 +8,8 @@ export interface IGanttGridBridgeEvents {
     onGanttScrolled: (scrollTop: number) => void;
     onGanttTaskExpanded: (taskId: string) => void;
     onGanttTaskCollapsed: (taskId: string) => void;
+    onJumpToTodayRequested: () => void;
+    onShowWeekendsChanged: (showWeekends: boolean) => void;
     onZoomLevelChanged: (level: number) => void;
 }
 
@@ -39,6 +41,14 @@ export class GanttGridBridge extends EventEmitter<IGanttGridBridgeEvents> implem
             this._zoomLevel = zoomLevel;
             this.dispatchEvent('onZoomLevelChanged', zoomLevel);
         }
+    }
+
+    public requestJumpToToday() {
+        this.dispatchEvent('onJumpToTodayRequested');
+    }
+
+    public setShowWeekends(showWeekends: boolean) {
+        this.dispatchEvent('onShowWeekendsChanged', showWeekends);
     }
 
     public getZoomLevel(): number {

@@ -135,8 +135,7 @@ export class GanttZooming implements IGanttZooming {
 
     private _registerEventListeners() {
         //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
-        this._datasetControl.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._datasetControl.events.addEventListener('onSettingsSliderMoved', (value) => this._onSettingsSliderMoved(value));
+        this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
     }
 
     public destroy() {

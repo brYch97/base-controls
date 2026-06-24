@@ -4,6 +4,7 @@ import * as React from "react"
 import { getSettingsCalloutStyles } from "./styles";
 import { useDatasetControl, useLocalizationService, useTaskDataProvider } from "../../../context";
 import { useEventEmitter } from "../../../../../hooks";
+import { IGanttGridBridgeEvents } from "../../../bridges";
 
 export const SettingsCallout = () => {
     const localizationService = useLocalizationService();
@@ -18,7 +19,7 @@ export const SettingsCallout = () => {
     const isHideInactiveTasksToggleVisible = datasetControl.isHideInactiveTasksToggleVisible();
     const isGanttEnabled = Boolean(datasetControl.extensions.gantt);
 
-    useEventEmitter(datasetControl.events, 'onShowWeekendsRequested', rerender);
+    useEventEmitter<IGanttGridBridgeEvents>(datasetControl.ganttGridBridge, 'onShowWeekendsChanged', rerender);
 
 
     return (<div className={styles.settingsCallout}>
