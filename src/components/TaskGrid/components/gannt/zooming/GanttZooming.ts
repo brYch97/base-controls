@@ -4,6 +4,7 @@ import { ITaskGridDatasetControl } from '../../../interfaces';
 import { ITaskDataProvider } from '../../../providers';
 import { IGanttDates } from '../GanttDates';
 import { ZoomingConfig } from './ZoomingConfig';
+import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';
 
 export interface IGanttZooming {
     destroy: () => void;
@@ -14,6 +15,7 @@ interface IGanttZoomingParams {
     datasetControl: ITaskGridDatasetControl;
     gantt: GanttStatic;
     dates: IGanttDates;
+    timeline: IGanttInfiniteTimeline;
 }
 
 export class GanttZooming implements IGanttZooming {
@@ -23,12 +25,14 @@ export class GanttZooming implements IGanttZooming {
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _dates: IGanttDates;
+    private _timeline: IGanttInfiniteTimeline;
     private _formatting = Formatting.Get();
 
 
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
+        this._timeline = params.timeline;
         //@ts-ignore
         window.GANTT = this._gantt;
         this._dates = params.dates;
@@ -74,6 +78,7 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _setZoomPercent(percent: number) {
+        this._timeline.shrinkToCurrentView();
         const anchorX = this._pendingAnchorX;
         this._pendingAnchorX = undefined;
         const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {

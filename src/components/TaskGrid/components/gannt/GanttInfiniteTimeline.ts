@@ -2,7 +2,7 @@ import { GanttStatic } from 'gantt-trial';
 
 export interface IGanttInfiniteTimeline {
     destroy: () => void;
-    reset: () => void;
+    shrinkToCurrentView: () => void;
 }
 
 interface IGanttInfiniteTimelineParams {
@@ -20,17 +20,22 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         this._registerEventListeners();
     }
 
-    public reset() {
-        this._gantt.config.start_date = undefined;
-        this._gantt.config.end_date = undefined;
-    }
-
     public destroy() {
         if (this._onGanttScrollId) {
             this._gantt.detachEvent(this._onGanttScrollId);
             this._onGanttScrollId = null;
         }
     }
+
+    public shrinkToCurrentView() {
+        const leftPos = this._gantt.getScrollState().x;
+        const left_date = this._gantt.dateFromPos(leftPos)
+        const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth);
+        
+        this._gantt.config.start_date = left_date;
+        this._gantt.config.end_date = right_date;
+    }
+
 
     private _registerEventListeners() {
         this._onGanttScrollId = this._gantt.attachEvent('onGanttScroll', (left: number, _top: number) => {
@@ -42,7 +47,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         const unit = this._gantt.getScale().unit;
         const leftPos = this._gantt.getScrollState().x;
         const left_date = this._gantt.dateFromPos(leftPos)
-        const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth)
+        const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth);
 
         this._gantt.config.start_date = this._gantt.config.start_date || this._gantt.getState().min_date;
         this._gantt.config.end_date = this._gantt.config.end_date || this._gantt.getState().max_date;
