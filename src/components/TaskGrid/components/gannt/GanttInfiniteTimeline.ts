@@ -11,7 +11,6 @@ interface IGanttInfiniteTimelineParams {
 }
 
 export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
-    private static readonly _renderDelay = 20;
     private static readonly _shrinkDelay = 100;
     private static readonly _maxTimelineWidth = 100000;
     private static readonly _targetTimelineWidth = 50000;
