@@ -78,7 +78,6 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _setZoomPercent(percent: number) {
-        //this._timeline.shrinkToCurrentView();
         const anchorX = this._pendingAnchorX;
         this._pendingAnchorX = undefined;
         const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
@@ -103,6 +102,7 @@ export class GanttZooming implements IGanttZooming {
         }
 
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
+    this._timeline.shrinkToCurrentView(resolvedAnchorX);
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
         const step = zoom._widthStep;
