@@ -33,6 +33,7 @@ export class GanttManager implements IGanttManager {
     private _bridge: IGanttGridBridge;
     private _dragging: IGanttDragging;
     private _zooming: IGanttZooming;
+    private _timeline: IGanttInfiniteTimeline;
     private _markers: IGanttMarkers;
     private _dates: GanttDates;
     private _gantt: GanttStatic;
@@ -48,6 +49,7 @@ export class GanttManager implements IGanttManager {
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        this._timeline = new GanttInfiniteTimeline({ gantt: this._gantt });
 
         this._gantt.plugins({
             drag_timeline: true,

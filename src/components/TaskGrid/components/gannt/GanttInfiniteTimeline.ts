@@ -39,52 +39,31 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     }
 
     private _onHorizontalScroll(left: number) {
-        if (!this._gantt.$task?.offsetWidth) {
-            return;
-        }
-
-        const leftDate = this._gantt.dateFromPos(left);
-        const rightDate = this._gantt.dateFromPos(left + this._gantt.$task.offsetWidth);
-        if (!leftDate || !rightDate) {
-            return;
-        }
+        const unit = this._gantt.getScale().unit;
+        const leftPos = this._gantt.getScrollState().x;
+        const left_date = this._gantt.dateFromPos(leftPos)
+        const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth)
 
         this._gantt.config.start_date = this._gantt.config.start_date || this._gantt.getState().min_date;
         this._gantt.config.end_date = this._gantt.config.end_date || this._gantt.getState().max_date;
 
-        const startDate = this._gantt.config.start_date;
-        const endDate = this._gantt.config.end_date;
-        if (!startDate || !endDate) {
-            return;
-        }
-
-        const minAllowedDate = this._gantt.date.add(startDate, 1, 'day');
-        const maxAllowedDate = this._gantt.date.add(endDate, -2, 'day');
+        const max_allowed_date = this._gantt.date.add(this._gantt.config.end_date, -2, unit);
 
         let repaint = false;
-        if (+leftDate <= +minAllowedDate) {
-            this._gantt.config.start_date = this._gantt.date.add(
-                startDate,
-                -2,
-                'day'
-            );
+        if (!leftPos) {
+            this._gantt.config.start_date = this._gantt.date.add(this._gantt.config.start_date, -2, unit);
             repaint = true;
         }
-
-        if (+rightDate >= +maxAllowedDate) {
-            this._gantt.config.end_date = this._gantt.date.add(
-                endDate,
-                2,
-                'day'
-            );
+        if ((+right_date >= +max_allowed_date) || !right_date) {
+            this._gantt.config.end_date = this._gantt.date.add(this._gantt.config.end_date, 2, unit);
             repaint = true;
         }
 
         if (repaint) {
-            window.setTimeout(() => {
-                this._gantt.render();
-                this._gantt.showDate(leftDate);
-            }, GanttInfiniteTimeline._renderDelay);
+            setTimeout(() => {
+                this._gantt.render()
+                this._gantt.showDate(left_date)
+            }, 20)
         }
     }
 }

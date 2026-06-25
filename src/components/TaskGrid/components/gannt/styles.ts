@@ -169,6 +169,8 @@ export const getGanttStyles = (theme: ITheme) => {
             },
             '.gantt_data_area': {
                 cursor: 'grab',
+            },
+            '.gantt_task': {
                 overscrollBehaviorX: 'contain',
             },
             '.gantt_data_area:active': {
