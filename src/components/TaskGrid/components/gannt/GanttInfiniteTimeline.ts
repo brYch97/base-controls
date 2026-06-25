@@ -12,7 +12,7 @@ interface IGanttInfiniteTimelineParams {
 
 export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     private static readonly _renderDelay = 20;
-    private static readonly _shrinkDelay = 1000;
+    private static readonly _shrinkDelay = 100;
 
     private _gantt: GanttStatic;
     private _onGanttScrollId: string | null = null;
@@ -34,13 +34,19 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     }
 
     public shrinkToCurrentView() {
-        const leftPos = this._gantt.getScrollState().x;
-        const left_date = this._gantt.dateFromPos(leftPos)
-        const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth);
+        //@ts-ignore - not in types
+        const width = this._gantt.getScrollState().width;
+        console.log(width);
+        //force reclamp for performance reasons
+        if (width > 1000000) {
+            const leftPos = this._gantt.getScrollState().x;
+            const left_date = this._gantt.dateFromPos(leftPos)
+            const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth);
 
-        this._gantt.config.start_date = left_date;
-        this._gantt.config.end_date = right_date;
-        this._gantt.render();
+            this._gantt.config.start_date = left_date;
+            this._gantt.config.end_date = right_date;
+            this._gantt.render();
+        }
     }
 
 
@@ -51,7 +57,6 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     }
 
     private _onHorizontalScroll(left: number) {
-        console.log('GanttInfiniteTimeline._onHorizontalScroll', left);
         const unit = this._gantt.getScale().unit;
         const leftPos = this._gantt.getScrollState().x;
         const left_date = this._gantt.dateFromPos(leftPos)
@@ -71,12 +76,11 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             this._gantt.config.end_date = this._gantt.date.add(this._gantt.config.end_date, 2, unit);
             repaint = true;
         }
-
+        this._debouncedShrinkToCurrentView();
         if (repaint) {
             setTimeout(() => {
                 this._gantt.render();
                 this._gantt.showDate(left_date);
-                this._debouncedShrinkToCurrentView();
             }, 20)
         }
     }
