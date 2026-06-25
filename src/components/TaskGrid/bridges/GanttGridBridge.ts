@@ -64,7 +64,7 @@ export class GanttGridBridge extends EventEmitter<IGanttGridBridgeEvents> implem
             this._suppressedEvents.add(mirror);
             this._debouncedClean();
         }
-        console.log(`Event dispatched: ${event} with args:`, args);
+        //console.log(`Event dispatched: ${event} with args:`, args);
         return super.dispatchEvent(event, ...args);
     }
 }

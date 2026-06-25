@@ -1,3 +1,4 @@
+import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
 
 export interface IGanttInfiniteTimeline {
@@ -11,12 +12,15 @@ interface IGanttInfiniteTimelineParams {
 
 export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     private static readonly _renderDelay = 20;
+    private static readonly _shrinkDelay = 1000;
 
     private _gantt: GanttStatic;
     private _onGanttScrollId: string | null = null;
+    private _debouncedShrinkToCurrentView: debounce.DebouncedFunction<() => void>;
 
     constructor(params: IGanttInfiniteTimelineParams) {
         this._gantt = params.gantt;
+        this._debouncedShrinkToCurrentView = debounce(() => this.shrinkToCurrentView(), GanttInfiniteTimeline._shrinkDelay);
         this._registerEventListeners();
     }
 
@@ -25,15 +29,18 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             this._gantt.detachEvent(this._onGanttScrollId);
             this._onGanttScrollId = null;
         }
+
+        this._debouncedShrinkToCurrentView.clear();
     }
 
     public shrinkToCurrentView() {
         const leftPos = this._gantt.getScrollState().x;
         const left_date = this._gantt.dateFromPos(leftPos)
         const right_date = this._gantt.dateFromPos(leftPos + this._gantt.$task.offsetWidth);
-        
+
         this._gantt.config.start_date = left_date;
         this._gantt.config.end_date = right_date;
+        this._gantt.render();
     }
 
 
@@ -44,6 +51,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     }
 
     private _onHorizontalScroll(left: number) {
+        console.log('GanttInfiniteTimeline._onHorizontalScroll', left);
         const unit = this._gantt.getScale().unit;
         const leftPos = this._gantt.getScrollState().x;
         const left_date = this._gantt.dateFromPos(leftPos)
@@ -66,8 +74,9 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
         if (repaint) {
             setTimeout(() => {
-                this._gantt.render()
-                this._gantt.showDate(left_date)
+                this._gantt.render();
+                this._gantt.showDate(left_date);
+                this._debouncedShrinkToCurrentView();
             }, 20)
         }
     }
