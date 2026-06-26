@@ -3,7 +3,11 @@ import { GanttStatic } from 'gantt-trial';
 
 export interface IGanttInfiniteTimeline {
     destroy: () => void;
-    shrinkToCurrentView: (anchorX?: number) => void;
+    shrink: (params: {
+        anchorX?: number;
+        date?: Date;
+
+    }) => void;
 }
 
 interface IGanttInfiniteTimelineParams {
@@ -11,17 +15,14 @@ interface IGanttInfiniteTimelineParams {
 }
 
 export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
-    private static readonly _shrinkDelay = 100;
     private static readonly _maxTimelineWidth = 100000;
-    private static readonly _targetTimelineWidth = 50000;
+    private static readonly _targetTimelineWidth = 80000;
 
     private _gantt: GanttStatic;
     private _onGanttScrollId: string | null = null;
-    private _debouncedShrinkToCurrentView: debounce.DebouncedFunction<() => void>;
 
     constructor(params: IGanttInfiniteTimelineParams) {
         this._gantt = params.gantt;
-        this._debouncedShrinkToCurrentView = debounce(() => this.shrinkToCurrentView(), GanttInfiniteTimeline._shrinkDelay);
         this._registerEventListeners();
     }
 
@@ -30,11 +31,10 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             this._gantt.detachEvent(this._onGanttScrollId);
             this._onGanttScrollId = null;
         }
-
-        this._debouncedShrinkToCurrentView.clear();
     }
 
-    public shrinkToCurrentView(anchorX?: number) {
+    public shrink(params: { anchorX?: number; date?: Date }) {
+        const { anchorX, date } = params;
         //@ts-ignore - not in types
         const width = this._gantt.getScrollState().width;
         //force reclamp for performance reasons
@@ -43,17 +43,24 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             const scrollState = this._gantt.getScrollState();
             const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
             const leftPos = scrollState.x;
-            const left_date = this._gantt.dateFromPos(leftPos);
-            const right_date = this._gantt.dateFromPos(leftPos + viewportWidth);
+            const currentLeftDate = this._gantt.dateFromPos(leftPos);
+            const currentRightDate = this._gantt.dateFromPos(leftPos + viewportWidth);
 
-            if (!left_date || !right_date || !viewportWidth) {
+            if (!currentLeftDate || !currentRightDate || !viewportWidth) {
                 return;
             }
 
             const resolvedAnchorX = anchorX ?? viewportWidth / 2;
             const anchorOffset = Math.max(0, Math.min(viewportWidth, resolvedAnchorX));
-            const anchorDate = this._gantt.dateFromPos(leftPos + anchorOffset);
-            const visibleDuration = +right_date - +left_date;
+            const anchorDate = date ?? this._gantt.dateFromPos(leftPos + anchorOffset);
+            const visibleDuration = +currentRightDate - +currentLeftDate;
+
+            if (!anchorDate) {
+                return;
+            }
+
+            const left_date = date ? new Date(+anchorDate - visibleDuration / 2) : currentLeftDate;
+            const right_date = date ? new Date(+anchorDate + visibleDuration / 2) : currentRightDate;
             const targetDuration = visibleDuration * (GanttInfiniteTimeline._targetTimelineWidth / viewportWidth);
             const start_date = new Date(+left_date - ((targetDuration - visibleDuration) / 2));
             const end_date = new Date(+right_date + ((targetDuration - visibleDuration) / 2));
@@ -73,11 +80,11 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
     private _registerEventListeners() {
         this._onGanttScrollId = this._gantt.attachEvent('onGanttScroll', (left: number, _top: number) => {
-            this._onHorizontalScroll(left);
+            this._onHorizontalScroll();
         });
     }
 
-    private _onHorizontalScroll(left: number) {
+    private _onHorizontalScroll() {
         const unit = this._gantt.getScale().unit;
         const leftPos = this._gantt.getScrollState().x;
         const left_date = this._gantt.dateFromPos(leftPos)

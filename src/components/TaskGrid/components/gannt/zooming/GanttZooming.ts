@@ -102,7 +102,7 @@ export class GanttZooming implements IGanttZooming {
         }
 
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
-    this._timeline.shrinkToCurrentView(resolvedAnchorX);
+        this._timeline.shrink({ anchorX: resolvedAnchorX });
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
         const step = zoom._widthStep;
@@ -216,6 +216,11 @@ export class GanttZooming implements IGanttZooming {
 
     private _jumpToToday() {
         const today = new Date();
+        if (today > this._gantt.config.end_date! || today < this._gantt.config.start_date!) {
+            this._timeline.shrink({
+                date: today
+            });
+        }
         this._gantt.showDate(today);
     }
 
