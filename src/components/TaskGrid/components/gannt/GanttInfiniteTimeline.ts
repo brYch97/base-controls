@@ -52,7 +52,8 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         //@ts-ignore - not in types
         const width = this._gantt.getScrollState().width;
         //force reclamp for performance reasons
-        if ((width > GanttInfiniteTimeline._maxTimelineWidth) || skipWidthCheck) {
+        // if ((width > GanttInfiniteTimeline._maxTimelineWidth) || skipWidthCheck) {
+        if(true) {
             console.log('Shrinking timeline to current view');
             const scrollState = this._gantt.getScrollState();
             const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
@@ -121,7 +122,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         if (!leftPos) {
             const startDate = this._gantt.date.add(this._gantt.config.start_date, -2, unit);
             startDate.setHours(0, 0, 0, 0);
-            this._gantt.config.start_date = this._gantt.date.add(this._gantt.config.start_date, -2, unit);
+            this._gantt.config.start_date = startDate;
             repaint = true;
         }
         if ((+right_date >= +max_allowed_date) || !right_date) {

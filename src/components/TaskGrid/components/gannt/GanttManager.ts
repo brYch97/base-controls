@@ -106,8 +106,11 @@ export class GanttManager implements IGanttManager {
 
     private _setUpWeekendVisibility() {
         const showWeekends = this._datasetControl.getShowWeekends();
-        this._gantt.config.work_time = !showWeekends;
-        this._gantt.config.skip_off_time = !showWeekends;
+        //this._gantt.config.work_time = !showWeekends;
+        //this._gantt.config.skip_off_time = !showWeekends;
+        this._gantt.ignore_time = (date) => {
+            return !showWeekends && this._isWeekend(date);
+        }
     }
 
     private _onShowWeekendsRequested() {

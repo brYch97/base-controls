@@ -109,7 +109,7 @@ export class GanttZooming implements IGanttZooming {
 
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
         const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
-        this._timeline.shrink({ anchorX: resolvedAnchorX, date: anchorDate, skipWidthCheck: true });
+        this._timeline.shrink({ anchorX: resolvedAnchorX, date: anchorDate });
         this._debouncedResetZoomAnchor();
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
