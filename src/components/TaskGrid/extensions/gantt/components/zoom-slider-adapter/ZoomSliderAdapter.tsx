@@ -1,7 +1,7 @@
 import { useRerender } from "@talxis/react-components";
 import { IGanttGridBridgeEvents } from "../../../../bridges";
 import { useEventEmitter } from "../../../../../../hooks";
-import { useDatasetControl } from "../../../..";
+import { useDatasetControl } from "../../../../context";
 import { ZoomSlider } from "../../../../../zoom-slider";
 
 export const ZoomSliderAdapter = () => {
@@ -13,7 +13,7 @@ export const ZoomSliderAdapter = () => {
     return (
         <ZoomSlider
             value={value}
-            onChange={(nextValue) => datasetControl.ganttGridBridge.setZoomLevel(nextValue)}
+            onChange={(nextValue: number) => datasetControl.ganttGridBridge.setZoomLevel(nextValue)}
         />
     );
 }
