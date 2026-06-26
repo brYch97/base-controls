@@ -1,13 +1,14 @@
-import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
 
 export interface IGanttInfiniteTimeline {
     destroy: () => void;
+    setScrollBlock: (block: boolean) => void;
     shrink: (params: {
         anchorX?: number;
         date?: Date;
 
     }) => void;
+
 }
 
 interface IGanttInfiniteTimelineParams {
@@ -20,6 +21,9 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
     private _gantt: GanttStatic;
     private _onGanttScrollId: string | null = null;
+    private _onGanttLayoutReadyId: string | null = null;
+    private _blockScrollHandler = false;
+    private _isLayoutReady = false;
 
     constructor(params: IGanttInfiniteTimelineParams) {
         this._gantt = params.gantt;
@@ -31,6 +35,15 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             this._gantt.detachEvent(this._onGanttScrollId);
             this._onGanttScrollId = null;
         }
+
+        if (this._onGanttLayoutReadyId) {
+            this._gantt.detachEvent(this._onGanttLayoutReadyId);
+            this._onGanttLayoutReadyId = null;
+        }
+    }
+
+    public setScrollBlock(block: boolean) {
+        this._blockScrollHandler = block;
     }
 
     public shrink(params: { anchorX?: number; date?: Date }) {
@@ -38,7 +51,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         //@ts-ignore - not in types
         const width = this._gantt.getScrollState().width;
         //force reclamp for performance reasons
-        if (width > GanttInfiniteTimeline._maxTimelineWidth) {
+        if ((width > GanttInfiniteTimeline._maxTimelineWidth) || date) {
             console.log('Shrinking timeline to current view');
             const scrollState = this._gantt.getScrollState();
             const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
@@ -69,7 +82,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             this._gantt.config.end_date = end_date;
             this._gantt.render();
 
-            if (anchorDate) {
+            if (anchorX) {
                 this._gantt.showDate(anchorDate);
                 const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - anchorOffset);
                 this._gantt.scrollTo(nextLeft, scrollState.y);
@@ -80,7 +93,14 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
     private _registerEventListeners() {
         this._onGanttScrollId = this._gantt.attachEvent('onGanttScroll', (left: number, _top: number) => {
+            if (this._blockScrollHandler || !this._isLayoutReady) return;
             this._onHorizontalScroll();
+        });
+        this._onGanttLayoutReadyId = this._gantt.attachEvent('onGanttReady', () => {
+            setTimeout(() => {
+                this._isLayoutReady = true;
+            }, 1000);
+            return true;
         });
     }
 

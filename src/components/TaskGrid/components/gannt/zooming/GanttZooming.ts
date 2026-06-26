@@ -217,9 +217,11 @@ export class GanttZooming implements IGanttZooming {
     private _jumpToToday() {
         const today = new Date();
         if (today > this._gantt.config.end_date! || today < this._gantt.config.start_date!) {
+            this._timeline.setScrollBlock(true);
             this._timeline.shrink({
                 date: today
             });
+            this._timeline.setScrollBlock(false);
         }
         this._gantt.showDate(today);
     }
