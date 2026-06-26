@@ -6,12 +6,24 @@ export const getSettingsSliderStyles = (theme: ITheme) => {
             minWidth: 220,
             paddingTop: 4,
             marginRight: 12,
+            display: 'flex',
+            alignItems: 'center',
             '.ms-Slider': {
                 marginBottom: 0,
             },
             '.ms-Slider-label': {
                 color: theme.semanticColors.bodyText,
                 fontWeight: 600,
+            }
+        },
+        slider: {
+            flexGrow: 1,
+        },
+        zoomButton: {
+            width: 22,
+            height: 22,
+            'i': {
+                fontSize: 12
             }
         },
         thumb: {

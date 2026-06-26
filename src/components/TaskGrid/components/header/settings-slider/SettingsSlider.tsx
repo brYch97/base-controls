@@ -1,4 +1,4 @@
-import { Slider, useTheme } from "@fluentui/react";
+import { IconButton, Slider, useTheme } from "@fluentui/react";
 import { useDatasetControl } from "../../../context";
 import { useEventEmitter } from "../../../../../hooks";
 import { IGanttGridBridgeEvents } from "../../../bridges";
@@ -16,7 +16,14 @@ export const SettingsSlider = () => {
 
     return (
         <div className={styles.root}>
+            <IconButton
+                className={styles.zoomButton}
+                iconProps={{ iconName: 'Remove' }}
+                ariaLabel="Zoom out"
+                onClick={() => datasetControl.ganttGridBridge.setZoomLevel(value - 1)}
+            />
             <Slider
+                className={styles.slider}
                 min={0}
                 max={100}
                 value={value}
@@ -28,6 +35,12 @@ export const SettingsSlider = () => {
                 onChange={(nextValue) => {
                     datasetControl.ganttGridBridge.setZoomLevel(nextValue);
                 }} />
+            <IconButton
+                className={styles.zoomButton}
+                iconProps={{ iconName: 'Add' }}
+                ariaLabel="Zoom in"
+                onClick={() => datasetControl.ganttGridBridge.setZoomLevel(value + 1)}
+            />
         </div>
     );
 }
