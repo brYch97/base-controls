@@ -9,6 +9,7 @@ import { GanttDates } from './GanttDates';
 import { GanttInfiniteTimeline, IGanttInfiniteTimeline } from './GanttInfiniteTimeline';
 import { GanttMarkers, IGanttMarkers } from './GanttMarkers';
 import { GanttZooming, IGanttZooming } from './zooming';
+import { GanttSelection, IGanttSelection } from './GanttSelection';
 
 
 interface IInitParams {
@@ -35,10 +36,10 @@ export class GanttManager implements IGanttManager {
     private _zooming: IGanttZooming;
     private _timeline: IGanttInfiniteTimeline;
     private _markers: IGanttMarkers;
+    private _selection: IGanttSelection;
     private _dates: GanttDates;
     private _gantt: GanttStatic;
     private _expandedNodeSet: Set<string> = new Set();
-    private _selectionAnchorTaskId: string | null = null;
 
     constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
@@ -50,6 +51,7 @@ export class GanttManager implements IGanttManager {
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates, timeline: this._timeline });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        this._selection = new GanttSelection({ gantt: this._gantt, dataProvider: this._dataProvider });
 
         this._gantt.plugins({
             drag_timeline: true,
@@ -82,6 +84,7 @@ export class GanttManager implements IGanttManager {
     }
 
     public destroy() {
+        this._selection.destroy();
         this._zooming.destroy();
     }
 
@@ -97,11 +100,6 @@ export class GanttManager implements IGanttManager {
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
-        this._gantt.attachEvent('onTaskMultiSelect', (id: string) => this._onRecordSelectedFromGantt(id));
-        this._gantt.attachEvent('onTaskClick', (id: string, e?: MouseEvent) => {
-            this._onRecordSelectedFromGantt(id, e);
-            return true;
-        });
         this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
     }
 
@@ -166,62 +164,12 @@ export class GanttManager implements IGanttManager {
 
     private _getTaskInnerText(start: Date, end: Date, task: Task) {
         return '';
-        return this._shouldRenderTaskLabelOutside(start, end) ? '' : task.text;
     }
 
     private _getTaskOutsideLeftText(start: Date, end: Date, task: Task) {
         return task.text;
-        return this._shouldRenderTaskLabelOutside(start, end) ? task.text : '';
     }
 
-    private _shouldRenderTaskLabelOutside(start: Date, end: Date) {
-        const width = this._gantt.posFromDate(end) - this._gantt.posFromDate(start);
-        return width > 0 && width < GanttManager._outsideLabelWidthThreshold;
-    }
-
-    private _onRecordSelectedFromGantt(taskId: string, event?: MouseEvent) {
-        if (event?.shiftKey) {
-            const visibleTaskIds = this._getVisibleTaskIds();
-            const anchorTaskId = this._selectionAnchorTaskId ?? taskId;
-            const clickedTaskIndex = visibleTaskIds.indexOf(taskId);
-            const anchorTaskIndex = visibleTaskIds.indexOf(anchorTaskId);
-
-            if (clickedTaskIndex >= 0 && anchorTaskIndex >= 0) {
-                const rangeStart = Math.min(anchorTaskIndex, clickedTaskIndex);
-                const rangeEnd = Math.max(anchorTaskIndex, clickedTaskIndex);
-                const rangeTaskIds = visibleTaskIds.slice(rangeStart, rangeEnd + 1);
-                const selectedRecordIds = this._dataProvider.getSelectedRecordIds();
-                const nextSelectedIds = event.ctrlKey || event.metaKey
-                    ? Array.from(new Set([...selectedRecordIds, ...rangeTaskIds]))
-                    : rangeTaskIds;
-
-                this._dataProvider.setSelectedRecordIds(nextSelectedIds);
-            }
-
-            return;
-        }
-
-        this._selectionAnchorTaskId = taskId;
-        if (!event?.ctrlKey && !event?.metaKey) {
-            this._dataProvider.setSelectedRecordIds([taskId]);
-        }
-        else {
-            this._dataProvider.toggleSelectedRecordId(taskId, {
-                clearExisting: !(event?.ctrlKey || event?.metaKey)
-            });
-        }
-    }
-
-    private _getVisibleTaskIds(): string[] {
-        const taskIds: string[] = [];
-        this._gantt.eachTask((task: Task) => {
-            if (this._gantt.isTaskVisible(task.id)) {
-                taskIds.push(String(task.id));
-            }
-        });
-
-        return taskIds;
-    }
 
     private _onAgGridScrolled(scrollTop: number) {
         if (this._gantt.getScrollState()?.y === scrollTop) {
