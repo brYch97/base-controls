@@ -6,6 +6,7 @@ export interface IGanttInfiniteTimeline {
     shrink: (params: {
         anchorX?: number;
         date?: Date;
+        skipWidthCheck?: boolean;
 
     }) => void;
 
@@ -46,12 +47,12 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         this._blockScrollHandler = block;
     }
 
-    public shrink(params: { anchorX?: number; date?: Date }) {
-        const { anchorX, date } = params;
+    public shrink(params: { anchorX?: number; date?: Date; skipWidthCheck?: boolean }) {
+        const { anchorX, date, skipWidthCheck } = params;
         //@ts-ignore - not in types
         const width = this._gantt.getScrollState().width;
         //force reclamp for performance reasons
-        if ((width > GanttInfiniteTimeline._maxTimelineWidth) || date) {
+        if ((width > GanttInfiniteTimeline._maxTimelineWidth) || skipWidthCheck) {
             console.log('Shrinking timeline to current view');
             const scrollState = this._gantt.getScrollState();
             const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
@@ -76,6 +77,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
             const right_date = date ? new Date(+anchorDate + visibleDuration / 2) : currentRightDate;
             const targetDuration = visibleDuration * (GanttInfiniteTimeline._targetTimelineWidth / viewportWidth);
             const start_date = new Date(+left_date - ((targetDuration - visibleDuration) / 2));
+            start_date.setHours(0, 0, 0, 0);
             const end_date = new Date(+right_date + ((targetDuration - visibleDuration) / 2));
 
             this._gantt.config.start_date = start_date;
@@ -117,6 +119,8 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
         let repaint = false;
         if (!leftPos) {
+            const startDate = this._gantt.date.add(this._gantt.config.start_date, -2, unit);
+            startDate.setHours(0, 0, 0, 0);
             this._gantt.config.start_date = this._gantt.date.add(this._gantt.config.start_date, -2, unit);
             repaint = true;
         }

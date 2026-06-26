@@ -13,7 +13,10 @@ export const ZoomSliderAdapter = () => {
     return (
         <ZoomSlider
             value={value}
-            onChange={(nextValue: number) => datasetControl.ganttGridBridge.setZoomLevel(nextValue)}
+            onChange={(nextValue: number) => {
+                console.log('ZoomSliderAdapter: onChange', nextValue);
+                datasetControl.ganttGridBridge.setZoomLevel(nextValue)
+            }}
         />
     );
 }

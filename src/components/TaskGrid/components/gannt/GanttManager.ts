@@ -46,7 +46,7 @@ export class GanttManager implements IGanttManager {
         this._dataProvider = this._datasetControl.getDataProvider();
         this._gantt = Gantt.getGanttInstance();
         this._bridge = this._datasetControl.ganttGridBridge;
-        
+
         this._gantt.plugins({
             drag_timeline: true,
             marker: true

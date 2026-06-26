@@ -30,7 +30,7 @@ export interface IFieldMapping {
     parentId: string;
     /** Display name / title attribute. Always pinned left; never hidden by the control. */
     subject: string;
-    /** Numeric ordering attribute. Used for default sort and drag-and-drop reordering. */
+    /** Ordering attribute. Used for default sort and drag-and-drop reordering. */
     stackRank: string;
     /** Active/inactive status attribute. Used by the "Hide inactive tasks" filter. */
     stateCode: string;
