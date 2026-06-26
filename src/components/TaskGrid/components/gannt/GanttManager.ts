@@ -46,17 +46,18 @@ export class GanttManager implements IGanttManager {
         this._dataProvider = this._datasetControl.getDataProvider();
         this._gantt = Gantt.getGanttInstance();
         this._bridge = this._datasetControl.ganttGridBridge;
+        
+        this._gantt.plugins({
+            drag_timeline: true,
+            marker: true
+        });
+
         this._dates = new GanttDates({ datasetControl: this._datasetControl });
         this._timeline = new GanttInfiniteTimeline({ gantt: this._gantt });
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates, timeline: this._timeline });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._selection = new GanttSelection({ gantt: this._gantt, dataProvider: this._dataProvider });
-
-        this._gantt.plugins({
-            drag_timeline: true,
-            marker: true
-        });
     }
 
     public init(params: IInitParams) {

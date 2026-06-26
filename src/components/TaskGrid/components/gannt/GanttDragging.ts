@@ -23,7 +23,7 @@ export class GanttDragging implements IGanttDragging {
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._gantt = params.gantt;
         this._dates = params.dates;
-        this._gantt.config.drag_timeline = { ignore: '.gantt_shift_held, .gantt_task_line' };
+        this._gantt.config.drag_timeline = { ignore: '.gantt_shift_held, .gantt_task_link, .gantt_task_line' };
         this._registerEventListeners();
     }
 
@@ -39,8 +39,7 @@ export class GanttDragging implements IGanttDragging {
     }
 
     private _setShiftClass(held: boolean) {
-        console.log('Shift key held:', held);
-        ((this._gantt as any).$task_data as HTMLElement | null)?.classList.toggle('gantt_shift_held', held);
+        ((this._gantt as any).$root as HTMLElement | null)?.classList.toggle('gantt_shift_held', held);
     }
 
     private _onBeforeTaskDrag(taskId: string, mode?: string) {
