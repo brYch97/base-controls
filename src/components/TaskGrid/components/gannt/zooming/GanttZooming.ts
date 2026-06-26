@@ -227,8 +227,7 @@ export class GanttZooming implements IGanttZooming {
         if (today > this._gantt.config.end_date! || today < this._gantt.config.start_date!) {
             this._timeline.setScrollBlock(true);
             this._timeline.shrink({
-                date: today,
-                skipWidthCheck: true
+                date: today
             });
             this._timeline.setScrollBlock(false);
         }
