@@ -39,7 +39,8 @@ export class GanttDragging implements IGanttDragging {
     }
 
     private _setShiftClass(held: boolean) {
-        ((this._gantt as any).$root as HTMLElement | null)?.classList.toggle('gantt_shift_held', held);
+        console.log('Shift key held:', held);
+        ((this._gantt as any).$task_data as HTMLElement | null)?.classList.toggle('gantt_shift_held', held);
     }
 
     private _onBeforeTaskDrag(taskId: string, mode?: string) {

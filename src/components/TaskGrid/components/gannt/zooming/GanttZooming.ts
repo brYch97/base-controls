@@ -1,4 +1,5 @@
 import { Formatting } from '@talxis/client-libraries';
+import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../../../interfaces';
 import { ITaskDataProvider } from '../../../providers';
@@ -24,7 +25,7 @@ export class GanttZooming implements IGanttZooming {
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
-    private _zoomSessionResetHandle: ReturnType<typeof setTimeout> | undefined;
+    private _debouncedResetZoomAnchor: debounce.DebouncedFunction<() => void>;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -40,6 +41,7 @@ export class GanttZooming implements IGanttZooming {
         //@ts-ignore
         window.GANTT = this._gantt;
         this._dates = params.dates;
+        this._debouncedResetZoomAnchor = debounce(() => this._pendingAnchorDate = undefined, GanttZooming._zoomSessionResetDelay);
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
         this._overrideWheelHandler();
@@ -108,7 +110,7 @@ export class GanttZooming implements IGanttZooming {
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
         const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
         this._timeline.shrink({ anchorX: resolvedAnchorX, date: anchorDate });
-        this._scheduleZoomSessionReset();
+        this._debouncedResetZoomAnchor();
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
         const step = zoom._widthStep;
@@ -242,17 +244,6 @@ export class GanttZooming implements IGanttZooming {
         return this._pendingAnchorDate;
     }
 
-    private _scheduleZoomSessionReset() {
-        if (this._zoomSessionResetHandle) {
-            clearTimeout(this._zoomSessionResetHandle);
-        }
-
-        this._zoomSessionResetHandle = setTimeout(() => {
-            this._pendingAnchorDate = undefined;
-            this._zoomSessionResetHandle = undefined;
-        }, GanttZooming._zoomSessionResetDelay);
-    }
-
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
@@ -260,9 +251,6 @@ export class GanttZooming implements IGanttZooming {
     }
 
     public destroy() {
-        if (this._zoomSessionResetHandle) {
-            clearTimeout(this._zoomSessionResetHandle);
-            this._zoomSessionResetHandle = undefined;
-        }
+        this._debouncedResetZoomAnchor.clear();
     }
 }
