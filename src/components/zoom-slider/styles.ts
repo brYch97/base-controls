@@ -1,6 +1,6 @@
 import { ITheme, mergeStyleSets } from "@fluentui/react";
 
-export const getSettingsSliderStyles = (theme: ITheme) => {
+export const getZoomSliderStyles = (theme: ITheme) => {
     return mergeStyleSets({
         root: {
             minWidth: 220,
@@ -52,5 +52,5 @@ export const getSettingsSliderStyles = (theme: ITheme) => {
         activeSection: {
             backgroundColor: `${theme.palette.themePrimary} !important`,
         }
-    })
+    });
 }

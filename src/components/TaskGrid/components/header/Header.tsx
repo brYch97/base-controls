@@ -6,10 +6,9 @@ import { getHeaderStyles } from "./styles";
 import { SettingsCallout } from "./settings-callout";
 import { useDatasetControl, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
 import { RecordSelector } from "../grid/record-selector";
-import { SettingsSlider } from "./settings-slider";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
-import { ZoomSwitcher } from "../gannt/components/zoom-switcher";
+import { ZoomSliderAdapter } from "../../extensions/gantt/components/zoom-slider-adapter";
 
 interface ITaskGridHeaderProps {
     headerProps: IHeaderProps;
@@ -173,7 +172,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 {datasetControl.isViewSwitcherEnabled() &&
                     <>
                         <ViewSwitcher />
-                        <SettingsSlider />
+                        <ZoomSliderAdapter />
                     </>
                 }
                 {defaultRender({

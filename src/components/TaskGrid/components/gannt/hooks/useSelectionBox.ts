@@ -12,6 +12,13 @@ interface IPoint {
 	y: number;
 }
 
+interface IRectangle {
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
+}
+
 export interface ISelectionBoxState {
 	left: number;
 	top: number;
@@ -19,128 +26,51 @@ export interface ISelectionBoxState {
 	height: number;
 }
 
-interface IDragState {
+interface IDragSession {
 	anchor: IPoint;
-	additive: boolean;
+	pointerClient: IPoint;
 	hasDragged: boolean;
+	selectionIds: string[];
+	renderedPreviewIds: Set<string>;
+	renderedBoxKey: string | null;
+	lastRenderedBox: ISelectionBoxState | null;
+	lastComputedBox: ISelectionBoxState | null;
 }
 
 const DRAG_THRESHOLD = 4;
 const AUTO_SCROLL_EDGE_SIZE = 32;
 const AUTO_SCROLL_STEP = 24;
+
 export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
 export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
 export const GANTT_TASK_LINK_CLASS = 'gantt_task_link';
+
 const SELECTION_PREVIEW_CLASS = 'gantt_selection_preview';
+const TASK_SELECTION_QUERY = '.gantt_task_line, .gantt_left';
+const DRAG_START_BLOCKERS_QUERY = '.gantt_task_line, .gantt_task_content, .gantt_task_drag, .gantt_link_control';
+const TIMELINE_AREA_QUERY = '.gantt_task_bg, .gantt_task_cell';
+const TIMELINE_CONTAINER_QUERY = '.gantt_data_area';
 
 export const useSelectionBox = (params: IUseSelectionBoxParams) => {
+	const { gantt, dataProvider } = params;
 	const [selectionBox, setSelectionBox] = useState<ISelectionBoxState | null>(null);
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const bufferedSelectionRef = useRef<string[] | null>(null);
-	const lastMouseEventRef = useRef<MouseEvent | null>(null);
+	const dragSessionRef = useRef<IDragSession | null>(null);
 	const autoScrollFrameRef = useRef<number | null>(null);
-	const dragStateRef = useRef<IDragState | null>(null);
-	const dragStartSelectionRef = useRef<Set<string>>(new Set<string>());
-	const { gantt, dataProvider } = params;
 
-	const getContainerPoint = (event: MouseEvent): IPoint => {
-		const rect = containerRef.current!.getBoundingClientRect();
-		return {
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top,
-		};
-	};
+	const getTimelineContainer = useCallback(() => {
+		return containerRef.current?.querySelector<HTMLElement>(TIMELINE_CONTAINER_QUERY) ?? null;
+	}, []);
 
-	const getTaskBarIdsInRect = (rect: ISelectionBoxState): string[] => {
-		const taskAttr = gantt.config.task_attribute;
-		const containerRect = containerRef.current!.getBoundingClientRect();
-		const selectedIds: string[] = [];
+	const setShiftClass = useCallback((held: boolean) => {
+		containerRef.current?.classList.toggle(GANTT_SHIFT_HELD_CLASS, held);
+	}, []);
 
-		// Check both the task bar and its left-side outside label.
-		const nodes = containerRef.current!.querySelectorAll<HTMLElement>(
-			`.gantt_task_line[${taskAttr}], .gantt_left`
-		);
-
-		nodes.forEach(node => {
-			const taskId = node.getAttribute(taskAttr)
-				?? node.closest<HTMLElement>(`[${taskAttr}]`)?.getAttribute(taskAttr);
-			if (!taskId || !gantt.isTaskExists(taskId) || !gantt.isTaskVisible(taskId)) {
-				return;
-			}
-
-			const nodeRect = node.getBoundingClientRect();
-			const relativeRect = {
-				left: nodeRect.left - containerRect.left,
-				top: nodeRect.top - containerRect.top,
-				right: nodeRect.right - containerRect.left,
-				bottom: nodeRect.bottom - containerRect.top,
-			};
-
-			const intersects = !(
-				relativeRect.right < rect.left ||
-				relativeRect.left > rect.left + rect.width ||
-				relativeRect.bottom < rect.top ||
-				relativeRect.top > rect.top + rect.height
-			);
-
-			if (intersects && !selectedIds.includes(taskId)) {
-				selectedIds.push(taskId);
-			}
-		});
-
-		return selectedIds;
-	};
-
-	const updatePreviewClasses = (taskIds: string[]) => {
-		const taskAttr = gantt.config.task_attribute;
-		const previewTaskIds = new Set(taskIds);
-		const previewNodes = containerRef.current!.querySelectorAll<HTMLElement>(`.${SELECTION_PREVIEW_CLASS}`);
-
-		previewNodes.forEach(node => node.classList.remove(SELECTION_PREVIEW_CLASS));
-
-		if (previewTaskIds.size === 0) {
-			return;
-		}
-
-		const taskNodes = containerRef.current!.querySelectorAll<HTMLElement>(`[${taskAttr}]`);
-		taskNodes.forEach(taskNode => {
-			const taskId = taskNode.getAttribute(taskAttr);
-			if (taskId && previewTaskIds.has(taskId)) {
-				taskNode.classList.add(SELECTION_PREVIEW_CLASS);
-			}
-		});
-	};
-
-	const updateBufferedSelection = (event: MouseEvent) => {
-		const dragState = dragStateRef.current;
-		if (!dragState) {
-			return;
-		}
-
-		const current = getContainerPoint(event);
-		const left = Math.min(dragState.anchor.x, current.x);
-		const top = Math.min(dragState.anchor.y, current.y);
-		const width = Math.abs(current.x - dragState.anchor.x);
-		const height = Math.abs(current.y - dragState.anchor.y);
-
-		if (width < DRAG_THRESHOLD && height < DRAG_THRESHOLD) {
-			setSelectionBox(null);
-			bufferedSelectionRef.current = null;
-			updatePreviewClasses([]);
-			return;
-		}
-
-		const nextBox = { left, top, width, height };
-		setSelectionBox(nextBox);
-
-		const taskIdsInRect = getTaskBarIdsInRect(nextBox);
-		const nextSelectedIds = dragState.additive
-			? Array.from(new Set([...dragStartSelectionRef.current, ...taskIdsInRect]))
-			: taskIdsInRect;
-
-		bufferedSelectionRef.current = nextSelectedIds;
-		updatePreviewClasses(taskIdsInRect);
-	};
+	const clearPreviewClasses = useCallback(() => {
+		containerRef.current
+			?.querySelectorAll<HTMLElement>(`.${SELECTION_PREVIEW_CLASS}`)
+			.forEach(node => node.classList.remove(SELECTION_PREVIEW_CLASS));
+	}, []);
 
 	const stopAutoScroll = useCallback(() => {
 		if (autoScrollFrameRef.current !== null) {
@@ -149,51 +79,232 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		}
 	}, []);
 
-	const getTimelineContainer = () => containerRef.current?.querySelector<HTMLElement>('.gantt_data_area') ?? null;
+	const getContainerPoint = useCallback((clientPoint: IPoint): IPoint => {
+		const rect = containerRef.current?.getBoundingClientRect();
+		if (!rect) {
+			return { x: 0, y: 0 };
+		}
 
-	const setShiftClass = useCallback((held: boolean) => {
-		containerRef.current?.classList.toggle(GANTT_SHIFT_HELD_CLASS, held);
+		return {
+			x: clientPoint.x - rect.left,
+			y: clientPoint.y - rect.top,
+		};
 	}, []);
 
-	const tickAutoScroll = () => {
+	const getContentPoint = useCallback((clientPoint: IPoint): IPoint => {
+		const containerPoint = getContainerPoint(clientPoint);
 		const timelineContainer = getTimelineContainer();
-		if (!dragStateRef.current || !timelineContainer || !lastMouseEventRef.current) {
+
+		return {
+			x: containerPoint.x + (timelineContainer?.scrollLeft ?? 0),
+			y: containerPoint.y + (timelineContainer?.scrollTop ?? 0),
+		};
+	}, [getContainerPoint, getTimelineContainer]);
+
+	const getContentRectangle = useCallback((anchor: IPoint, pointerClient: IPoint): IRectangle => {
+		const current = getContentPoint(pointerClient);
+
+		return {
+			left: Math.min(anchor.x, current.x),
+			top: Math.min(anchor.y, current.y),
+			right: Math.max(anchor.x, current.x),
+			bottom: Math.max(anchor.y, current.y),
+		};
+	}, [getContentPoint]);
+
+	const getViewportSelectionBox = useCallback((rect: IRectangle): ISelectionBoxState => {
+		const timelineContainer = getTimelineContainer();
+		const scrollLeft = timelineContainer?.scrollLeft ?? 0;
+		const scrollTop = timelineContainer?.scrollTop ?? 0;
+
+		return {
+			left: rect.left - scrollLeft,
+			top: rect.top - scrollTop,
+			width: rect.right - rect.left,
+			height: rect.bottom - rect.top,
+		};
+	}, [getTimelineContainer]);
+
+	const getTaskIdsInContentRectangle = useCallback((contentRect: IRectangle): string[] => {
+		const container = containerRef.current;
+		const timelineContainer = getTimelineContainer();
+		if (!container || !timelineContainer) {
+			return [];
+		}
+
+		const taskAttribute = gantt.config.task_attribute;
+		const containerRect = container.getBoundingClientRect();
+		const taskBounds = new Map<string, IRectangle>();
+
+		container.querySelectorAll<HTMLElement>(TASK_SELECTION_QUERY).forEach(node => {
+			const taskId = node.getAttribute(taskAttribute)
+				?? node.closest<HTMLElement>(`[${taskAttribute}]`)?.getAttribute(taskAttribute);
+
+			if (!taskId || !gantt.isTaskExists(taskId) || !gantt.isTaskVisible(taskId)) {
+				return;
+			}
+
+			const nodeRect = node.getBoundingClientRect();
+			const nodeContentRect = {
+				left: nodeRect.left - containerRect.left + timelineContainer.scrollLeft,
+				top: nodeRect.top - containerRect.top + timelineContainer.scrollTop,
+				right: nodeRect.right - containerRect.left + timelineContainer.scrollLeft,
+				bottom: nodeRect.bottom - containerRect.top + timelineContainer.scrollTop,
+			};
+			const existingBounds = taskBounds.get(taskId);
+			if (!existingBounds) {
+				taskBounds.set(taskId, nodeContentRect);
+				return;
+			}
+
+			taskBounds.set(taskId, {
+				left: Math.min(existingBounds.left, nodeContentRect.left),
+				top: Math.min(existingBounds.top, nodeContentRect.top),
+				right: Math.max(existingBounds.right, nodeContentRect.right),
+				bottom: Math.max(existingBounds.bottom, nodeContentRect.bottom),
+			});
+		});
+
+		return Array.from(taskBounds.entries())
+			.filter(([, taskRect]) => !(
+				taskRect.right < contentRect.left
+				|| taskRect.left > contentRect.right
+				|| taskRect.bottom < contentRect.top
+				|| taskRect.top > contentRect.bottom
+			))
+			.map(([taskId]) => taskId);
+	}, [gantt, getTimelineContainer]);
+
+	const syncPreviewClasses = useCallback((nextPreviewIds: string[]) => {
+		const session = dragSessionRef.current;
+		const container = containerRef.current;
+		if (!session || !container) {
+			return;
+		}
+
+		const taskAttribute = gantt.config.task_attribute;
+		const nextIds = new Set(nextPreviewIds);
+		const previousIds = session.renderedPreviewIds;
+
+		if (nextIds.size === previousIds.size && nextPreviewIds.every(id => previousIds.has(id))) {
+			return;
+		}
+
+		previousIds.forEach(taskId => {
+			if (nextIds.has(taskId)) {
+				return;
+			}
+
+			container
+				.querySelectorAll<HTMLElement>(`[${taskAttribute}="${CSS.escape(taskId)}"]`)
+				.forEach(node => node.classList.remove(SELECTION_PREVIEW_CLASS));
+		});
+
+		nextIds.forEach(taskId => {
+			if (previousIds.has(taskId)) {
+				return;
+			}
+
+			container
+				.querySelectorAll<HTMLElement>(`[${taskAttribute}="${CSS.escape(taskId)}"]`)
+				.forEach(node => node.classList.add(SELECTION_PREVIEW_CLASS));
+		});
+
+		session.renderedPreviewIds = nextIds;
+	}, [gantt]);
+
+	const renderDragSession = useCallback(() => {
+		const session = dragSessionRef.current;
+		if (!session) {
+			return;
+		}
+
+		const contentRect = getContentRectangle(session.anchor, session.pointerClient);
+		const viewportBox = getViewportSelectionBox(contentRect);
+		const hasExceededThreshold = viewportBox.width >= DRAG_THRESHOLD || viewportBox.height >= DRAG_THRESHOLD;
+
+		if (!hasExceededThreshold) {
+			session.lastComputedBox = null;
+			session.selectionIds = [];
+			syncPreviewClasses([]);
+
+			if (session.renderedBoxKey !== null) {
+				session.renderedBoxKey = null;
+				session.lastRenderedBox = null;
+				setSelectionBox(null);
+			}
+
+			return;
+		}
+
+		session.hasDragged = true;
+		session.lastComputedBox = viewportBox;
+		session.selectionIds = getTaskIdsInContentRectangle(contentRect);
+		syncPreviewClasses(session.selectionIds);
+
+		const nextBoxKey = `${viewportBox.left}:${viewportBox.top}:${viewportBox.width}:${viewportBox.height}`;
+		if (nextBoxKey !== session.renderedBoxKey) {
+			session.renderedBoxKey = nextBoxKey;
+			session.lastRenderedBox = viewportBox;
+			setSelectionBox(viewportBox);
+		}
+	}, [getContentRectangle, getTaskIdsInContentRectangle, getViewportSelectionBox, syncPreviewClasses]);
+
+	const tickAutoScroll = useCallback(() => {
+		const session = dragSessionRef.current;
+		const timelineContainer = getTimelineContainer();
+		if (!session || !timelineContainer) {
 			stopAutoScroll();
 			return;
 		}
 
 		const timelineRect = timelineContainer.getBoundingClientRect();
-		const pointerY = lastMouseEventRef.current.clientY;
+		let nextScrollLeft = timelineContainer.scrollLeft;
 		let nextScrollTop = timelineContainer.scrollTop;
 
-		if (pointerY <= timelineRect.top + AUTO_SCROLL_EDGE_SIZE) {
+		if (session.pointerClient.x <= timelineRect.left + AUTO_SCROLL_EDGE_SIZE) {
+			nextScrollLeft = Math.max(0, timelineContainer.scrollLeft - AUTO_SCROLL_STEP);
+		}
+		else if (session.pointerClient.x >= timelineRect.right - AUTO_SCROLL_EDGE_SIZE) {
+			const maxScrollLeft = timelineContainer.scrollWidth - timelineContainer.clientWidth;
+			nextScrollLeft = Math.min(maxScrollLeft, timelineContainer.scrollLeft + AUTO_SCROLL_STEP);
+		}
+
+		if (session.pointerClient.y <= timelineRect.top + AUTO_SCROLL_EDGE_SIZE) {
 			nextScrollTop = Math.max(0, timelineContainer.scrollTop - AUTO_SCROLL_STEP);
 		}
-		else if (pointerY >= timelineRect.bottom - AUTO_SCROLL_EDGE_SIZE) {
+		else if (session.pointerClient.y >= timelineRect.bottom - AUTO_SCROLL_EDGE_SIZE) {
 			const maxScrollTop = timelineContainer.scrollHeight - timelineContainer.clientHeight;
 			nextScrollTop = Math.min(maxScrollTop, timelineContainer.scrollTop + AUTO_SCROLL_STEP);
 		}
 
-		if (nextScrollTop !== timelineContainer.scrollTop) {
-			gantt.scrollTo(undefined, nextScrollTop);
-			updateBufferedSelection(lastMouseEventRef.current);
-			autoScrollFrameRef.current = requestAnimationFrame(tickAutoScroll);
+		const shouldContinue = nextScrollLeft !== timelineContainer.scrollLeft || nextScrollTop !== timelineContainer.scrollTop;
+		if (!shouldContinue) {
+			stopAutoScroll();
 			return;
 		}
 
-		stopAutoScroll();
-	};
+		gantt.scrollTo(nextScrollLeft, nextScrollTop);
+		renderDragSession();
+		autoScrollFrameRef.current = requestAnimationFrame(tickAutoScroll);
+	}, [gantt, getTimelineContainer, renderDragSession, stopAutoScroll]);
 
-	const scheduleAutoScroll = (event: MouseEvent) => {
+	const scheduleAutoScroll = useCallback(() => {
+		const session = dragSessionRef.current;
 		const timelineContainer = getTimelineContainer();
-		if (!timelineContainer) {
+		if (!session || !timelineContainer) {
 			return;
 		}
 
 		const timelineRect = timelineContainer.getBoundingClientRect();
-		const shouldAutoScroll = event.clientY <= timelineRect.top + AUTO_SCROLL_EDGE_SIZE || event.clientY >= timelineRect.bottom - AUTO_SCROLL_EDGE_SIZE;
+		const pointerClient = session.pointerClient;
+		const isNearEdge =
+			pointerClient.x <= timelineRect.left + AUTO_SCROLL_EDGE_SIZE
+			|| pointerClient.x >= timelineRect.right - AUTO_SCROLL_EDGE_SIZE
+			|| pointerClient.y <= timelineRect.top + AUTO_SCROLL_EDGE_SIZE
+			|| pointerClient.y >= timelineRect.bottom - AUTO_SCROLL_EDGE_SIZE;
 
-		if (!shouldAutoScroll) {
+		if (!isNearEdge) {
 			stopAutoScroll();
 			return;
 		}
@@ -201,7 +312,14 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		if (autoScrollFrameRef.current === null) {
 			autoScrollFrameRef.current = requestAnimationFrame(tickAutoScroll);
 		}
-	};
+	}, [getTimelineContainer, stopAutoScroll, tickAutoScroll]);
+
+	const resetDragSession = useCallback(() => {
+		stopAutoScroll();
+		dragSessionRef.current = null;
+		clearPreviewClasses();
+		setSelectionBox(null);
+	}, [clearPreviewClasses, stopAutoScroll]);
 
 	const onMouseDown = useCallback((event: MouseEvent) => {
 		if (event.button !== 0 || !event.shiftKey) {
@@ -209,111 +327,117 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		}
 
 		const target = event.target as HTMLElement | null;
-		const startedOnTask = target?.closest('.gantt_task_line, .gantt_task_content, .gantt_task_drag, .gantt_link_control');
-		if (startedOnTask) {
+		if (target?.closest(DRAG_START_BLOCKERS_QUERY)) {
 			return;
 		}
 
-		const timelineArea = target?.closest('.gantt_task_bg, .gantt_task_cell');
-		if (!timelineArea) {
+		if (!target?.closest(TIMELINE_AREA_QUERY)) {
 			return;
 		}
 
-		dragStartSelectionRef.current = new Set(dataProvider.getSelectedRecordIds());
-		dragStateRef.current = {
-			anchor: getContainerPoint(event),
-			additive: Boolean(event.ctrlKey || event.metaKey),
+		dragSessionRef.current = {
+			anchor: getContentPoint({ x: event.clientX, y: event.clientY }),
+			pointerClient: { x: event.clientX, y: event.clientY },
 			hasDragged: false,
+			selectionIds: [],
+			renderedPreviewIds: new Set<string>(),
+			renderedBoxKey: null,
+			lastRenderedBox: null,
+			lastComputedBox: null,
 		};
-		lastMouseEventRef.current = event;
-		bufferedSelectionRef.current = null;
-		updatePreviewClasses([]);
+
+		clearPreviewClasses();
 		setSelectionBox(null);
 		event.preventDefault();
-		event.stopPropagation();
-	}, []);
+	}, [clearPreviewClasses, getContentPoint]);
 
 	const onMouseMove = useCallback((event: MouseEvent) => {
-		if (!dragStateRef.current) {
+		const session = dragSessionRef.current;
+		if (!session) {
 			return;
 		}
 
-		lastMouseEventRef.current = event;
-		updateBufferedSelection(event);
-		if (dragStateRef.current?.hasDragged || bufferedSelectionRef.current) {
-			dragStateRef.current!.hasDragged = true;
+		session.pointerClient = { x: event.clientX, y: event.clientY };
+		renderDragSession();
+		scheduleAutoScroll();
+
+		if (session.hasDragged) {
 			event.preventDefault();
+			event.stopPropagation();
 		}
-		scheduleAutoScroll(event);
-	}, []);
+	}, [renderDragSession, scheduleAutoScroll]);
 
 	const onMouseUp = useCallback((event: MouseEvent) => {
-		if (dragStateRef.current?.hasDragged || bufferedSelectionRef.current) {
+		const session = dragSessionRef.current;
+		if (!session) {
+			return;
+		}
+
+		if (session.hasDragged) {
 			event.preventDefault();
-			if ('stopPropagation' in event) {
-				event.stopPropagation();
-			}
+			dataProvider.setSelectedRecordIds(session.selectionIds);
 		}
 
-		stopAutoScroll();
-		if (bufferedSelectionRef.current) {
-			dataProvider.setSelectedRecordIds(bufferedSelectionRef.current);
-		}
-
-		dragStateRef.current = null;
-		lastMouseEventRef.current = null;
-		bufferedSelectionRef.current = null;
-		setTimeout(() => updatePreviewClasses([]), 0);
-		setSelectionBox(null);
-	}, []);
+		resetDragSession();
+	}, [dataProvider, resetDragSession]);
 
 	const onKeyDown = useCallback((event: KeyboardEvent) => {
 		if (event.key === 'Shift') {
 			setShiftClass(true);
 		}
-	}, []);
+	}, [setShiftClass]);
 
 	const onKeyUp = useCallback((event: KeyboardEvent) => {
-		if (event.key === 'Shift') {
-			setShiftClass(false);
+		if (event.key !== 'Shift') {
+			return;
 		}
-	}, []);
+
+		setShiftClass(false);
+		if (dragSessionRef.current) {
+			resetDragSession();
+		}
+	}, [resetDragSession, setShiftClass]);
 
 	const onBlur = useCallback(() => {
 		setShiftClass(false);
-	}, []);
+		if (dragSessionRef.current) {
+			resetDragSession();
+		}
+	}, [resetDragSession, setShiftClass]);
 
-	const init = (container: HTMLDivElement) => {
+	const init = useCallback((container: HTMLDivElement) => {
 		containerRef.current = container;
 		container.tabIndex = container.tabIndex >= 0 ? container.tabIndex : 0;
 		container.addEventListener('mousedown', onMouseDown);
-		container.addEventListener('mousemove', onMouseMove);
-		container.addEventListener('mouseup', onMouseUp);
+		window.addEventListener('mousemove', onMouseMove);
+		window.addEventListener('mouseup', onMouseUp);
 		window.addEventListener('keydown', onKeyDown);
 		window.addEventListener('keyup', onKeyUp);
 		window.addEventListener('blur', onBlur);
-	};
+	}, [onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseMove, onMouseUp]);
 
 	useEffect(() => {
 		return () => {
 			stopAutoScroll();
+			clearPreviewClasses();
+			setShiftClass(false);
+
 			if (containerRef.current) {
-				setShiftClass(false);
-				updatePreviewClasses([]);
 				containerRef.current.removeEventListener('mousedown', onMouseDown);
-				containerRef.current.removeEventListener('mousemove', onMouseMove);
-				containerRef.current.removeEventListener('mouseup', onMouseUp);
 			}
+
+			window.removeEventListener('mousemove', onMouseMove);
+			window.removeEventListener('mouseup', onMouseUp);
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);
 		};
-	}, [onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseMove, onMouseUp]);
+	}, [clearPreviewClasses, onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseMove, onMouseUp, setShiftClass, stopAutoScroll]);
 
 	return {
 		selectionBox: {
 			state: selectionBox,
 			init,
-		}
+		},
 	};
-}
+};
