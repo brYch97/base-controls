@@ -8,6 +8,7 @@ export const getSettingsSliderStyles = (theme: ITheme) => {
             marginRight: 12,
             display: 'flex',
             alignItems: 'center',
+            gap: 5,
             '.ms-Slider': {
                 marginBottom: 0,
             },
