@@ -28,6 +28,9 @@ interface IDragState {
 const DRAG_THRESHOLD = 4;
 const AUTO_SCROLL_EDGE_SIZE = 32;
 const AUTO_SCROLL_STEP = 24;
+export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
+export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
+export const GANTT_TASK_LINK_CLASS = 'gantt_task_link';
 const SELECTION_PREVIEW_CLASS = 'gantt_selection_preview';
 
 export const useSelectionBox = (params: IUseSelectionBoxParams) => {
@@ -148,6 +151,10 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 
 	const getTimelineContainer = () => containerRef.current?.querySelector<HTMLElement>('.gantt_data_area') ?? null;
 
+	const setShiftClass = useCallback((held: boolean) => {
+		containerRef.current?.classList.toggle(GANTT_SHIFT_HELD_CLASS, held);
+	}, []);
+
 	const tickAutoScroll = () => {
 		const timelineContainer = getTimelineContainer();
 		if (!dragStateRef.current || !timelineContainer || !lastMouseEventRef.current) {
@@ -258,26 +265,50 @@ export const useSelectionBox = (params: IUseSelectionBoxParams) => {
 		bufferedSelectionRef.current = null;
 		setTimeout(() => updatePreviewClasses([]), 0);
 		setSelectionBox(null);
-	}, [stopAutoScroll]);
+	}, []);
+
+	const onKeyDown = useCallback((event: KeyboardEvent) => {
+		if (event.key === 'Shift') {
+			setShiftClass(true);
+		}
+	}, []);
+
+	const onKeyUp = useCallback((event: KeyboardEvent) => {
+		if (event.key === 'Shift') {
+			setShiftClass(false);
+		}
+	}, []);
+
+	const onBlur = useCallback(() => {
+		setShiftClass(false);
+	}, []);
 
 	const init = (container: HTMLDivElement) => {
 		containerRef.current = container;
+		container.tabIndex = container.tabIndex >= 0 ? container.tabIndex : 0;
 		container.addEventListener('mousedown', onMouseDown);
-		window.addEventListener('mousemove', onMouseMove);
-		window.addEventListener('mouseup', onMouseUp);
+		container.addEventListener('mousemove', onMouseMove);
+		container.addEventListener('mouseup', onMouseUp);
+		window.addEventListener('keydown', onKeyDown);
+		window.addEventListener('keyup', onKeyUp);
+		window.addEventListener('blur', onBlur);
 	};
 
 	useEffect(() => {
 		return () => {
 			stopAutoScroll();
 			if (containerRef.current) {
+				setShiftClass(false);
 				updatePreviewClasses([]);
 				containerRef.current.removeEventListener('mousedown', onMouseDown);
+				containerRef.current.removeEventListener('mousemove', onMouseMove);
+				containerRef.current.removeEventListener('mouseup', onMouseUp);
 			}
-			window.removeEventListener('mousemove', onMouseMove);
-			window.removeEventListener('mouseup', onMouseUp);
+			window.removeEventListener('keydown', onKeyDown);
+			window.removeEventListener('keyup', onKeyUp);
+			window.removeEventListener('blur', onBlur);
 		};
-	}, [onMouseDown, onMouseMove, onMouseUp, stopAutoScroll]);
+	}, [onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseMove, onMouseUp]);
 
 	return {
 		selectionBox: {

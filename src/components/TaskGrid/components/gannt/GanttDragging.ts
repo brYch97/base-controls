@@ -2,6 +2,7 @@ import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
 import { IGanttDates } from './GanttDates';
+import { GANTT_SHIFT_HELD_CLASS, GANTT_TASK_LINE_CLASS, GANTT_TASK_LINK_CLASS } from './hooks/useSelectionBox';
 
 export interface IGanttDragging {
 }
@@ -23,7 +24,7 @@ export class GanttDragging implements IGanttDragging {
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._gantt = params.gantt;
         this._dates = params.dates;
-        this._gantt.config.drag_timeline = { ignore: '.gantt_shift_held, .gantt_task_link, .gantt_task_line' };
+        this._gantt.config.drag_timeline = { ignore: `.${GANTT_SHIFT_HELD_CLASS}, .${GANTT_TASK_LINK_CLASS}, .${GANTT_TASK_LINE_CLASS}` };
         this._registerEventListeners();
     }
 
@@ -31,15 +32,6 @@ export class GanttDragging implements IGanttDragging {
         this._gantt.attachEvent('onBeforeTaskDrag', (id: string, mode: string) => this._onBeforeTaskDrag(id, mode));
         this._gantt.attachEvent('onTaskDrag', (id: string, mode: string) => this._onTaskDrag(id, mode));
         this._gantt.attachEvent('onAfterTaskDrag', () => this._onAfterTaskDrag());
-
-        //TODO: remove the listeners/put them on root container
-        window.addEventListener('keydown', (e) => { if (e.key === 'Shift') this._setShiftClass(true); });
-        window.addEventListener('keyup', (e) => { if (e.key === 'Shift') this._setShiftClass(false); });
-        window.addEventListener('blur', () => this._setShiftClass(false));
-    }
-
-    private _setShiftClass(held: boolean) {
-        ((this._gantt as any).$root as HTMLElement | null)?.classList.toggle('gantt_shift_held', held);
     }
 
     private _onBeforeTaskDrag(taskId: string, mode?: string) {
