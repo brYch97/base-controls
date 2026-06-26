@@ -19,8 +19,12 @@ interface IGanttZoomingParams {
 }
 
 export class GanttZooming implements IGanttZooming {
+    private static readonly _zoomSessionResetDelay = 250;
+
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
+    private _pendingAnchorDate: Date | undefined;
+    private _zoomSessionResetHandle: ReturnType<typeof setTimeout> | undefined;
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -102,7 +106,9 @@ export class GanttZooming implements IGanttZooming {
         }
 
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
-        this._timeline.shrink({ anchorX: resolvedAnchorX });
+        const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
+        this._timeline.shrink({ anchorX: resolvedAnchorX, date: anchorDate });
+        this._scheduleZoomSessionReset();
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
         const step = zoom._widthStep;
@@ -226,6 +232,27 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.showDate(today);
     }
 
+    private _getStableZoomAnchorDate(anchorX: number): Date | undefined {
+        if (this._pendingAnchorDate) {
+            return this._pendingAnchorDate;
+        }
+
+        const scrollX = this._gantt.getScrollState().x;
+        this._pendingAnchorDate = this._gantt.dateFromPos(scrollX + anchorX) ?? undefined;
+        return this._pendingAnchorDate;
+    }
+
+    private _scheduleZoomSessionReset() {
+        if (this._zoomSessionResetHandle) {
+            clearTimeout(this._zoomSessionResetHandle);
+        }
+
+        this._zoomSessionResetHandle = setTimeout(() => {
+            this._pendingAnchorDate = undefined;
+            this._zoomSessionResetHandle = undefined;
+        }, GanttZooming._zoomSessionResetDelay);
+    }
+
     private _registerEventListeners() {
         this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
@@ -233,5 +260,9 @@ export class GanttZooming implements IGanttZooming {
     }
 
     public destroy() {
+        if (this._zoomSessionResetHandle) {
+            clearTimeout(this._zoomSessionResetHandle);
+            this._zoomSessionResetHandle = undefined;
+        }
     }
 }
