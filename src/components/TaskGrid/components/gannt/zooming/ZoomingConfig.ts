@@ -51,7 +51,7 @@ export class ZoomingConfig {
                             step: 8,
                             format: (date: Date) => {
                                 const end = gantt.date.add(date, 55, "day");
-                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                                    return `${fmt("%d %M")(date)} – ${fmt("%d %M %Y")(end)}`;
                             },
                         },
                         {
@@ -59,7 +59,7 @@ export class ZoomingConfig {
                             step: 2,
                             format: (date: Date) => {
                                 const end = gantt.date.add(date, 13, "day");
-                                return `${fmt("%d %M")(date)}–${fmt("%d %M")(end)}`;
+                                    return `${fmt("%j.%n")(date)}-${fmt("%j.%n")(end)}`;
                             },
                         },
                     ],
@@ -74,7 +74,7 @@ export class ZoomingConfig {
                             step: 4,
                             format: (date: Date) => {
                                 const end = gantt.date.add(date, 27, "day");
-                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                                return `${fmt("%d %M")(date)} – ${fmt("%d %M %Y")(end)}`;
                             },
                         },
                         {
@@ -97,7 +97,7 @@ export class ZoomingConfig {
                             step: 14,
                             format: (date: Date) => {
                                 const end = gantt.date.add(date, 13, "day");
-                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                                return `${fmt("%d %M")(date)} – ${fmt("%d %M %Y")(end)}`;
                             },
                         },
                         { unit: "day", step: 2, format: "%d" },
@@ -114,7 +114,7 @@ export class ZoomingConfig {
                             step: 1,
                             format: (date: Date) => {
                                 const end = gantt.date.add(date, 6, "day");
-                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                                return `${fmt("%d %M")(date)} – ${fmt("%d %M %Y")(end)}`;
                             },
                         },
                         { unit: "day", step: 1, format: "%d %M" },
@@ -126,7 +126,7 @@ export class ZoomingConfig {
                     name: "day-12h",
                     scale_height: 43,
                     scales: [
-                        { unit: "day", step: 1, format: "%D %d/%m" },
+                        { unit: "day", step: 1, format: "%D %d/%m %Y" },
                         { unit: "hour", step: 12, format: "%H:%i" },
                     ],
                 },
@@ -136,7 +136,7 @@ export class ZoomingConfig {
                     name: "day-6h",
                     scale_height: 43,
                     scales: [
-                        { unit: "day", step: 1, format: "%D %d/%m" },
+                        { unit: "day", step: 1, format: "%D %d/%m %Y" },
                         { unit: "hour", step: 6, format: "%H:%i" },
                     ],
                 },
@@ -146,7 +146,7 @@ export class ZoomingConfig {
                     name: "day-2h",
                     scale_height: 43,
                     scales: [
-                        { unit: "day", step: 1, format: "%D %d/%m" },
+                        { unit: "day", step: 1, format: "%D %d/%m %Y" },
                         { unit: "hour", step: 2, format: "%H:%i" },
                     ],
                 },
@@ -155,7 +155,7 @@ export class ZoomingConfig {
                     name: "day-hour",
                     scale_height: 43,
                     scales: [
-                        { unit: "day", step: 1, format: "%D %d/%m" },
+                        { unit: "day", step: 1, format: "%D %d/%m %Y" },
                         { unit: "hour", step: 1, format: "%H:%i" },
                     ],
                 },
