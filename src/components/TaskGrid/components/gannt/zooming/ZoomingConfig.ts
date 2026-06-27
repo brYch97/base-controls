@@ -41,17 +41,18 @@ export class ZoomingConfig {
                         { unit: "month", step: 1, format: shortMonth },
                     ],
                 },
-                // L2: quarter | 2-week (14 d)
-                // boundary → L3: 120/14 → 60/7 = 1.0×
+                // L2: 8-week top | 2-week sub — 4 sub-cols, always aligned
                 {
-                    name: "quarter-biweek",
+                    name: "8week-2week",
                     scale_height: 43,
                     scales: [
                         {
-                            unit: "quarter",
-                            step: 1,
-                            format: (date: Date) =>
-                                `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`,
+                            unit: "week",
+                            step: 8,
+                            format: (date: Date) => {
+                                const end = gantt.date.add(date, 55, "day");
+                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                            },
                         },
                         {
                             unit: "week",
@@ -63,13 +64,19 @@ export class ZoomingConfig {
                         },
                     ],
                 },
-                // L3: month | week (7 d)
-                // boundary → L4: 120/7 → 60/3 = 1.17×
+                // L3: 4-week top | 1-week sub — 4 sub-cols, always aligned
                 {
-                    name: "month-week",
+                    name: "4week-week",
                     scale_height: 43,
                     scales: [
-                        { unit: "month", step: 1, format: longMonth },
+                        {
+                            unit: "week",
+                            step: 4,
+                            format: (date: Date) => {
+                                const end = gantt.date.add(date, 27, "day");
+                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                            },
+                        },
                         {
                             unit: "week",
                             step: 1,
@@ -80,14 +87,20 @@ export class ZoomingConfig {
                         },
                     ],
                 },
-                // L4: month | 3-day (3 d)
-                // boundary → L5: 120/3 → 60/1 = 1.50×
+                // L4: 2-week top | 2-day sub — 7 sub-cols, always aligned (14÷2=7)
                 {
-                    name: "month-3day",
+                    name: "2week-2day",
                     scale_height: 43,
                     scales: [
-                        { unit: "month", step: 1, format: "%F %Y" },
-                        { unit: "day", step: 3, format: "%d" },
+                        {
+                            unit: "day",
+                            step: 14,
+                            format: (date: Date) => {
+                                const end = gantt.date.add(date, 13, "day");
+                                return `${fmt("%d %M")(date)} – ${fmt("%d %M")(end)}`;
+                            },
+                        },
+                        { unit: "day", step: 2, format: "%d" },
                     ],
                 },
                 // L5: week | day (1 d)
