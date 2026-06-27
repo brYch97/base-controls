@@ -23,7 +23,7 @@ export const Gantt = (props: IGanttProps) => {
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
-    const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider() });
+    const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider(), timeline: ganttManager.getTimeline() });
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
     useEffect(() => {

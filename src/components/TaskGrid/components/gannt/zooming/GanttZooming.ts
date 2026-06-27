@@ -51,7 +51,7 @@ export class GanttZooming implements IGanttZooming {
 
 
     public isLevelWithDaysVisible(): boolean {
-        return this._gantt.ext.zoom.getCurrentLevel() > 4;
+        return this._gantt.getScale().unit === 'day';
     }
 
     private _initZoomTickStep() {

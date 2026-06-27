@@ -14,7 +14,6 @@ export const ZoomSliderAdapter = () => {
         <ZoomSlider
             value={value}
             onChange={(nextValue: number) => {
-                console.log('ZoomSliderAdapter: onChange', nextValue);
                 datasetControl.ganttGridBridge.setZoomLevel(nextValue)
             }}
         />

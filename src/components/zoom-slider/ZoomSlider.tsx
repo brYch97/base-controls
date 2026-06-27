@@ -13,14 +13,16 @@ export interface IZoomSliderProps {
 }
 
 export const ZoomSlider = (props: IZoomSliderProps) => {
-    const { onChange, value } = props;
+    const { onChange } = props;
+    const valuerRef = useRef(props.value);
+    valuerRef.current = props.value;
     const theme = useTheme();
     const styles = useMemo(() => getZoomSliderStyles(theme), [theme]);
     const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const changeZoomLevel = (step: number) => {
-        onChange(value + step);
+        onChange(valuerRef.current + step);
     };
 
     const stopHold = () => {
@@ -64,7 +66,7 @@ export const ZoomSlider = (props: IZoomSliderProps) => {
                 className={styles.slider}
                 min={0}
                 max={100}
-                value={value}
+                value={valuerRef.current}
                 showValue={false}
                 styles={{
                     thumb: styles.thumb,

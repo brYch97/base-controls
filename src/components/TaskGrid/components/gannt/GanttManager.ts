@@ -24,6 +24,7 @@ export interface IGanttManager {
     init: (params: IInitParams) => void;
     getMarkers: () => IGanttMarkers;
     getGanttInstance: () => GanttStatic;
+    getTimeline: () => IGanttInfiniteTimeline;
     destroy: () => void;
 }
 
@@ -84,6 +85,10 @@ export class GanttManager implements IGanttManager {
         return this._markers;
     }
 
+    public getTimeline() {
+        return this._timeline;
+    }
+
     public destroy() {
         this._selection.destroy();
         this._zooming.destroy();
@@ -109,7 +114,7 @@ export class GanttManager implements IGanttManager {
         //this._gantt.config.work_time = !showWeekends;
         //this._gantt.config.skip_off_time = !showWeekends;
         this._gantt.ignore_time = (date) => {
-            return !showWeekends && this._isWeekend(date);
+            return !showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible();
         }
     }
 
@@ -119,8 +124,8 @@ export class GanttManager implements IGanttManager {
     }
 
     private _setUpClasses() {
-        this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
-        this._gantt.templates.timeline_cell_class = (task, date) => this._getTimelineCellClass(date);
+        //this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
+        this._gantt.templates.timeline_cell_class = (task, date) => this._getWeekendClass(date);
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);
         this._gantt.templates.task_text = (start, end, task) => this._getTaskInnerText(start, end, task);
@@ -128,13 +133,10 @@ export class GanttManager implements IGanttManager {
     }
 
 
-    private _getTimelineCellClass(date: Date): string | undefined {
-        return this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? 'weekend' : undefined;
+    private _getWeekendClass(date: Date): string | undefined {
+        const showWeekends = this._datasetControl.getShowWeekends();
+        return showWeekends &&this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? 'weekend' : undefined;
     }
-    private _getScaleCellClass(date: Date): string | undefined {
-        return this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? 'weekend' : undefined;
-    }
-
 
     private _isWeekend(date: Date) {
         return date.getDay() === 0 || date.getDay() === 6;
