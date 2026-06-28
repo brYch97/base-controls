@@ -7,8 +7,8 @@ import { GanttComponents } from './components/components';
 import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTooltip } from './hooks/useTooltip';
-import { useSelectionBox } from './hooks/useSelectionBox';
 import { useMarkers } from './hooks/useMarkers/useMarkers';
+import { useSelectionBox } from './hooks/useSelectionBox2';
 
 export interface IGanttProps {
     components?: Partial<IGanttComponents>;
@@ -23,7 +23,8 @@ export const Gantt = (props: IGanttProps) => {
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
-    const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider(), timeline: ganttManager.getTimeline() });
+    //const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider(), timeline: ganttManager.getTimeline() });
+    useSelectionBox(ganttManager);
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
     useEffect(() => {
@@ -32,7 +33,7 @@ export const Gantt = (props: IGanttProps) => {
         }
         ganttManager.init({ container: ref.current });
         tooltip.init(ref.current);
-        selectionBox.init(ref.current);
+        // selectionBox.init(ref.current);
 
         return () => {
             ganttManager.destroy();
@@ -42,17 +43,7 @@ export const Gantt = (props: IGanttProps) => {
     return (
         <>
             <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }}>
-                {selectionBox.state && (
-                    <div
-                        className={styles.selectionBox}
-                        style={{
-                            left: selectionBox.state.left,
-                            top: selectionBox.state.top,
-                            width: selectionBox.state.width,
-                            height: selectionBox.state.height,
-                        }}
-                    />
-                )}
+    
             </div>
             <GanttComponentsContext.Provider value={components}>
                 {tooltip.state && components.onRenderTaskTooltip({ task: tooltip.state.task, event: tooltip.state.event })}

@@ -56,7 +56,8 @@ const externalDeps = [
     'style-inject',
     'react-resizable-panels',
     "gantt-trial",
-    'gantt-trial/codebase/dhtmlxgantt.css'
+    'gantt-trial/codebase/dhtmlxgantt.css',
+    'selecto'
 ]
 
 export default [

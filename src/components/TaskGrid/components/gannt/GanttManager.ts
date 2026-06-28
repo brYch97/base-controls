@@ -1,7 +1,7 @@
 import { Gantt, GanttStatic, Task } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
-import { IColumn, IRawRecord, IRecord } from '@talxis/client-libraries';
+import { EventEmitter, IColumn, IEventEmitter, IRawRecord, IRecord } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
 import dayjs from 'dayjs';
 import { GanttDragging, IGanttDragging } from './GanttDragging';
@@ -20,7 +20,12 @@ interface IGanttManagerParams {
     datasetControl: ITaskGridDatasetControl;
 }
 
+export interface IGanttManagerEvents {
+    onInit: () => void;
+}
+
 export interface IGanttManager {
+    events: IEventEmitter<IGanttManagerEvents>;
     init: (params: IInitParams) => void;
     getMarkers: () => IGanttMarkers;
     getGanttInstance: () => GanttStatic;
@@ -29,6 +34,7 @@ export interface IGanttManager {
 }
 
 export class GanttManager implements IGanttManager {
+    public events: IEventEmitter<IGanttManagerEvents> = new EventEmitter();
     private static readonly _outsideLabelWidthThreshold = 96;
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
@@ -76,6 +82,7 @@ export class GanttManager implements IGanttManager {
         this._setUpWeekendVisibility();
         this._gantt.init(params.container);
         this._registerEventListeners();
+        this.events.dispatchEvent('onInit');
     }
 
     public getGanttInstance() {
