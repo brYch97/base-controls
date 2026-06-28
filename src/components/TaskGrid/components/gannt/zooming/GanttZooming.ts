@@ -9,6 +9,7 @@ import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';
 
 export interface IGanttZooming {
     destroy: () => void;
+    zoomToFit: () => void;
     isLevelWithDaysVisible: () => boolean;
 }
 
@@ -51,7 +52,26 @@ export class GanttZooming implements IGanttZooming {
 
 
     public isLevelWithDaysVisible(): boolean {
-        return this._gantt.getScale().unit === 'day';
+        return this._gantt.ext.zoom.getCurrentLevel() > 4;
+    }
+
+    public zoomToFit() {
+        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
+        const records = selectedRecordIds.length > 0
+            ? selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]).filter(Boolean)
+            : this._taskDataProvider.getAllRecords();
+
+        if (!records.length || !this._gantt.$task) {
+            return;
+        }
+
+        const { startDate, endDate, startRecord } = this._dates.getStartEndDateFromRecords(records);
+        if (!startDate || !endDate) {
+            return;
+        }
+        const percent = this._findFitPercent(startDate, endDate);
+        this._datasetControl.ganttGridBridge.setZoomLevel(percent);
+        this._gantt.showTask(startRecord?.getRecordId()!);
     }
 
     private _initZoomTickStep() {
@@ -134,24 +154,6 @@ export class GanttZooming implements IGanttZooming {
         zoom._setLevel(levelIndex, resolvedAnchorX);
     }
 
-    private _zoomToFit() {
-        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
-        const records = selectedRecordIds.length > 0
-            ? selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]).filter(Boolean)
-            : this._taskDataProvider.getAllRecords();
-
-        if (!records.length || !this._gantt.$task) {
-            return;
-        }
-
-        const { startDate, endDate, startRecord } = this._dates.getStartEndDateFromRecords(records);
-        if (!startDate || !endDate) {
-            return;
-        }
-        const percent = this._findFitPercent(startDate, endDate);
-        this._datasetControl.ganttGridBridge.setZoomLevel(percent);
-        this._gantt.showTask(startRecord?.getRecordId()!);
-    }
 
     private _findFitPercent(startDate: Date, endDate: Date): number {
         const zoom = this._gantt.ext.zoom as any;
@@ -161,6 +163,7 @@ export class GanttZooming implements IGanttZooming {
         const max = zoom._maxColumnWidth as number;
         const step = zoom._widthStep as number | undefined;
         const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
+        const offset = 5;
 
         if (!viewportWidth || !levelCount) return 0;
 
@@ -180,7 +183,8 @@ export class GanttZooming implements IGanttZooming {
 
             const columnCount = this._countColumnsInRange(startDate, endDate, finest.unit, finest.step);
             if (columnCount * columnWidth <= viewportWidth) {
-                return totalStates > 1 ? (stateIndex / (totalStates - 1)) * 100 : 100;
+                const percent = totalStates > 1 ? (stateIndex / (totalStates - 1)) * 100 : 100;
+                return Math.max(0, percent - offset);
             }
         }
 
@@ -245,7 +249,7 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _registerEventListeners() {
-        this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
+        //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
         this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
     }

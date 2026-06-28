@@ -64,6 +64,7 @@ export class GanttManager implements IGanttManager {
     public init(params: IInitParams) {
         this._gantt.config.show_grid = false;
         this._gantt.config.select_task = false;
+        this._gantt.config.task_scroll_offset = 200;
         this._gantt.config.details_on_dblclick = false;
         this._gantt.config.show_links = false;
         this._gantt.config.drag_links = false;
@@ -205,6 +206,7 @@ export class GanttManager implements IGanttManager {
         this._gantt.parse({
             data: data
         });
+        this._zooming.zoomToFit();
     }
 
     private _convertRecordToTask(record: IRecord): Task {

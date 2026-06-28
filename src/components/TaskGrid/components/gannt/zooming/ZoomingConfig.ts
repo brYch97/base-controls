@@ -100,7 +100,14 @@ export class ZoomingConfig {
                                 return `${fmt("%d %M")(date)} – ${fmt("%d %M %Y")(end)}`;
                             },
                         },
-                        { unit: "day", step: 2, format: "%d" },
+                        {
+                            unit: "day",
+                            step: 2,
+                            format: (date: Date) => {
+                                const end = gantt.date.add(date, 1, "day");
+                                return `${fmt("%j")(date)}-${fmt("%j")(end)}`;
+                            },
+                        },
                     ],
                 },
                 // L5: week | day (1 d)
