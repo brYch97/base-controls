@@ -1,4 +1,4 @@
-import Selecto, { OnDragStart, OnScroll, OnSelect } from "selecto";
+import Selecto, { OnDragStart, OnScroll, OnSelect, OnDrag } from "selecto";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
@@ -20,25 +20,26 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     const lastScrollDirectionRef = useRef<'up' | 'down' | 'left' | 'right' | null>(null);
 
     const onInit = () => {
-        const container = gantt.$task
+        const container = gantt.$task;
         selectoRef.current = new Selecto({
             container: container,
             hitRate: 100,
             toggleContinueSelect: ['shift'],
             ratio: 0,
-            //boundContainer: container,
+            boundContainer: container,
             selectableTargets: [`.${GANTT_TASK_LINK_CLASS}`],
             scrollOptions: {
-                container: container,
+                container: gantt.$task_bg,
                 throttleTime: 30,
                 threshold: 100,
             }
 
         });
-        //monkeyPatchSelecto();
+        monkeyPatchSelecto();
         selectoRef.current.on('select', onSelect);
         selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
+        selectoRef.current.on('drag', onDrag);
         window.addEventListener('keyup', onKeyUp);
         window.addEventListener('keydown', onKeyDown);
     }
@@ -67,7 +68,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
         }
     };
 
-    const monkeyPatchSelecto = () => {
+        const monkeyPatchSelecto = () => {
         //@ts-ignore
         const originalGetEventData = selectoRef.current.gesto.getEventData.bind(selectoRef.current.gesto);
         let originalBoundArea = originalGetEventData?.().boundArea;
@@ -98,6 +99,31 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             return originalEventData;
         }
     }
+
+    const onDrag = (e: OnDrag<Selecto>) => {
+        const threshold = 50; // Distance from the edge to trigger scrolling
+        const clientX = e.inputEvent.clientX;
+        const clientY = e.inputEvent.clientY;
+        const containerRect = gantt.$task.getBoundingClientRect();
+
+        if (clientX - containerRect.left < threshold) {
+            lastScrollDirectionRef.current = 'left';
+            gantt.scrollTo(gantt.getScrollState().x - 10, null);
+        }
+        else if (containerRect.right - clientX < threshold) {
+            lastScrollDirectionRef.current = 'right';
+            gantt.scrollTo(gantt.getScrollState().x + 10, null);
+        }
+        if (clientY - containerRect.top < threshold) {
+            lastScrollDirectionRef.current = 'up';
+            gantt.scrollTo(null, gantt.getScrollState().y - 10);
+        }
+        else if (containerRect.bottom - clientY < threshold) {
+            lastScrollDirectionRef.current = 'down';
+            gantt.scrollTo(null, gantt.getScrollState().y + 10);
+        }
+        selectoRef.current?.checkScroll();
+    };
 
     const onScroll = (e: OnScroll) => {
         const direction = getDirection(e.direction);
