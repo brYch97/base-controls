@@ -26,7 +26,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             hitRate: 100,
             toggleContinueSelect: ['shift'],
             ratio: 0,
-            boundContainer: container,
+            //boundContainer: container,
             selectableTargets: [`.${GANTT_TASK_LINK_CLASS}`],
             scrollOptions: {
                 container: container,
@@ -35,7 +35,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             }
 
         });
-        monkeyPatchSelecto();
+        //monkeyPatchSelecto();
         selectoRef.current.on('select', onSelect);
         selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
