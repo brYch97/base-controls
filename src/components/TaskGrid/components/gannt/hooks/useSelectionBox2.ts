@@ -17,6 +17,7 @@ const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null =>
 export const useSelectionBox = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
     const selectoRef = useRef<Selecto>();
+    const lastScrollDirectionRef = useRef<'up' | 'down' | 'left' | 'right' | null>(null);
 
     const onInit = () => {
         const container = gantt.$task
@@ -25,6 +26,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             hitRate: 100,
             toggleContinueSelect: ['shift'],
             ratio: 0,
+            boundContainer: container,
             selectableTargets: [`.${GANTT_TASK_LINK_CLASS}`],
             scrollOptions: {
                 container: container,
@@ -33,28 +35,24 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             }
 
         });
+        monkeyPatchSelecto();
         selectoRef.current.on('select', onSelect);
         selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
         window.addEventListener('keyup', onKeyUp);
         window.addEventListener('keydown', onKeyDown);
-        gantt.$task_data.addEventListener('scroll', () => {
-            //selectoRef.current?.checkScroll();
-        });
     }
 
     const onKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
             gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
         }
-        console.log('Key up:', e.key);
     }, []);
 
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
             gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
         }
-        console.log('Key down:', e.key);
     }, []);
 
     const onSelect = (e: OnSelect<Selecto>) => {
@@ -69,8 +67,41 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
         }
     };
 
+    const monkeyPatchSelecto = () => {
+        //@ts-ignore
+        const originalGetEventData = selectoRef.current.gesto.getEventData.bind(selectoRef.current.gesto);
+        let originalBoundArea = originalGetEventData?.().boundArea;
+        //@ts-ignore
+        selectoRef.current.gesto.getEventData = () => {
+            const originalEventData = originalGetEventData?.();
+            if (!originalBoundArea) {
+                originalBoundArea = originalEventData?.boundArea;
+                console.log('Original boundArea:', originalBoundArea);
+            }
+            const rect = gantt.$task.getBoundingClientRect();
+            originalEventData.boundArea = { ...originalBoundArea };
+            switch (lastScrollDirectionRef.current) {
+                case 'up':
+                    originalEventData.boundArea.top = rect.top;
+                    break;
+                case 'down':
+                    originalEventData.boundArea.bottom = rect.bottom;
+                    break;
+                case 'left':
+                    originalEventData.boundArea.left = rect.left;
+                    break;
+                case 'right':
+                    originalEventData.boundArea.right = rect.right;
+                    break;
+            }
+            console.log('Modified boundArea:', originalEventData.boundArea);
+            return originalEventData;
+        }
+    }
+
     const onScroll = (e: OnScroll) => {
         const direction = getDirection(e.direction);
+        lastScrollDirectionRef.current = direction;
         if (!direction) return;
         switch (direction) {
             case 'up': {
@@ -90,9 +121,6 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
                 break;
             }
         }
-        setTimeout(() => {
-            selectoRef.current?.checkScroll();
-        }, 0);
     }
 
     useEffect(() => {
