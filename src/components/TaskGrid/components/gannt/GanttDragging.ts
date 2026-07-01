@@ -24,7 +24,7 @@ export class GanttDragging implements IGanttDragging {
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._gantt = params.gantt;
         this._dates = params.dates;
-        this._gantt.config.drag_timeline = { ignore: `.${GANTT_SHIFT_HELD_CLASS}, .${GANTT_TASK_LINK_CLASS}, .${GANTT_TASK_LINE_CLASS}` };
+        this._gantt.config.drag_timeline = { ignore: `.${GANTT_TASK_LINK_CLASS}, .${GANTT_TASK_LINE_CLASS}` };
         this._gantt.config.round_dnd_dates = false;
         this._registerEventListeners();
     }
