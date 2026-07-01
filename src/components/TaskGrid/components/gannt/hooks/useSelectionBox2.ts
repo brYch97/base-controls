@@ -35,7 +35,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
         });
         selectoRef.current.on('select', onSelect);
-        //selectoRef.current.on('scroll', onScroll);
+        selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
         selectoRef.current.on('drag', onDrag);
         window.addEventListener('keyup', onKeyUp);
@@ -78,6 +78,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
 
     const onScroll = (e: OnScroll) => {
+        //double check direction here?
         const direction = getDirection(e.direction);
         lastScrollDirectionRef.current = direction;
         if (!direction) return;
