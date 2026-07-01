@@ -1,67 +1,14 @@
-import Selecto, { OnDrag, OnDragStart, OnScroll, OnSelect } from "selecto";
+import Selecto, { OnDrag, OnDragEnd, OnDragStart, OnScroll, OnSelect } from "selecto";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
-import { GanttStatic } from "gantt-trial";
+import { useTaskDataProvider } from "../../../context";
 
-interface IProxyScrollContainer {
-    element: HTMLDivElement;
-    destroy: () => void;
-}
 
-/**
- * Creates a transparent overlay div positioned over gantt.$task that mirrors
- * the gantt scroll state. Selecto can use this single element as its
- * scrollOptions.container instead of switching between $scroll_hor and
- * $scroll_ver, which avoids boundArea drift.
- */
-const createProxyScrollContainer = (gantt: GanttStatic): IProxyScrollContainer => {
-    const proxy = document.createElement('div');
-    proxy.style.cssText = `
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        overflow: scroll;
-        pointer-events: none;
-        z-index: 0;
-    `;
-
-    const inner = document.createElement('div');
-    proxy.appendChild(inner);
-
-    const syncSize = () => {
-        proxy.style.width = `${gantt.$task.clientWidth}px`;
-        proxy.style.height = `${gantt.$task.clientHeight}px`;
-        inner.style.width = `${gantt.$scroll_hor.scrollWidth}px`;
-        inner.style.height = `${gantt.$scroll_ver.scrollHeight}px`;
-    };
-
-    syncSize();
-
-    const taskEl = gantt.$root as HTMLElement;
-    taskEl.appendChild(proxy);
-
-    let syncing = false;
-
-    const ganttScrollEventId = gantt.attachEvent('onGanttScroll', (left: number, top: number) => {
-        if (syncing) return;
-        syncing = true;
-        syncSize();
-        proxy.scrollLeft = left;
-        proxy.scrollTop = top;
-        syncing = false;
-    });
-
-    const destroy = () => {
-        gantt.detachEvent(ganttScrollEventId);
-        proxy.remove();
-    };
-
-    return { element: proxy, destroy };
-};
-
-export const GANTT_TASK_LINK_CLASS = 'gantt_task_link';
 export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
+export const GANTT_TASK_SELECTED_CLASS = 'gantt_task_selected';
+export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
+export const GANTT_TASK_SIDE_CONTENT_CLASS = 'gantt_side_content';
 const EDGE_SCROLL_THRESHOLD = 50;
 
 const getScrollDirectionAtEdge = (
@@ -93,20 +40,31 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
     const selectoRef = useRef<Selecto>();
     const dragPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
+    const dataProvider = useTaskDataProvider();
+    const selectedRecordIdsRef = useRef<Set<string>>(new Set());
+    const blockDeselectionRef = useRef<boolean>(false);
+
+    const getTaskElementFromElement = (el: Element): HTMLElement => {
+        const taskElement = el.closest('[data-task-id]');
+
+        if (!taskElement) {
+            throw new Error('Could not find an ancestor with data-task-id for the selected gantt element.');
+        }
+
+        return taskElement as HTMLElement;
+    }
 
     const onInit = () => {
         const container = gantt.$task;
-        const scrollContainer = createProxyScrollContainer(gantt).element;
         selectoRef.current = new Selecto({
             container: container,
             hitRate: 0,
-            toggleContinueSelect: ['shift'],
-            ratio: 0,
-            selectableTargets: [`.${GANTT_TASK_LINK_CLASS}`],
+            selectableTargets: [`.${GANTT_TASK_LINE_CLASS}`, `.${GANTT_TASK_SIDE_CONTENT_CLASS}`],
             scrollOptions: {
-                container: scrollContainer,
+                container: container,
                 throttleTime: 30,
                 threshold: EDGE_SCROLL_THRESHOLD,
+                getScrollPosition: () => [gantt.$scroll_hor.scrollLeft, gantt.$scroll_ver.scrollTop],
             }
 
         });
@@ -114,6 +72,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
         selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
         selectoRef.current.on('drag', onDrag);
+        selectoRef.current.on('dragEnd', onDragEnd);
         window.addEventListener('keyup', onKeyUp);
         window.addEventListener('keydown', onKeyDown);
     }
@@ -132,9 +91,29 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
     const onSelect = (e: OnSelect<Selecto>) => {
         e.added.forEach(el => {
-            console.log('Selected element:', el);
+            const taskElement = getTaskElementFromElement(el);
+            const taskId = taskElement.getAttribute('data-task-id')!;
+
+            taskElement.classList.add(GANTT_TASK_SELECTED_CLASS);
+            selectedRecordIdsRef.current.add(taskId);
         });
+        if (!blockDeselectionRef.current) {
+            e.removed.forEach(el => {
+                const taskElement = getTaskElementFromElement(el);
+                const taskId = taskElement.getAttribute('data-task-id')!;
+
+                taskElement.classList.remove(GANTT_TASK_SELECTED_CLASS);
+                selectedRecordIdsRef.current.delete(taskId);
+            });
+        }
     };
+
+    const onDragEnd = (e: OnDragEnd<Selecto>) => {
+        if (selectedRecordIdsRef.current.size > 0) {
+            dataProvider.setSelectedRecordIds(Array.from(selectedRecordIdsRef.current));
+        }
+        selectedRecordIdsRef.current.clear();
+    }
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
         if (!e.inputEvent.shiftKey) {
@@ -144,14 +123,6 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
     const onDrag = (e: OnDrag<Selecto>) => {
         dragPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
-        const direction = getScrollDirectionAtEdge(e.clientX, e.clientY, gantt.$task.getBoundingClientRect(), EDGE_SCROLL_THRESHOLD);
-        if (direction === 'down' || direction === 'up') {
-            //console.log('Scrolling vertically');
-            //selectoRef.current!.scrollOptions.container = gantt.$scroll_ver;
-        }
-        else if (direction === 'left' || direction === 'right') {
-            //selectoRef.current!.scrollOptions.container = gantt.$scroll_hor;
-        }
     }
 
 
@@ -161,6 +132,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
         const rect = (gantt.$task as HTMLElement).getBoundingClientRect();
         //we need this check to prevent false positives
+        //might be replaced by whatever i get from selecto, but for now this works
         const direction = getScrollDirectionAtEdge(pointer.clientX, pointer.clientY, rect, EDGE_SCROLL_THRESHOLD);
 
         if (!direction) return;
@@ -182,6 +154,11 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
                 break;
             }
         }
+        selectoRef.current?.findSelectableTargets();
+        blockDeselectionRef.current = true;
+        setTimeout(() => {
+            blockDeselectionRef.current = false;
+        }, 0);
     }
 
     useEffect(() => {
