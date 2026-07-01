@@ -1,429 +1,124 @@
-import { GanttStatic } from 'gantt-trial';
-import { useEffect, useRef, useState } from 'react';
-import { ITaskDataProvider } from '../../../providers';
-import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';
+import Selecto, { OnDragEnd, OnDragStart, OnScroll, OnSelect } from "selecto";
+import { IGanttManager } from "../GanttManager";
+import { useEventEmitter } from "../../../../../hooks";
+import { useCallback, useEffect, useRef } from "react";
+import { useTaskDataProvider } from "../../../context";
 
-interface IUseSelectionBoxParams {
-	gantt: GanttStatic;
-	dataProvider: ITaskDataProvider;
-	timeline: IGanttInfiniteTimeline;
-}
-
-interface IPoint {
-	x: number;
-	y: number;
-}
-
-interface IRectangle {
-	left: number;
-	top: number;
-	right: number;
-	bottom: number;
-}
-
-export interface ISelectionBoxState {
-	left: number;
-	top: number;
-	width: number;
-	height: number;
-}
 
 export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
+export const GANTT_TASK_SELECTED_CLASS = 'gantt_task_selected';
 export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
-export const GANTT_TASK_LINK_CLASS = 'gantt_task_link';
+export const GANTT_TASK_SIDE_CONTENT_CLASS = 'gantt_side_content';
+const EDGE_SCROLL_THRESHOLD = 50;
 
-const SELECTION_PREVIEW_CLASS = 'gantt_selection_preview';
-const TASK_SELECTION_QUERY = '.gantt_task_line, .gantt_left';
-const DRAG_START_BLOCKERS_QUERY = '.gantt_task_line, .gantt_task_content, .gantt_task_drag, .gantt_link_control';
-const TIMELINE_AREA_QUERY = '.gantt_task_bg, .gantt_task_cell';
-const TIMELINE_CONTAINER_QUERY = '.gantt_task';
-const DRAG_THRESHOLD = 4;
-const AUTO_SCROLL_EDGE_SIZE = 32;
-const AUTO_SCROLL_STEP = 24;
+export const useSelectionBox = (ganttManager: IGanttManager) => {
+    const gantt = ganttManager.getGanttInstance();
+    const selectoRef = useRef<Selecto>();
+    const dataProvider = useTaskDataProvider();
+    const selectedRecordIdsRef = useRef<Set<string>>(new Set());
+    const blockDeselectionRef = useRef<boolean>(false);
 
-// --- Pure helpers (no React / no refs) ---
+    const getTaskElementFromElement = (el: Element): HTMLElement => {
+        const taskElement = el.closest('[data-task-id]');
+        if (!taskElement) {
+            throw new Error('Could not find an ancestor with data-task-id for the selected gantt element.');
+        }
 
-const toContentPoint = (clientPoint: IPoint, containerRect: DOMRect, scrollLeft: number, scrollTop: number): IPoint => ({
-	x: clientPoint.x - containerRect.left + scrollLeft,
-	y: clientPoint.y - containerRect.top + scrollTop,
-});
+        return taskElement as HTMLElement;
+    }
 
-const toContentRect = (a: IPoint, b: IPoint): IRectangle => ({
-	left: Math.min(a.x, b.x),
-	top: Math.min(a.y, b.y),
-	right: Math.max(a.x, b.x),
-	bottom: Math.max(a.y, b.y),
-});
+    const onInit = () => {
+        const container = gantt.$task;
+        selectoRef.current = new Selecto({
+            container: container,
+            hitRate: 0,
+            selectableTargets: [`.${GANTT_TASK_LINE_CLASS}`, `.${GANTT_TASK_SIDE_CONTENT_CLASS}`],
+            scrollOptions: {
+                container: container,
+                throttleTime: 30,
+                threshold: EDGE_SCROLL_THRESHOLD,
+                getScrollPosition: () => [gantt.$scroll_hor.scrollLeft, gantt.$scroll_ver.scrollTop],
+            }
 
-const toViewportBox = (rect: IRectangle, scrollLeft: number, scrollTop: number): ISelectionBoxState => ({
-	left: rect.left - scrollLeft,
-	top: rect.top - scrollTop,
-	width: rect.right - rect.left,
-	height: rect.bottom - rect.top,
-});
+        });
+        selectoRef.current.on('select', onSelect);
+        selectoRef.current.on('scroll', onScroll);
+        selectoRef.current.on('dragStart', onDragStart);
+        selectoRef.current.on('dragEnd', onDragEnd);
+    }
 
-const rectsIntersect = (a: IRectangle, b: IRectangle): boolean =>
-	a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+    const onKeyUp = useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Shift') {
+            gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
+        }
+    }, []);
 
-const boxKey = (box: ISelectionBoxState): string =>
-	`${box.left}:${box.top}:${box.width}:${box.height}`;
+    const onKeyDown = useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Shift') {
+            gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
+        }
+    }, []);
 
-const findTaskIdsInRect = (
-	container: HTMLElement,
-	gantt: GanttStatic,
-	timelineContainer: HTMLElement,
-	contentRect: IRectangle,
-): string[] => {
-	const taskAttribute = gantt.config.task_attribute;
-	const containerRect = container.getBoundingClientRect();
-	const { scrollLeft, scrollTop } = timelineContainer;
-	const taskBounds = new Map<string, IRectangle>();
+    const onSelect = (e: OnSelect<Selecto>) => {
+        e.added.forEach(el => {
+            const taskElement = getTaskElementFromElement(el);
+            const taskId = taskElement.getAttribute('data-task-id')!;
 
-	container.querySelectorAll<HTMLElement>(TASK_SELECTION_QUERY).forEach(node => {
-		const taskId = node.getAttribute(taskAttribute)
-			?? node.closest<HTMLElement>(`[${taskAttribute}]`)?.getAttribute(taskAttribute);
+            taskElement.classList.add(GANTT_TASK_SELECTED_CLASS);
+            selectedRecordIdsRef.current.add(taskId);
+        });
+        if (!blockDeselectionRef.current) {
+            e.removed.forEach(el => {
+                const taskElement = getTaskElementFromElement(el);
+                const taskId = taskElement.getAttribute('data-task-id')!;
 
-		if (!taskId || !gantt.isTaskExists(taskId) || !gantt.isTaskVisible(taskId)) {
-			return;
-		}
+                taskElement.classList.remove(GANTT_TASK_SELECTED_CLASS);
+                selectedRecordIdsRef.current.delete(taskId);
+            });
+        }
+    };
 
-		const nodeRect = node.getBoundingClientRect();
-		const nodeContent: IRectangle = {
-			left: nodeRect.left - containerRect.left + scrollLeft,
-			top: nodeRect.top - containerRect.top + scrollTop,
-			right: nodeRect.right - containerRect.left + scrollLeft,
-			bottom: nodeRect.bottom - containerRect.top + scrollTop,
-		};
+    const onDragEnd = (e: OnDragEnd<Selecto>) => {
+        if (selectedRecordIdsRef.current.size > 0) {
+            dataProvider.setSelectedRecordIds(Array.from(selectedRecordIdsRef.current));
+        }
+        selectedRecordIdsRef.current.clear();
+    }
 
-		const existing = taskBounds.get(taskId);
-		if (!existing) {
-			taskBounds.set(taskId, nodeContent);
-			return;
-		}
+    const onDragStart = (e: OnDragStart<Selecto>) => {
+        const taskElement = e.inputEvent.target.closest(`.${GANTT_TASK_LINE_CLASS}`);
+        if (!e.inputEvent.shiftKey || taskElement) {
+            e.stop();
+        }
+    };
 
-		taskBounds.set(taskId, {
-			left: Math.min(existing.left, nodeContent.left),
-			top: Math.min(existing.top, nodeContent.top),
-			right: Math.max(existing.right, nodeContent.right),
-			bottom: Math.max(existing.bottom, nodeContent.bottom),
-		});
-	});
+    const onScroll = (e: OnScroll) => {
+        const [horizontalDirection, verticalDirection] = e.direction;
 
-	const result: string[] = [];
-	taskBounds.forEach((bounds, taskId) => {
-		if (rectsIntersect(bounds, contentRect)) {
-			result.push(taskId);
-		}
-	});
-	return result;
-};
+        if (verticalDirection !== 0) {
+            gantt.scrollTo(null, gantt.getScrollState().y + (verticalDirection * 10));
+        }
 
-const syncPreviewClasses = (
-	container: HTMLElement,
-	taskAttribute: string,
-	previousIds: Set<string>,
-	nextIds: Set<string>,
-): void => {
-	previousIds.forEach(id => {
-		if (!nextIds.has(id)) {
-			container
-				.querySelectorAll<HTMLElement>(`[${taskAttribute}="${CSS.escape(id)}"]`)
-				.forEach(node => node.classList.remove(SELECTION_PREVIEW_CLASS));
-		}
-	});
+        if (horizontalDirection !== 0) {
+            gantt.scrollTo(gantt.getScrollState().x + (horizontalDirection * 10), null);
+        }
 
-	nextIds.forEach(id => {
-		if (!previousIds.has(id)) {
-			container
-				.querySelectorAll<HTMLElement>(`[${taskAttribute}="${CSS.escape(id)}"]`)
-				.forEach(node => node.classList.add(SELECTION_PREVIEW_CLASS));
-		}
-	});
-};
+        selectoRef.current?.findSelectableTargets();
+        blockDeselectionRef.current = true;
+        setTimeout(() => {
+            blockDeselectionRef.current = false;
+        }, 0);
+    }
 
-const clearAllPreviews = (container: HTMLElement): void => {
-	container.querySelectorAll<HTMLElement>(`.${SELECTION_PREVIEW_CLASS}`)
-		.forEach(node => node.classList.remove(SELECTION_PREVIEW_CLASS));
-};
+    useEffect(() => {
+        window.addEventListener('keyup', onKeyUp);
+        window.addEventListener('keydown', onKeyDown);
+        return () => {
+            selectoRef.current?.destroy();
+            window.removeEventListener('keyup', onKeyUp);
+            window.removeEventListener('keydown', onKeyDown);
+        }
+    }, []);
 
-// --- Hook ---
-
-interface IDragSession {
-	anchor: IPoint;
-	pointerClient: IPoint;
-	hasDragged: boolean;
-	selectionIds: string[];
-	previewIds: Set<string>;
-	lastBoxKey: string | null;
+    useEventEmitter(ganttManager.events, 'onInit', onInit);
 }
-
-export const useSelectionBox = (params: IUseSelectionBoxParams) => {
-	const { gantt, dataProvider, timeline } = params;
-	const [selectionBox, setSelectionBox] = useState<ISelectionBoxState | null>(null);
-
-	const containerRef = useRef<HTMLDivElement | null>(null);
-	const sessionRef = useRef<IDragSession | null>(null);
-	const autoScrollRef = useRef<number | null>(null);
-
-	// Stable refs so event handlers always see the latest values without re-binding listeners.
-	const ganttRef = useRef(gantt);
-	ganttRef.current = gantt;
-	const dataProviderRef = useRef(dataProvider);
-	dataProviderRef.current = dataProvider;
-	const timelineRef = useRef(timeline);
-	timelineRef.current = timeline;
-	const setSelectionBoxRef = useRef(setSelectionBox);
-	setSelectionBoxRef.current = setSelectionBox;
-
-	useEffect(() => {
-		const getTimelineContainer = () =>
-			containerRef.current?.querySelector<HTMLElement>(TIMELINE_CONTAINER_QUERY) ?? null;
-
-		const render = () => {
-			const session = sessionRef.current;
-			const container = containerRef.current;
-			const tc = getTimelineContainer();
-			if (!session || !container || !tc) {
-				return;
-			}
-
-			const containerRect = container.getBoundingClientRect();
-			const currentContent = toContentPoint(session.pointerClient, containerRect, tc.scrollLeft, tc.scrollTop);
-			const contentRect = toContentRect(session.anchor, currentContent);
-			const viewport = toViewportBox(contentRect, tc.scrollLeft, tc.scrollTop);
-			const exceededThreshold = viewport.width >= DRAG_THRESHOLD || viewport.height >= DRAG_THRESHOLD;
-
-			if (!exceededThreshold) {
-				session.selectionIds = [];
-				if (session.previewIds.size > 0) {
-					syncPreviewClasses(container, ganttRef.current.config.task_attribute, session.previewIds, new Set());
-					session.previewIds = new Set();
-				}
-				if (session.lastBoxKey !== null) {
-					session.lastBoxKey = null;
-					setSelectionBoxRef.current(null);
-				}
-				return;
-			}
-
-			session.hasDragged = true;
-			session.selectionIds = findTaskIdsInRect(container, ganttRef.current, tc, contentRect);
-
-			const nextPreviewIds = new Set(session.selectionIds);
-			syncPreviewClasses(container, ganttRef.current.config.task_attribute, session.previewIds, nextPreviewIds);
-			session.previewIds = nextPreviewIds;
-
-			const key = boxKey(viewport);
-			if (key !== session.lastBoxKey) {
-				session.lastBoxKey = key;
-				setSelectionBoxRef.current(viewport);
-			}
-		};
-
-		const stopAutoScroll = () => {
-			if (autoScrollRef.current !== null) {
-				cancelAnimationFrame(autoScrollRef.current);
-				autoScrollRef.current = null;
-			}
-		};
-
-		const tickAutoScroll = () => {
-			const session = sessionRef.current;
-			const tc = getTimelineContainer();
-			if (!session || !tc) {
-				stopAutoScroll();
-				return;
-			}
-
-			const rect = tc.getBoundingClientRect();
-			let nextLeft = tc.scrollLeft;
-			let nextTop = tc.scrollTop;
-
-			if (session.pointerClient.x <= rect.left + AUTO_SCROLL_EDGE_SIZE) {
-				nextLeft = Math.max(0, tc.scrollLeft - AUTO_SCROLL_STEP);
-			} else if (session.pointerClient.x >= rect.right - AUTO_SCROLL_EDGE_SIZE) {
-				nextLeft = Math.min(tc.scrollWidth - tc.clientWidth, tc.scrollLeft + AUTO_SCROLL_STEP);
-			}
-
-			if (session.pointerClient.y <= rect.top + AUTO_SCROLL_EDGE_SIZE) {
-				nextTop = Math.max(0, tc.scrollTop - AUTO_SCROLL_STEP);
-			} else if (session.pointerClient.y >= rect.bottom - AUTO_SCROLL_EDGE_SIZE) {
-				nextTop = Math.min(tc.scrollHeight - tc.clientHeight, tc.scrollTop + AUTO_SCROLL_STEP);
-			}
-
-			if (nextLeft === tc.scrollLeft && nextTop === tc.scrollTop) {
-				stopAutoScroll();
-				return;
-			}
-
-			// Block infinite timeline from expanding while we programmatically scroll.
-			timelineRef.current.setScrollBlock(true);
-			ganttRef.current.scrollTo(nextLeft, nextTop);
-			timelineRef.current.setScrollBlock(false);
-
-			render();
-			autoScrollRef.current = requestAnimationFrame(tickAutoScroll);
-		};
-
-		const scheduleAutoScroll = () => {
-			const session = sessionRef.current;
-			const tc = getTimelineContainer();
-			if (!session || !tc) {
-				return;
-			}
-
-			const rect = tc.getBoundingClientRect();
-			const p = session.pointerClient;
-			const nearEdge =
-				p.x <= rect.left + AUTO_SCROLL_EDGE_SIZE
-				|| p.x >= rect.right - AUTO_SCROLL_EDGE_SIZE
-				|| p.y <= rect.top + AUTO_SCROLL_EDGE_SIZE
-				|| p.y >= rect.bottom - AUTO_SCROLL_EDGE_SIZE;
-
-			if (!nearEdge) {
-				stopAutoScroll();
-				return;
-			}
-
-			if (autoScrollRef.current === null) {
-				autoScrollRef.current = requestAnimationFrame(tickAutoScroll);
-			}
-		};
-
-		const resetSession = () => {
-			stopAutoScroll();
-			sessionRef.current = null;
-			if (containerRef.current) {
-				clearAllPreviews(containerRef.current);
-			}
-			setSelectionBoxRef.current(null);
-		};
-
-		const onMouseDown = (event: MouseEvent) => {
-			if (event.button !== 0 || !event.shiftKey) {
-				return;
-			}
-
-			const target = event.target as HTMLElement | null;
-			if (target?.closest(DRAG_START_BLOCKERS_QUERY) || !target?.closest(TIMELINE_AREA_QUERY)) {
-				return;
-			}
-
-			const container = containerRef.current;
-			const tc = getTimelineContainer();
-			if (!container || !tc) {
-				return;
-			}
-
-			const containerRect = container.getBoundingClientRect();
-			sessionRef.current = {
-				anchor: toContentPoint({ x: event.clientX, y: event.clientY }, containerRect, tc.scrollLeft, tc.scrollTop),
-				pointerClient: { x: event.clientX, y: event.clientY },
-				hasDragged: false,
-				selectionIds: [],
-				previewIds: new Set(),
-				lastBoxKey: null,
-			};
-
-			clearAllPreviews(container);
-			setSelectionBoxRef.current(null);
-			event.preventDefault();
-		};
-
-		const onMouseMove = (event: MouseEvent) => {
-			const session = sessionRef.current;
-			if (!session) {
-				return;
-			}
-
-			session.pointerClient = { x: event.clientX, y: event.clientY };
-			render();
-			scheduleAutoScroll();
-
-			if (session.hasDragged) {
-				event.preventDefault();
-				event.stopPropagation();
-			}
-		};
-
-		const onMouseUp = (event: MouseEvent) => {
-			const session = sessionRef.current;
-			if (!session) {
-				return;
-			}
-
-			if (session.hasDragged) {
-				event.preventDefault();
-				dataProviderRef.current.setSelectedRecordIds(session.selectionIds);
-			}
-
-			resetSession();
-		};
-
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Shift') {
-				containerRef.current?.classList.add(GANTT_SHIFT_HELD_CLASS);
-			}
-		};
-
-		const onKeyUp = (event: KeyboardEvent) => {
-			if (event.key !== 'Shift') {
-				return;
-			}
-
-			containerRef.current?.classList.remove(GANTT_SHIFT_HELD_CLASS);
-			if (sessionRef.current) {
-				resetSession();
-			}
-		};
-
-		const onBlur = () => {
-			containerRef.current?.classList.remove(GANTT_SHIFT_HELD_CLASS);
-			if (sessionRef.current) {
-				resetSession();
-			}
-		};
-
-		const init = (container: HTMLDivElement) => {
-			containerRef.current = container;
-			if (container.tabIndex < 0) {
-				container.tabIndex = 0;
-			}
-
-			container.addEventListener('mousedown', onMouseDown);
-			window.addEventListener('mousemove', onMouseMove);
-			window.addEventListener('mouseup', onMouseUp);
-			window.addEventListener('keydown', onKeyDown);
-			window.addEventListener('keyup', onKeyUp);
-			window.addEventListener('blur', onBlur);
-		};
-
-		initRef.current = init;
-
-		return () => {
-			stopAutoScroll();
-
-			const container = containerRef.current;
-			if (container) {
-				clearAllPreviews(container);
-				container.classList.remove(GANTT_SHIFT_HELD_CLASS);
-				container.removeEventListener('mousedown', onMouseDown);
-			}
-
-			window.removeEventListener('mousemove', onMouseMove);
-			window.removeEventListener('mouseup', onMouseUp);
-			window.removeEventListener('keydown', onKeyDown);
-			window.removeEventListener('keyup', onKeyUp);
-			window.removeEventListener('blur', onBlur);
-		};
-	}, []);
-
-	const initRef = useRef<(container: HTMLDivElement) => void>(() => {});
-
-	return {
-		selectionBox: {
-			state: selectionBox,
-			init: (container: HTMLDivElement) => initRef.current(container),
-		},
-	};
-};

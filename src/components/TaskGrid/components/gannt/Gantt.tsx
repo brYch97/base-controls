@@ -8,7 +8,7 @@ import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTooltip } from './hooks/useTooltip';
 import { useMarkers } from './hooks/useMarkers/useMarkers';
-import { useSelectionBox } from './hooks/useSelectionBox2';
+import { useSelectionBox } from './hooks/useSelectionBox';
 
 export interface IGanttProps {
     components?: Partial<IGanttComponents>;
@@ -23,7 +23,6 @@ export const Gantt = (props: IGanttProps) => {
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
-    //const { selectionBox } = useSelectionBox({ gantt, dataProvider: datasetControl.getDataProvider(), timeline: ganttManager.getTimeline() });
     useSelectionBox(ganttManager);
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
@@ -33,7 +32,6 @@ export const Gantt = (props: IGanttProps) => {
         }
         ganttManager.init({ container: ref.current });
         tooltip.init(ref.current);
-        // selectionBox.init(ref.current);
 
         return () => {
             ganttManager.destroy();
@@ -42,9 +40,7 @@ export const Gantt = (props: IGanttProps) => {
 
     return (
         <>
-            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }}>
-    
-            </div>
+            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }} />
             <GanttComponentsContext.Provider value={components}>
                 {tooltip.state && components.onRenderTaskTooltip({ task: tooltip.state.task, event: tooltip.state.event })}
             </GanttComponentsContext.Provider>
