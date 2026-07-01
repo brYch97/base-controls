@@ -8,6 +8,7 @@ export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
 export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
 export const GANT_SELECTED_CLASS = 'gantt_task_selected';
 export const GANTT_TASK_CLASS = 'gantt_task';
+const EDGE_SCROLL_THRESHOLD = 10;
 
 const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null => {
     if (arr[0] === -1 && arr[1] === 0) return 'left';
@@ -15,6 +16,31 @@ const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null =>
     if (arr[0] === 0 && arr[1] === -1) return 'up';
     if (arr[0] === 0 && arr[1] === 1) return 'down';
     return null;
+}
+
+const getScrollDirectionAtEdge = (
+    clientX: number,
+    clientY: number,
+    rect: DOMRect,
+    threshold: number,
+): 'up' | 'down' | 'left' | 'right' | null => {
+    const distLeft = Math.abs(clientX - rect.left);
+    const distRight = Math.abs(clientX - rect.right);
+    const distTop = Math.abs(clientY - rect.top);
+    const distBottom = Math.abs(clientY - rect.bottom);
+
+    const distToHorizontalEdge = Math.min(distLeft, distRight);
+    const distToVerticalEdge = Math.min(distTop, distBottom);
+
+    if (Math.min(distToHorizontalEdge, distToVerticalEdge) >= threshold) {
+        return null;
+    }
+
+    if (distToHorizontalEdge < distToVerticalEdge) {
+        return distLeft < distRight ? 'left' : 'right';
+    }
+
+    return distTop < distBottom ? 'up' : 'down';
 }
 
 export const useSelectionBox = (ganttManager: IGanttManager) => {
@@ -92,17 +118,29 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     const onDrag = (e: OnDrag<Selecto>) => {
         const { clientX, clientY } = e.inputEvent as MouseEvent;
         const rect = (gantt.$task as HTMLElement).getBoundingClientRect();
+        const direction = getScrollDirectionAtEdge(clientX, clientY, rect, EDGE_SCROLL_THRESHOLD);
 
-        const distToHorizontalEdge = Math.min(Math.abs(clientX - rect.left), Math.abs(clientX - rect.right));
-        const distToVerticalEdge = Math.min(Math.abs(clientY - rect.top), Math.abs(clientY - rect.bottom));
-
-        console.log('distToHorizontalEdge', distToHorizontalEdge, 'distToVerticalEdge', distToVerticalEdge);
-
-        if (distToHorizontalEdge < distToVerticalEdge) {
-            //scroll horizontally
-        } else {
-            //scroll vertically
+        if (!direction) {
+            return;
         }
+
+        console.log('drag direction', direction);
+
+        switch (direction) {
+            case 'left':
+                gantt.scrollTo(gantt.getScrollState().x - 10, null);
+                break;
+            case 'right':
+                gantt.scrollTo(gantt.getScrollState().x + 10, null);
+                break;
+            case 'up':
+                gantt.scrollTo(null, gantt.getScrollState().y - 10);
+                break;
+            case 'down':
+                gantt.scrollTo(null, gantt.getScrollState().y + 10);
+                break;
+        }
+
     }
 
     const onDragEnd = (e: OnDragEnd<Selecto>) => {
