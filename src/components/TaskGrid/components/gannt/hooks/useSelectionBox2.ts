@@ -19,9 +19,9 @@ const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null =>
 export const useSelectionBox = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
     const selectoRef = useRef<Selecto>();
-    const selectedIdsRef = useRef<string[]>([]);
+    const selectedIdsRef = useRef<Set<string>>(new Set());
     const dataProvider = useTaskDataProvider();
-    const lastScrollDirectionRef = useRef<'up' | 'down' | 'left' | 'right' | null>(null);
+    const blockDeselectionRef = useRef(false);
 
     const onInit = () => {
         const container = gantt.$task;
@@ -59,13 +59,19 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     }, []);
 
     const onSelect = (e: OnSelect<Selecto>) => {
-        e.removed.forEach(el => {
-            el.classList.remove(GANT_SELECTED_CLASS);
-        })
+        console.log(e.removed);
+        if (!blockDeselectionRef.current) {
+            e.removed.forEach(el => {
+                const taskId = el.getAttribute('data-task-id')!;
+                el.classList.remove(GANT_SELECTED_CLASS);
+                selectedIdsRef.current.delete(taskId);
+            })
+        }
         e.added.forEach(el => {
+            const taskId = el.getAttribute('data-task-id')!;
             el.classList.add(GANT_SELECTED_CLASS);
+            selectedIdsRef.current.add(taskId);
         });
-        selectedIdsRef.current = e.selected.map(el => el.getAttribute('data-task-id')!);
     };
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
@@ -90,15 +96,15 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     }
 
     const onDragEnd = (e: OnDragEnd<Selecto>) => {
-        if(selectedIdsRef.current.length > 0) {
-            dataProvider.setSelectedRecordIds(selectedIdsRef.current);
+        if (selectedIdsRef.current.size > 0) {
+            dataProvider.setSelectedRecordIds(Array.from(selectedIdsRef.current));
         }
+        selectedIdsRef.current.clear();
     }
 
 
     const onScroll = (e: OnScroll) => {
         const direction = getDirection(e.direction);
-        lastScrollDirectionRef.current = direction;
         if (!direction) return;
         switch (direction) {
             case 'up': {
@@ -118,6 +124,12 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
                 break;
             }
         }
+        blockDeselectionRef.current = true;
+        selectoRef.current?.findSelectableTargets();
+        selectoRef.current?.checkScroll();
+        setTimeout(() => {
+            blockDeselectionRef.current = false;
+        }, 0);
     }
 
     useEffect(() => {
