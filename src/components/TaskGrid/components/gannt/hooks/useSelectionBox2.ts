@@ -2,35 +2,54 @@ import Selecto, { OnDrag, OnDragStart, OnScroll, OnSelect } from "selecto";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 export const GANTT_TASK_LINK_CLASS = 'gantt_task_link';
 export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
+const EDGE_SCROLL_THRESHOLD = 50;
 
-const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null => {
-    if (arr[0] === -1 && arr[1] === 0) return 'left';
-    if (arr[0] === 1 && arr[1] === 0) return 'right';
-    if (arr[0] === 0 && arr[1] === -1) return 'up';
-    if (arr[0] === 0 && arr[1] === 1) return 'down';
-    return null;
+const getScrollDirectionAtEdge = (
+    clientX: number,
+    clientY: number,
+    rect: DOMRect,
+    threshold: number,
+): 'up' | 'down' | 'left' | 'right' | null => {
+    const distLeft = Math.abs(clientX - rect.left);
+    const distRight = Math.abs(clientX - rect.right);
+    const distTop = Math.abs(clientY - rect.top);
+    const distBottom = Math.abs(clientY - rect.bottom);
+
+    const distToHorizontalEdge = Math.min(distLeft, distRight);
+    const distToVerticalEdge = Math.min(distTop, distBottom);
+
+    if (Math.min(distToHorizontalEdge, distToVerticalEdge) >= threshold) {
+        return null;
+    }
+
+    if (distToHorizontalEdge < distToVerticalEdge) {
+        return distLeft < distRight ? 'left' : 'right';
+    }
+
+    return distTop < distBottom ? 'up' : 'down';
 }
 
 export const useSelectionBox = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
     const selectoRef = useRef<Selecto>();
-    const lastScrollDirectionRef = useRef<'up' | 'down' | 'left' | 'right' | null>(null);
+    const dragPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
     const onInit = () => {
         const container = gantt.$task;
         selectoRef.current = new Selecto({
             container: container,
-            hitRate: 100,
+            hitRate: 0,
             toggleContinueSelect: ['shift'],
             ratio: 0,
             selectableTargets: [`.${GANTT_TASK_LINK_CLASS}`],
             scrollOptions: {
                 container: gantt.$scroll_hor,
                 throttleTime: 30,
-                threshold: 100,
+                threshold: EDGE_SCROLL_THRESHOLD,
             }
 
         });
@@ -67,20 +86,26 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     };
 
     const onDrag = (e: OnDrag<Selecto>) => {
-        const absDeltax = Math.abs(e.deltaX);
-        const absDeltay = Math.abs(e.deltaY);
-        if (absDeltax > absDeltay) {
-            selectoRef.current!.scrollOptions.container = gantt.$scroll_hor;
-        } else if (absDeltay > absDeltax) {
+        dragPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
+        const direction = getScrollDirectionAtEdge(e.clientX, e.clientY, gantt.$task.getBoundingClientRect(), EDGE_SCROLL_THRESHOLD);
+        if (direction === 'down' || direction === 'up') {
+            console.log('Scrolling vertically');
             selectoRef.current!.scrollOptions.container = gantt.$scroll_ver;
+        }
+        else if (direction === 'left' || direction === 'right') {
+            selectoRef.current!.scrollOptions.container = gantt.$scroll_hor;
         }
     }
 
 
     const onScroll = (e: OnScroll) => {
-        //double check direction here?
-        const direction = getDirection(e.direction);
-        lastScrollDirectionRef.current = direction;
+        const pointer = dragPointerRef.current;
+        if (!pointer) return;
+
+        const rect = (gantt.$task as HTMLElement).getBoundingClientRect();
+        //we need this check to prevent false positives
+        const direction = getScrollDirectionAtEdge(pointer.clientX, pointer.clientY, rect, EDGE_SCROLL_THRESHOLD);
+
         if (!direction) return;
         switch (direction) {
             case 'up': {
