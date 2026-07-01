@@ -1,14 +1,10 @@
-import Selecto, { OnDrag, OnDragEnd, OnDragStart, OnScroll, OnSelect } from "selecto";
+import Selecto, { OnDrag, OnDragStart, OnScroll, OnSelect } from "selecto";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
-import { useTaskDataProvider } from "../../../context";
 
-export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
+export const GANTT_TASK_LINK_CLASS = 'gantt_task_link';
 export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
-export const GANT_SELECTED_CLASS = 'gantt_task_selected';
-export const GANTT_TASK_CLASS = 'gantt_task';
-const EDGE_SCROLL_THRESHOLD = 10;
 
 const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null => {
     if (arr[0] === -1 && arr[1] === 0) return 'left';
@@ -18,57 +14,29 @@ const getDirection = (arr: number[]): 'up' | 'down' | 'left' | 'right' | null =>
     return null;
 }
 
-const getScrollDirectionAtEdge = (
-    clientX: number,
-    clientY: number,
-    rect: DOMRect,
-    threshold: number,
-): 'up' | 'down' | 'left' | 'right' | null => {
-    const distLeft = Math.abs(clientX - rect.left);
-    const distRight = Math.abs(clientX - rect.right);
-    const distTop = Math.abs(clientY - rect.top);
-    const distBottom = Math.abs(clientY - rect.bottom);
-
-    const distToHorizontalEdge = Math.min(distLeft, distRight);
-    const distToVerticalEdge = Math.min(distTop, distBottom);
-
-    if (Math.min(distToHorizontalEdge, distToVerticalEdge) >= threshold) {
-        return null;
-    }
-
-    if (distToHorizontalEdge < distToVerticalEdge) {
-        return distLeft < distRight ? 'left' : 'right';
-    }
-
-    return distTop < distBottom ? 'up' : 'down';
-}
-
 export const useSelectionBox = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
     const selectoRef = useRef<Selecto>();
-    const selectedIdsRef = useRef<Set<string>>(new Set());
-    const dataProvider = useTaskDataProvider();
-    const blockDeselectionRef = useRef(false);
-    const defaultDragIgnoreRef = useRef<string>();
+    const lastScrollDirectionRef = useRef<'up' | 'down' | 'left' | 'right' | null>(null);
 
     const onInit = () => {
         const container = gantt.$task;
         selectoRef.current = new Selecto({
             container: container,
-            hitRate: 0,
-            selectableTargets: [`.${GANTT_TASK_LINE_CLASS}`],
-/*             scrollOptions: {
+            hitRate: 100,
+            toggleContinueSelect: ['shift'],
+            ratio: 0,
+            selectableTargets: [`.${GANTT_TASK_LINK_CLASS}`],
+            scrollOptions: {
                 container: gantt.$scroll_hor,
                 throttleTime: 30,
-                //threshold: 100,
-            } */
+                threshold: 100,
+            }
 
         });
-        defaultDragIgnoreRef.current = gantt.config.drag_timeline?.ignore;
         selectoRef.current.on('select', onSelect);
-        selectoRef.current.on('scroll', onScroll);
+        //selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
-        selectoRef.current.on('dragEnd', onDragEnd);
         selectoRef.current.on('drag', onDrag);
         window.addEventListener('keyup', onKeyUp);
         window.addEventListener('keydown', onKeyDown);
@@ -76,84 +44,42 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
     const onKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
-            if (gantt.config.drag_timeline) {
-                gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
-                gantt.config.drag_timeline.ignore = defaultDragIgnoreRef.current;
-            }
+            gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
         }
     }, []);
 
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
-            if (gantt.config.drag_timeline) {
-                gantt.config.drag_timeline.ignore = `.${GANTT_TASK_CLASS}`;
-                gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
-            }
+            gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
         }
     }, []);
 
     const onSelect = (e: OnSelect<Selecto>) => {
-        if (!blockDeselectionRef.current) {
-            e.removed.forEach(el => {
-                const taskId = el.getAttribute('data-task-id')!;
-                el.classList.remove(GANT_SELECTED_CLASS);
-                selectedIdsRef.current.delete(taskId);
-            })
-        }
         e.added.forEach(el => {
-            const taskId = el.getAttribute('data-task-id')!;
-            el.classList.add(GANT_SELECTED_CLASS);
-            selectedIdsRef.current.add(taskId);
+            console.log('Selected element:', el);
         });
     };
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
-        selectoRef.current?.checkScroll();
         if (!e.inputEvent.shiftKey) {
             e.stop();
         }
-        onDrag(e as any);
     };
 
     const onDrag = (e: OnDrag<Selecto>) => {
-        const { clientX, clientY } = e.inputEvent as MouseEvent;
-        const rect = (gantt.$task as HTMLElement).getBoundingClientRect();
-        const direction = getScrollDirectionAtEdge(clientX, clientY, rect, EDGE_SCROLL_THRESHOLD);
-
-        if (!direction) {
-            return;
+        const absDeltax = Math.abs(e.deltaX);
+        const absDeltay = Math.abs(e.deltaY);
+        if (absDeltax > absDeltay) {
+            selectoRef.current!.scrollOptions.container = gantt.$scroll_hor;
+        } else if (absDeltay > absDeltax) {
+            selectoRef.current!.scrollOptions.container = gantt.$scroll_ver;
         }
-
-        console.log('drag direction', direction);
-
-        switch (direction) {
-            case 'left':
-                gantt.scrollTo(gantt.getScrollState().x - 10, null);
-                break;
-            case 'right':
-                gantt.scrollTo(gantt.getScrollState().x + 10, null);
-                break;
-            case 'up':
-                gantt.scrollTo(null, gantt.getScrollState().y - 10);
-                break;
-            case 'down':
-                gantt.scrollTo(null, gantt.getScrollState().y + 10);
-                break;
-        }
-
-    }
-
-    const onDragEnd = (e: OnDragEnd<Selecto>) => {
-        if (selectedIdsRef.current.size > 0) {
-            dataProvider.setSelectedRecordIds(Array.from(selectedIdsRef.current));
-        }
-        selectedIdsRef.current.clear();
     }
 
 
     const onScroll = (e: OnScroll) => {
-        console.log(e);
         const direction = getDirection(e.direction);
+        lastScrollDirectionRef.current = direction;
         if (!direction) return;
         switch (direction) {
             case 'up': {
@@ -173,11 +99,6 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
                 break;
             }
         }
-        blockDeselectionRef.current = true;
-        selectoRef.current?.findSelectableTargets();
-        setTimeout(() => {
-            blockDeselectionRef.current = false;
-        }, 0);
     }
 
     useEffect(() => {
