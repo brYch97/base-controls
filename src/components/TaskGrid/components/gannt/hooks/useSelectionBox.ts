@@ -41,6 +41,8 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             }
 
         });
+        window.addEventListener('keyup', onKeyUp);
+        window.addEventListener('keydown', onKeyDown);
         selectoRef.current.on('select', onSelect);
         selectoRef.current.on('scroll', onScroll);
         selectoRef.current.on('dragStart', onDragStart);
@@ -83,13 +85,18 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             dataProvider.setSelectedRecordIds(Array.from(selectedRecordIdsRef.current));
         }
         selectedRecordIdsRef.current.clear();
+        gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
     }
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
         const taskElement = e.inputEvent.target.closest(`.${GANTT_TASK_LINE_CLASS}`);
         if (!e.inputEvent.shiftKey || taskElement) {
+            gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
             e.stop();
+            return;
         }
+
+        gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
     };
 
     const onScroll = (e: OnScroll) => {
@@ -111,14 +118,12 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     }
 
     useEffect(() => {
-        window.addEventListener('keyup', onKeyUp);
-        window.addEventListener('keydown', onKeyDown);
         return () => {
             selectoRef.current?.destroy();
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('keydown', onKeyDown);
         }
-    }, []);
+    }, [onKeyDown, onKeyUp]);
 
     useEventEmitter(ganttManager.events, 'onInit', onInit);
 }
