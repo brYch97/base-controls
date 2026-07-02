@@ -4,6 +4,7 @@ import { useDatasetControl } from '../..';
 import { getGanttStyles } from './styles';
 import { useTheme } from '@fluentui/react';
 import { GanttComponents } from './components/components';
+import { TimelineTaskCreateLine } from './components';
 import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTimelineTaskCreate } from './hooks/useTimelineTaskCreate';
@@ -24,8 +25,8 @@ export const Gantt = (props: IGanttProps) => {
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
+    const { linePreview } = useTimelineTaskCreate(ganttManager);
     useSelectionBox(ganttManager);
-    useTimelineTaskCreate(ganttManager);
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
     useEffect(() => {
@@ -42,7 +43,10 @@ export const Gantt = (props: IGanttProps) => {
 
     return (
         <>
-            <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }} />
+            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }} />
+                {linePreview && <TimelineTaskCreateLine {...linePreview} />}
+            </div>
             <GanttComponentsContext.Provider value={components}>
                 {tooltip.state && components.onRenderTaskTooltip({ task: tooltip.state.task, event: tooltip.state.event })}
             </GanttComponentsContext.Provider>

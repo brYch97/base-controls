@@ -191,7 +191,8 @@ export const Header = (props: ITaskGridHeaderProps) => {
                                 })
                             }
                         })
-                    }
+                    },
+                    
                 })}
                 {editColumnsOpen &&
                     <EditColumns onDismiss={() => setEditColumnsOpen(false)} />
