@@ -4,10 +4,10 @@ export const getTimelineTaskCreateLineStyles = (theme: ITheme) => {
     return mergeStyleSets({
         root: {
             position: 'absolute',
-            height: 2,
+            height: 26,
             transform: 'translateY(-50%)',
-            backgroundColor: theme.palette.themePrimary,
-            boxShadow: theme.effects.elevation4,
+            backgroundColor: 'rgb(155, 203, 150)',
+            borderRadius: 4,
             pointerEvents: 'none',
             zIndex: 3,
         },
