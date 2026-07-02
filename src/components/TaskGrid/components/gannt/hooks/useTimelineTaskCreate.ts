@@ -261,8 +261,8 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         const endDate = gantt.dateFromPos(currentTimelineX);
         const parentId = currentTask.parent as string
         const recordTree = taskDataProvider.getRecordTree();
-        const previousTaskId = activePreview.currentTaskId;
-        const nextTaskId = activePreview.currentTaskId ? recordTree.getNextSibling(activePreview.currentTaskId)?.getRecordId() : undefined;
+        const previousTaskId = recordTree.getPreviousSibling(activePreview.currentTaskId)?.getRecordId();
+        const nextTaskId = activePreview.currentTaskId;
 
         taskDataProvider.createTask({
             parentId,
