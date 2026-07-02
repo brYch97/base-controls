@@ -34,6 +34,8 @@ export interface ITaskDataProviderParameters {
 
 export interface ICreateTaskParameters {
     parentId?: string;
+    previousTaskId?: string;
+    nextTaskId?: string;
     data?: { [key: string]: any };
 }
 

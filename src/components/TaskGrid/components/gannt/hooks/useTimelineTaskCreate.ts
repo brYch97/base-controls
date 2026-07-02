@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
 import { GANTT_TASK_LINE_CLASS, GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS } from "../classNames";
+import { useTaskDataProvider } from "../../../context";
 
 const EDGE_SCROLL_THRESHOLD = 50;
 const EDGE_SCROLL_STEP = 10;
@@ -21,6 +22,7 @@ interface ITimelineTaskCreateRowOverlay {
 interface IActivePreviewState {
     anchorTimelineX: number;
     currentClientX: number;
+    currentTaskId?: string;
     rowHeight: number;
     rowTop: number;
     top: number;
@@ -28,7 +30,9 @@ interface IActivePreviewState {
 
 export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
+    const dates = ganttManager.getDates();
     const dragging = ganttManager.getDragging();
+    const taskDataProvider = useTaskDataProvider();
     const [linePreview, setLinePreview] = useState<ITimelineTaskCreateLinePreview | null>(null);
     const [rowOverlay, setRowOverlay] = useState<ITimelineTaskCreateRowOverlay | null>(null);
     const activePreviewRef = useRef<IActivePreviewState | null>(null);
@@ -64,6 +68,10 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
 
         return element.closest('.gantt_task_row') as HTMLElement | null;
+    };
+
+    const getPreviewTaskId = (rowElement: HTMLElement) => {
+        return rowElement.closest('[data-task-id]')?.getAttribute('data-task-id') ?? undefined;
     };
 
     const getPreviewRowGeometry = (rowElement: HTMLElement) => {
@@ -204,6 +212,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         activePreviewRef.current = {
             anchorTimelineX,
             currentClientX: e.clientX,
+            currentTaskId: getPreviewTaskId(rowElement),
             rowHeight: rowGeometry.height,
             rowTop: rowGeometry.top,
             top: rowGeometry.lineTop,
@@ -221,6 +230,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         const rowElement = getPreviewRowElement(e.target);
         if (rowElement) {
             const rowGeometry = getPreviewRowGeometry(rowElement);
+            activePreview.currentTaskId = getPreviewTaskId(rowElement);
             activePreview.rowHeight = rowGeometry.height;
             activePreview.rowTop = rowGeometry.top;
             activePreview.top = rowGeometry.lineTop;
@@ -232,8 +242,39 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
 
     const onMouseUp = useCallback(() => {
         stopAutoScroll();
+        createTask(activePreviewRef.current);
         clearPreview();
     }, []);
+
+    const createTask = (activePreview: IActivePreviewState | null) => {
+        if(!activePreview || !activePreview.currentTaskId) return;
+        const scrollX = gantt.getScrollState().x;
+        const rootLeft = gantt.$root.getBoundingClientRect().left;
+
+        const currentTimelineX = Math.max(
+            activePreview.anchorTimelineX,
+            scrollX + activePreview.currentClientX - rootLeft
+        );
+
+        const currentTask = gantt.getTask(activePreview.currentTaskId);
+        const startDate = gantt.dateFromPos(activePreview.anchorTimelineX);
+        const endDate = gantt.dateFromPos(currentTimelineX);
+        const parentId = currentTask.parent as string
+        const recordTree = taskDataProvider.getRecordTree();
+        const previousTaskId = activePreview.currentTaskId;
+        const nextTaskId = activePreview.currentTaskId ? recordTree.getNextSibling(activePreview.currentTaskId)?.getRecordId() : undefined;
+
+        taskDataProvider.createTask({
+            parentId,
+            previousTaskId,
+            nextTaskId,
+            data: {
+                [dates.getStartDateColumnName()]: startDate,
+                [dates.getEndDateColumnName()]: endDate,
+            },
+        });
+    }
+
 
     const onInit = () => {
         window.addEventListener('keyup', onKeyUp);

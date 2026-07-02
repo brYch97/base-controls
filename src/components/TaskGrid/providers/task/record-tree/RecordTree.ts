@@ -29,6 +29,10 @@ export interface IRecordTree {
     isFlat(): boolean;
     /** Returns `true` when the record with the given id has at least one direct child. */
     hasChildren(recordId: string): boolean;
+    /** Returns the previous sibling in display order for the given task, or `undefined` when none exists. */
+    getPreviousSibling(taskId: string): IRecord | undefined;
+    /** Returns the next sibling in display order for the given task, or `undefined` when none exists. */
+    getNextSibling(taskId: string): IRecord | undefined;
     /** Returns a map of records that match the current search/filter, keyed by record id. */
     getMatchingRecords(): { [recordId: string]: IRecord };
     /** Returns record ids in their computed display order (depth-first, stack-rank sorted). */
@@ -72,6 +76,14 @@ export class RecordTree implements IRecordTree {
             return true;
         }
         return false;
+    }
+
+    public getPreviousSibling(taskId: string): IRecord | undefined {
+        return this._getSibling(taskId, -1);
+    }
+
+    public getNextSibling(taskId: string): IRecord | undefined {
+        return this._getSibling(taskId, 1);
     }
 
     public getSortedIds(): string[] {
@@ -355,6 +367,18 @@ export class RecordTree implements IRecordTree {
             record = recordsMap[parentId];
         }
         return path;
+    }
+
+    private _getSibling(taskId: string, offset: -1 | 1): IRecord | undefined {
+        const node = this._nodeMap.get(taskId);
+        if (!node || node.index < 0) {
+            return undefined;
+        }
+
+        const parentId = node.parent?.getRecordId() ?? null;
+        const siblings = this._nodeMap.get(parentId as any)?.directChildren ?? [];
+
+        return siblings[node.index + offset];
     }
 
     private _patchRecordPaths() {
