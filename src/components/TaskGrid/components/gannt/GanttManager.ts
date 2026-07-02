@@ -27,6 +27,7 @@ export interface IGanttManagerEvents {
 export interface IGanttManager {
     events: IEventEmitter<IGanttManagerEvents>;
     init: (params: IInitParams) => void;
+    getDragging: () => IGanttDragging;
     getMarkers: () => IGanttMarkers;
     getGanttInstance: () => GanttStatic;
     getTimeline: () => IGanttInfiniteTimeline;
@@ -91,6 +92,10 @@ export class GanttManager implements IGanttManager {
 
     public getMarkers() {
         return this._markers;
+    }
+
+    public getDragging() {
+        return this._dragging;
     }
 
     public getTimeline() {

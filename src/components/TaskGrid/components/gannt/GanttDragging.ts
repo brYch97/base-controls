@@ -2,9 +2,10 @@ import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
 import { IGanttDates } from './GanttDates';
-import { GANTT_SHIFT_HELD_CLASS, GANTT_TASK_LINE_CLASS} from './hooks/useSelectionBox';
+import { GANTT_DRAGGING_DISABLED_CLASS, GANTT_TASK_LINE_CLASS } from './classNames';
 
 export interface IGanttDragging {
+    setDraggingDisabled: (disabled: boolean) => void;
 }
 
 interface IGanttDraggingParams {
@@ -24,9 +25,19 @@ export class GanttDragging implements IGanttDragging {
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._gantt = params.gantt;
         this._dates = params.dates;
-        this._gantt.config.drag_timeline = { ignore: `.${GANTT_SHIFT_HELD_CLASS}, .${GANTT_TASK_LINE_CLASS}` };
+        this._gantt.config.drag_timeline = { ignore: `.${GANTT_DRAGGING_DISABLED_CLASS}, .${GANTT_TASK_LINE_CLASS}` };
         this._gantt.config.round_dnd_dates = false;
         this._registerEventListeners();
+    }
+
+    public setDraggingDisabled(disabled: boolean) {
+        const root = this._gantt.$root;
+
+        if (!root) {
+            throw new Error('Cannot toggle gantt dragging before the gantt root element is initialized.');
+        }
+
+        root.classList.toggle(GANTT_DRAGGING_DISABLED_CLASS, disabled);
     }
 
     private _registerEventListeners() {

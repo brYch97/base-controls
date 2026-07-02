@@ -3,16 +3,17 @@ import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
 import { useTaskDataProvider } from "../../../context";
+import {
+    GANTT_TASK_SELECTED_CLASS,
+    GANTT_TASK_LINE_CLASS,
+    GANTT_TASK_SIDE_CONTENT_CLASS,
+} from "../classNames";
 
-
-export const GANTT_SHIFT_HELD_CLASS = 'gantt_shift_held';
-export const GANTT_TASK_SELECTED_CLASS = 'gantt_task_selected';
-export const GANTT_TASK_LINE_CLASS = 'gantt_task_line';
-export const GANTT_TASK_SIDE_CONTENT_CLASS = 'gantt_side_content';
 const EDGE_SCROLL_THRESHOLD = 50;
 
 export const useSelectionBox = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
+    const dragging = ganttManager.getDragging();
     const selectoRef = useRef<Selecto>();
     const dataProvider = useTaskDataProvider();
     const selectedRecordIdsRef = useRef<Set<string>>(new Set());
@@ -51,15 +52,15 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
     const onKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
-            gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
+            dragging.setDraggingDisabled(false);
         }
-    }, []);
+    }, [dragging]);
 
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
-            gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
+            dragging.setDraggingDisabled(true);
         }
-    }, []);
+    }, [dragging]);
 
     const onSelect = (e: OnSelect<Selecto>) => {
         e.added.forEach(el => {
@@ -85,18 +86,18 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             dataProvider.setSelectedRecordIds(Array.from(selectedRecordIdsRef.current));
         }
         selectedRecordIdsRef.current.clear();
-        gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
+        dragging.setDraggingDisabled(false);
     }
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
         const taskElement = e.inputEvent.target.closest(`.${GANTT_TASK_LINE_CLASS}`);
         if (!e.inputEvent.shiftKey || taskElement) {
-            gantt.$root.classList.remove(GANTT_SHIFT_HELD_CLASS);
+            dragging.setDraggingDisabled(false);
             e.stop();
             return;
         }
 
-        gantt.$root.classList.add(GANTT_SHIFT_HELD_CLASS);
+        dragging.setDraggingDisabled(true);
     };
 
     const onScroll = (e: OnScroll) => {

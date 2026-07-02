@@ -6,6 +6,7 @@ import {
     PROJECT_START_MARKER_CLASS,
     TODAY_MARKER_CLASS,
 } from "./GanttMarkers";
+import { GANTT_DRAGGING_DISABLED_CLASS } from "./classNames";
 
 
 export const getGanttStyles = (theme: ITheme) => {
@@ -177,7 +178,7 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_data_area:active': {
                 cursor: 'grabbing',
             },
-            '&.gantt_shift_held .gantt_task_bg, &.gantt_shift_held .gantt_task_cell, &.gantt_shift_held .gantt_data_area': {
+            [`&.${GANTT_DRAGGING_DISABLED_CLASS} .gantt_task_bg, &.${GANTT_DRAGGING_DISABLED_CLASS} .gantt_task_cell, &.${GANTT_DRAGGING_DISABLED_CLASS} .gantt_data_area`]: {
                 cursor: 'default',
             },
             position: 'relative',
