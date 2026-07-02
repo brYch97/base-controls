@@ -222,8 +222,9 @@ export class GanttManager implements IGanttManager {
         this._gantt.parse({
             data: data
         });
-        this._zooming.zoomToFit();
+        //this._zooming.zoomToFit();
     }
+    
 
     private _convertRecordToTask(record: IRecord): Task {
         const parentColumnName = this._datasetControl.getNativeColumns().parentId;
