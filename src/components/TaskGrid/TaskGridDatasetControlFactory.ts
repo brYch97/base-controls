@@ -1,4 +1,4 @@
-import { Dataset, FetchXmlDataProvider } from "@talxis/client-libraries";
+import { Dataset } from "@talxis/client-libraries";
 import { ITaskDataProvider, TaskDataProvider } from "./providers/task";
 import { ILocalizationService } from "../../utils";
 import { ITaskGridLabels } from "./labels";
@@ -7,7 +7,6 @@ import { CustomColumnsDataProvider } from "./providers/custom-columns/CustomColu
 import { ITaskGridDatasetControl, ITaskGridDescriptor } from "./interfaces";
 import { TaskGridDatasetControl } from "./TaskGridDatasetControl";
 import { IInternalProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
-import { DatasetControl } from "../../utils/dataset-control";
 
 export interface ITaskGridState {
     savedQuery?: Partial<ISavedQuery> & { id: string; linking?: ComponentFramework.PropertyHelper.DataSetApi.LinkEntityExposedExpression[] };
@@ -26,7 +25,7 @@ export class TaskGridDatasetControlFactory {
         let taskDataProvider: ITaskDataProvider;
         await parameters.taskGridDescriptor.onLoadDependencies?.();
         const projectDataProvider = parameters.taskGridDescriptor.extensions?.project?.onCreateProjectDataProvider?.() as IInternalProjectDataProvider | undefined;
-        if (projectDataProvider) {
+        if(projectDataProvider) {
             await projectDataProvider.load();
         }
 
@@ -65,22 +64,7 @@ export class TaskGridDatasetControlFactory {
             onIsFlatListEnabled: () => TaskGridDatasetControlFactory._getIsFlatlistEnabled(parameters, savedQueryDataProvider)
         });
 
-        const provider = new FetchXmlDataProvider({
-            fetchXml: 'dasdsaad'
-        })
-
-        const dataset = new Dataset(provider);
-
-        const control = new DatasetControl({
-            controlId: 'dsadsadsadsad',
-            onGetPcfContext: () => { return {} as any },
-            state: {},
-            onGetParameters: () => {
-                return {
-                    Grid: dataset,
-                }
-            }
-        })
+        const dataset = new Dataset(taskDataProvider);
 
         return new TaskGridDatasetControl({
             dataset,
