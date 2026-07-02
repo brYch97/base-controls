@@ -4,6 +4,7 @@ import { useEventEmitter } from "../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
 import { useTaskDataProvider } from "../../../context";
 import {
+    GANTT_SELECTION_CURSOR_CLASS,
     GANTT_TASK_SELECTED_CLASS,
     GANTT_TASK_LINE_CLASS,
     GANTT_TASK_SIDE_CONTENT_CLASS,
@@ -27,6 +28,10 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
         return taskElement as HTMLElement;
     }
+
+    const setSelectionCursor = (enabled: boolean) => {
+        gantt.$root.classList.toggle(GANTT_SELECTION_CURSOR_CLASS, enabled);
+    };
 
     const onInit = () => {
         const container = gantt.$task;
@@ -53,14 +58,16 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
     const onKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
             dragging.setDraggingDisabled(false);
+            setSelectionCursor(false);
         }
-    }, [dragging]);
+    }, []);
 
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
             dragging.setDraggingDisabled(true);
+            setSelectionCursor(true);
         }
-    }, [dragging]);
+    }, []);
 
     const onSelect = (e: OnSelect<Selecto>) => {
         e.added.forEach(el => {
@@ -87,17 +94,20 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
         }
         selectedRecordIdsRef.current.clear();
         dragging.setDraggingDisabled(false);
+        setSelectionCursor(false);
     }
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
         const taskElement = e.inputEvent.target.closest(`.${GANTT_TASK_LINE_CLASS}`);
         if (!e.inputEvent.shiftKey || taskElement) {
             dragging.setDraggingDisabled(false);
+            setSelectionCursor(false);
             e.stop();
             return;
         }
 
         dragging.setDraggingDisabled(true);
+        setSelectionCursor(true);
     };
 
     const onScroll = (e: OnScroll) => {
@@ -123,8 +133,10 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             selectoRef.current?.destroy();
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('keydown', onKeyDown);
+            dragging.setDraggingDisabled(false);
+            setSelectionCursor(false);
         }
-    }, [onKeyDown, onKeyUp]);
+    }, []);
 
     useEventEmitter(ganttManager.events, 'onInit', onInit);
 }

@@ -6,6 +6,7 @@ import { useTheme } from '@fluentui/react';
 import { GanttComponents } from './components/components';
 import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
+import { useTimelineTaskCreate } from './hooks/useTimelineTaskCreate';
 import { useTooltip } from './hooks/useTooltip';
 import { useMarkers } from './hooks/useMarkers/useMarkers';
 import { useSelectionBox } from './hooks/useSelectionBox';
@@ -24,6 +25,7 @@ export const Gantt = (props: IGanttProps) => {
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
     useSelectionBox(ganttManager);
+    useTimelineTaskCreate(ganttManager);
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
     useEffect(() => {

@@ -6,7 +6,10 @@ import {
     PROJECT_START_MARKER_CLASS,
     TODAY_MARKER_CLASS,
 } from "./GanttMarkers";
-import { GANTT_DRAGGING_DISABLED_CLASS } from "./classNames";
+import {
+    GANTT_SELECTION_CURSOR_CLASS,
+    GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS,
+} from "./classNames";
 
 
 export const getGanttStyles = (theme: ITheme) => {
@@ -178,8 +181,11 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_data_area:active': {
                 cursor: 'grabbing',
             },
-            [`&.${GANTT_DRAGGING_DISABLED_CLASS} .gantt_task_bg, &.${GANTT_DRAGGING_DISABLED_CLASS} .gantt_task_cell, &.${GANTT_DRAGGING_DISABLED_CLASS} .gantt_data_area`]: {
+            [`&.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_data_area`]: {
                 cursor: 'default',
+            },
+            [`&.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_data_area`]: {
+                cursor: 'crosshair',
             },
             position: 'relative',
             '.gantt_task_content': {

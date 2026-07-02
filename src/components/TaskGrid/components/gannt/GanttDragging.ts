@@ -31,13 +31,7 @@ export class GanttDragging implements IGanttDragging {
     }
 
     public setDraggingDisabled(disabled: boolean) {
-        const root = this._gantt.$root;
-
-        if (!root) {
-            throw new Error('Cannot toggle gantt dragging before the gantt root element is initialized.');
-        }
-
-        root.classList.toggle(GANTT_DRAGGING_DISABLED_CLASS, disabled);
+        this._gantt.$root.classList.toggle(GANTT_DRAGGING_DISABLED_CLASS, disabled);
     }
 
     private _registerEventListeners() {
