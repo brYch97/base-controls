@@ -2,7 +2,7 @@ import { IRawRecord, IRecord } from "@talxis/client-libraries";
 import dayjs from "dayjs";
 import { GanttStatic, Task } from "gantt-trial";
 import { ITaskGridDatasetControl } from "../..";
-import { ITaskDataProvider } from "../../providers";
+import { IDeleteTasksResult, ITaskDataProvider } from "../../providers";
 import { IGanttDates } from "./GanttDates";
 
 export interface IGanttData {
@@ -49,9 +49,9 @@ export class GanttData implements IGanttData {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
         this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[result.recordId]));
         this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
-        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
+        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId) => this._onAfterTaskMoved(movingFromTaskId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
-        this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
+        this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', (result) => this._onAfterTasksDeleted(result));
     }
 
     private _loadTasksToGantt() {
@@ -135,6 +135,70 @@ export class GanttData implements IGanttData {
         return canInsertIncrementally;
     }
 
+    private _onAfterTaskMoved(movingFromTaskId: string) {
+        if (!this._moveTaskInGantt(movingFromTaskId)) {
+            this._loadTasksToGantt();
+        }
+    }
+
+    private _moveTaskInGantt(movingFromTaskId: string): boolean {
+        if (!this._gantt.isTaskExists(movingFromTaskId)) {
+            return false;
+        }
+
+        const node = this._dataProvider.getRecordTree().getNode(movingFromTaskId);
+        const oldParentId = this._getParentTaskId(this._gantt.getTask(movingFromTaskId).parent);
+        const newParentId = node.parent?.getRecordId();
+
+        if (newParentId && !this._gantt.isTaskExists(newParentId)) {
+            return false;
+        }
+
+        this._gantt.batchUpdate(() => {
+            this._gantt.moveTask(movingFromTaskId, node.index, newParentId);
+            this._refreshHierarchyTask(oldParentId);
+            this._refreshHierarchyTask(newParentId);
+        });
+
+        return true;
+    }
+
+    private _onAfterTasksDeleted(result: IDeleteTasksResult | null) {
+        const deletedTaskIds = result?.deletedTaskIds ?? [];
+        if (deletedTaskIds.length === 0) {
+            return;
+        }
+
+        if (!this._deleteTasksFromGantt(deletedTaskIds)) {
+            this._loadTasksToGantt();
+        }
+    }
+
+    private _deleteTasksFromGantt(deletedTaskIds: string[]): boolean {
+        const affectedParentIds = new Set<string>();
+
+        this._gantt.batchUpdate(() => {
+            for (const taskId of deletedTaskIds) {
+                if (!this._gantt.isTaskExists(taskId)) {
+                    continue;
+                }
+
+                const parentId = this._getParentTaskId(this._gantt.getTask(taskId).parent);
+                if (parentId) {
+                    affectedParentIds.add(parentId);
+                }
+
+                this._gantt.deleteTask(taskId);
+            }
+
+            for (const parentId of affectedParentIds) {
+                this._refreshHierarchyTask(parentId);
+            }
+        });
+
+        return true;
+    }
+
     private _convertRecordToTask(record: IRecord): Task {
         const parentColumnName = this._datasetControl.getNativeColumns().parentId;
         const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
@@ -189,12 +253,18 @@ export class GanttData implements IGanttData {
         for (const rawRecord of data) {
             const id = rawRecord[this._dataProvider.getMetadata().PrimaryIdAttribute];
             const record = this._dataProvider.getRecordsMap()[id];
+            if (!record) {
+                continue;
+            }
             this._syncRecordChangeFromOutside(record);
         }
     }
 
     private _syncRecordChangeFromOutside(record: IRecord) {
         const id = record.getRecordId();
+        if (!this._gantt.isTaskExists(id)) {
+            return;
+        }
         const taskToUpdate = this._gantt.getTask(id);
         const updatedTask = this._convertRecordToTask(record);
         for (const key in updatedTask) {
@@ -202,5 +272,26 @@ export class GanttData implements IGanttData {
             taskToUpdate[key] = updatedTask[key];
         }
         this._gantt.refreshTask(id);
+    }
+
+    private _refreshHierarchyTask(taskId?: string) {
+        if (!taskId) {
+            return;
+        }
+
+        const record = this._dataProvider.getRecordsMap()[taskId];
+        if (!record) {
+            return;
+        }
+
+        this._syncRecordChangeFromOutside(record);
+    }
+
+    private _getParentTaskId(parent: Task["parent"]): string | undefined {
+        if (parent == null || parent === 0) {
+            return undefined;
+        }
+
+        return String(parent);
     }
 }
