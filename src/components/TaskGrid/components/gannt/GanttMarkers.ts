@@ -2,14 +2,14 @@ import { GanttStatic } from "gantt-trial";
 import { ITaskGridDatasetControl } from "../../interfaces";
 import { ILocalizationService } from "../../../..";
 import { ITaskGridLabels } from "../../labels";
-import { GanttDates, IGanttDates } from "./GanttDates";
+import { IGanttDates } from "./GanttDates";
 import { IProjectDataProvider } from "../../extensions/providers/project";
 import { getClassNames } from "@talxis/react-components";
 import { EventEmitter, IEventEmitter } from "@talxis/client-libraries";
 
 interface IGanttMarkersParams {
     gantt: GanttStatic;
-    dates: GanttDates;
+    dates: IGanttDates;
     datasetControl: ITaskGridDatasetControl;
 }
 

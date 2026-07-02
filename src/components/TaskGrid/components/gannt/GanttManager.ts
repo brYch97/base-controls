@@ -1,15 +1,15 @@
 import { Gantt, GanttStatic, Task } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
-import { EventEmitter, IColumn, IEventEmitter, IRawRecord, IRecord } from '@talxis/client-libraries';
+import { EventEmitter, IEventEmitter } from '@talxis/client-libraries';
 import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
-import dayjs from 'dayjs';
 import { GanttDragging, IGanttDragging } from './GanttDragging';
 import { GanttDates, IGanttDates } from './GanttDates';
 import { GanttInfiniteTimeline, IGanttInfiniteTimeline } from './GanttInfiniteTimeline';
 import { GanttMarkers, IGanttMarkers } from './GanttMarkers';
 import { GanttZooming, IGanttZooming } from './zooming';
 import { GanttSelection, IGanttSelection } from './GanttSelection';
+import { GanttData, IGanttData } from './GanttData';
 
 
 interface IInitParams {
@@ -45,9 +45,9 @@ export class GanttManager implements IGanttManager {
     private _timeline: IGanttInfiniteTimeline;
     private _markers: IGanttMarkers;
     private _selection: IGanttSelection;
-    private _dates: GanttDates;
+    private _data: IGanttData;
+    private _dates: IGanttDates;
     private _gantt: GanttStatic;
-    private _expandedNodeSet: Set<string> = new Set();
 
     constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
@@ -65,6 +65,7 @@ export class GanttManager implements IGanttManager {
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates, timeline: this._timeline });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        this._data = new GanttData({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._selection = new GanttSelection({ gantt: this._gantt, dataProvider: this._dataProvider });
     }
 
@@ -112,15 +113,9 @@ export class GanttManager implements IGanttManager {
     }
 
     private _registerEventListeners() {
-        this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
-        this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[result.recordId]));
-        this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
-        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', () => this._loadTasksToGantt());
-        this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', () => this._loadTasksToGantt());
-        this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', () => this._loadTasksToGantt());
         this._bridge.addEventListener('onShowWeekendsChanged', () => this._onShowWeekendsRequested());
-        this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._onAgGridTaskExpanded(taskId));
-        this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._onAgGridTaskCollapsed(taskId));
+        this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._data.onAgGridTaskExpanded(taskId));
+        this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._data.onAgGridTaskCollapsed(taskId));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
         this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
@@ -203,120 +198,11 @@ export class GanttManager implements IGanttManager {
         }
         this._gantt.scrollTo(undefined, scrollTop);
     }
-
-    private _loadTasksToGantt() {
-        const previousOpenState = new Map<string, boolean>();
-        this._gantt.eachTask((task: Task) => previousOpenState.set(String(task.id), !!task.$open));
-
-        const records = this._dataProvider.getRecordTree().getNode(null).allChildren;
-        const data = records.map(record => {
-            const task = this._convertRecordToTask(record);
-            const previousOpen = previousOpenState.get(String(task.id));
-            if (previousOpen !== undefined) {
-                task.open = previousOpen;
-            }
-            return task;
-        });
-
-        this._gantt.clearAll();
-        this._gantt.parse({
-            data: data
-        });
-        //this._zooming.zoomToFit();
-    }
-    
-
-    private _convertRecordToTask(record: IRecord): Task {
-        const parentColumnName = this._datasetControl.getNativeColumns().parentId;
-        const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
-        let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName()));
-        let endDate = this._dates.getDateFromString(record.getValue(this._dates.getEndDateColumnName()));
-        const isMilestone = !endDate;
-
-        if (!startDate) {
-            startDate = new Date();
-        }
-        if (!endDate && !isMilestone) {
-            endDate = dayjs(startDate).add(7, 'day').toDate();
-        }
-        endDate ??= startDate;
-
-        const hasChildren = this._dataProvider.getRecordTree().hasChildren(record.getRecordId());
-        const taskType = String(isMilestone ? this._gantt.config.types.milestone : this._gantt.config.types.task);
-        return {
-            id: record.getRecordId(),
-            text: record.getNamedReference().name,
-            start_date: startDate,
-            end_date: endDate,
-            type: taskType,
-            bar_height: hasChildren ? 16 : 26,
-            progress: this._getPercentComplete(record),
-            parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,
-            active: record.isActive(),
-            open: this.isTaskExpandedByDefault(record.getRecordId()),
-        };
-    }
-
-    private _getPercentComplete(record: IRecord): number {
-        const percentCompleteColName = this._datasetControl.getNativeColumns().percentComplete;
-        if (!percentCompleteColName) {
-            return 0;
-        }
-        return (record.getValue(percentCompleteColName) ?? 0) / 100;
-    }
-
-    private isTaskExpandedByDefault(recordId: string): boolean {
-        const matchingRecords = this._dataProvider.getRecordTree().getMatchingRecords();
-        //never expand on flatlist
-        if (this._dataProvider.isFlatListEnabled()) {
-            return false
-        }
-        //always expand if no matching foud
-        if (!matchingRecords[recordId]) {
-            return true;
-        }
-        //expand if previously expanded
-        return this._expandedNodeSet.has(recordId);
-    }
-
-    private _onAgGridTaskExpanded(taskId: string) {
-        this._expandedNodeSet.add(taskId);
-        if (this._gantt.isTaskExists(taskId) && !this._gantt.getTask(taskId).$open) {
-            this._gantt.open(taskId);
-        }
-    }
-
-    private _onAgGridTaskCollapsed(taskId: string) {
-        this._expandedNodeSet.delete(taskId);
-        if (this._gantt.isTaskExists(taskId) && this._gantt.getTask(taskId).$open) {
-            this._gantt.close(taskId);
-        }
-    }
-
     private _getScrollingContainer(): Element {
         const container = this._gantt.$root?.querySelector('.gantt_data_area');
         if (!container) {
             throw new Error("Could not find Gantt scrolling container");
         }
         return container;
-    }
-
-    private _syncRawDataChangeFromOutside(data: IRawRecord[]) {
-        for (const rawRecord of data) {
-            const id = rawRecord[this._dataProvider.getMetadata().PrimaryIdAttribute];
-            const record = this._dataProvider.getRecordsMap()[id];
-            this._syncRecordChangeFromOutside(record);
-        }
-    }
-
-    private _syncRecordChangeFromOutside(record: IRecord) {
-        const id = record.getRecordId();
-        const taskToUpdate = this._gantt.getTask(id);
-        const updatedTask = this._convertRecordToTask(record);
-        for (const key in updatedTask) {
-            if (key === 'parent') continue;
-            taskToUpdate[key] = updatedTask[key];
-        }
-        this._gantt.refreshTask(id);
     }
 }
