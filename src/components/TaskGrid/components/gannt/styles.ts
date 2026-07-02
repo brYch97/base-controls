@@ -181,11 +181,8 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_data_area:active': {
                 cursor: 'grabbing',
             },
-            [`&.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_data_area`]: {
+            [`&.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS}`]: {
                 cursor: 'default',
-            },
-            [`&.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS}`]: {
-                cursor: 'copy',
             },
             position: 'relative',
             '.gantt_task_content': {
