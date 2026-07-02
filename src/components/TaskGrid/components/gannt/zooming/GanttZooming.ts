@@ -59,7 +59,7 @@ export class GanttZooming implements IGanttZooming {
         const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
         const records = selectedRecordIds.length > 0
             ? selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]).filter(Boolean)
-            : this._taskDataProvider.getAllRecords();
+            : this._taskDataProvider.getRecordTree().getNode(null).allChildren;
 
         if (!records.length || !this._gantt.$task) {
             return;
@@ -252,7 +252,7 @@ export class GanttZooming implements IGanttZooming {
         //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
         this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
-        this._taskDataProvider.addEventListener('onNewDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
+        //this._taskDataProvider.addEventListener('onNewDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
     }
 
     public destroy() {

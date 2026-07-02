@@ -47,8 +47,8 @@ export class GanttData implements IGanttData {
 
     private _registerEventListeners() {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
-        this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[result.recordId]));
-        this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._syncRawDataChangeFromOutside(data));
+        this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordsToGanttByIds([result.recordId]));
+        this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._onTaskDataUpdated(data));
         this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId) => this._onAfterTaskMoved(movingFromTaskId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', (result) => this._onAfterTasksDeleted(result));
@@ -128,7 +128,7 @@ export class GanttData implements IGanttData {
             if (parentId && this._gantt.isTaskExists(parentId)) {
                 this._expandedNodeSet.add(parentId);
                 this._gantt.open(parentId);
-                this._syncRecordChangeFromOutside(this._dataProvider.getRecordsMap()[parentId]);
+                this._syncRecordsToGanttByIds([parentId], false);
             }
         });
 
@@ -156,8 +156,8 @@ export class GanttData implements IGanttData {
 
         this._gantt.batchUpdate(() => {
             this._gantt.moveTask(movingFromTaskId, node.index, newParentId);
-            this._refreshHierarchyTask(oldParentId);
-            this._refreshHierarchyTask(newParentId);
+            this._refreshHierarchyTask(oldParentId, false);
+            this._refreshHierarchyTask(newParentId, false);
         });
 
         return true;
@@ -192,30 +192,27 @@ export class GanttData implements IGanttData {
             }
 
             for (const parentId of affectedParentIds) {
-                this._refreshHierarchyTask(parentId);
+                this._refreshHierarchyTask(parentId, false);
             }
         });
 
         return true;
     }
 
+    private _onTaskDataUpdated(data: IRawRecord[]) {
+        this._syncRecordsToGantt(this._getRecordsFromRawData(data));
+    }
+
     private _convertRecordToTask(record: IRecord): Task {
         const parentColumnName = this._datasetControl.getNativeColumns().parentId;
         const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
-        let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName()));
-        let endDate = this._dates.getDateFromString(record.getValue(this._dates.getEndDateColumnName()));
+        let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName())) ?? undefined;
+        let endDate = this._dates.getDateFromString(record.getValue(this._dates.getEndDateColumnName())) ?? undefined;
         const isMilestone = !endDate;
-
-        if (!startDate) {
-            startDate = new Date();
-        }
-        if (!endDate && !isMilestone) {
-            endDate = dayjs(startDate).add(7, 'day').toDate();
-        }
-        endDate ??= startDate;
 
         const hasChildren = this._dataProvider.getRecordTree().hasChildren(record.getRecordId());
         const taskType = String(isMilestone ? this._gantt.config.types.milestone : this._gantt.config.types.task);
+        
         return {
             id: record.getRecordId(),
             text: record.getNamedReference().name,
@@ -249,18 +246,7 @@ export class GanttData implements IGanttData {
         return this._expandedNodeSet.has(recordId);
     }
 
-    private _syncRawDataChangeFromOutside(data: IRawRecord[]) {
-        for (const rawRecord of data) {
-            const id = rawRecord[this._dataProvider.getMetadata().PrimaryIdAttribute];
-            const record = this._dataProvider.getRecordsMap()[id];
-            if (!record) {
-                continue;
-            }
-            this._syncRecordChangeFromOutside(record);
-        }
-    }
-
-    private _syncRecordChangeFromOutside(record: IRecord) {
+    private _syncRecordToGantt(record: IRecord) {
         const id = record.getRecordId();
         if (!this._gantt.isTaskExists(id)) {
             return;
@@ -271,20 +257,42 @@ export class GanttData implements IGanttData {
             if (key === 'parent') continue;
             taskToUpdate[key] = updatedTask[key];
         }
-        this._gantt.refreshTask(id);
     }
 
-    private _refreshHierarchyTask(taskId?: string) {
+    private _syncRecordsToGantt(records: IRecord[], useBatch: boolean = true) {
+        const sync = () => {
+            for (const record of records) {
+                this._syncRecordToGantt(record);
+            }
+        };
+
+        if (useBatch) {
+            this._gantt.batchUpdate(sync);
+            return;
+        }
+
+        sync();
+    }
+
+    private _syncRecordsToGanttByIds(recordIds: string[], useBatch: boolean = true) {
+        const records = recordIds.map(recordId => this._dataProvider.getRecordsMap()[recordId])
+        if (records.length === 0) {
+            return;
+        }
+        this._syncRecordsToGantt(records, useBatch);
+    }
+
+    private _getRecordsFromRawData(data: IRawRecord[]) {
+        const primaryIdAttribute = this._dataProvider.getMetadata().PrimaryIdAttribute;
+        return data.map(rawRecord => this._dataProvider.getRecordsMap()[rawRecord[primaryIdAttribute]])
+    }
+
+    private _refreshHierarchyTask(taskId?: string, useBatch: boolean = true) {
         if (!taskId) {
             return;
         }
 
-        const record = this._dataProvider.getRecordsMap()[taskId];
-        if (!record) {
-            return;
-        }
-
-        this._syncRecordChangeFromOutside(record);
+        this._syncRecordsToGanttByIds([taskId], useBatch);
     }
 
     private _getParentTaskId(parent: Task["parent"]): string | undefined {
