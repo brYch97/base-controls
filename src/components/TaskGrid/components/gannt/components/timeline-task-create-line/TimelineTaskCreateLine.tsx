@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Icon, useTheme } from '@fluentui/react';
+import { useTheme } from '@fluentui/react';
 import { getTimelineTaskCreateLineStyles } from './styles';
 
 export interface ITimelineTaskCreateLineProps {
@@ -16,8 +16,6 @@ export const TimelineTaskCreateLine = (props: ITimelineTaskCreateLineProps) => {
         <div
             className={styles.root}
             style={{ left: props.left, top: props.top, width: props.width }}
-        >
-            <Icon iconName="Add" className={styles.icon} />
-        </div>
+        />
     );
 };
