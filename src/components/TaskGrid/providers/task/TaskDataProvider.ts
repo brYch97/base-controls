@@ -32,6 +32,11 @@ export interface ITaskDataProviderParameters {
     onIsFlatListEnabled: () => boolean;
 }
 
+export interface ICreateTaskParameters {
+    parentId?: string;
+    data?: { [key: string]: any };
+}
+
 /** Strategy interface that handles all data access and mutation operations for tasks. */
 export interface ITaskDataProviderStrategy {
     /**
@@ -45,7 +50,7 @@ export interface ITaskDataProviderStrategy {
     /** Returns linked-entity columns that can be used for filtering and sorting. */
     onGetAvailableRelatedColumns: () => Promise<IAvailableRelatedColumn[]>;
     /** @returns The created task raw record, or `null` if the operation was cancelled by the user. Throws on unexpected failure. */
-    onCreateTask(parentTaskId?: string): Promise<IRawRecord | null>;
+    onCreateTask(parameters?: ICreateTaskParameters): Promise<IRawRecord | null>;
     /**
      * @returns Result indicating which tasks were deleted and which failed.
      * `success: true` means all tasks were deleted. `success: false` means some or all failed.
@@ -109,7 +114,7 @@ export interface ITaskDataProvider extends IDataProvider {
      */
     openTaskItems(taskIds: string[]): Promise<IOpenDatasetItemsResult | null>;
     /** @returns The created task raw record, or `null` if the operation was cancelled by the user. Throws on unexpected failure. */
-    createTask(parentTaskId?: string): Promise<IRawRecord | null>;
+    createTask(parameters?: ICreateTaskParameters): Promise<IRawRecord | null>;
     /**
      * @returns Result indicating which tasks were deleted and which failed.
      * `success: true` means all tasks were deleted. `success: false` means some or all failed — `deletedTaskIds` still contains the ids that succeeded.
@@ -278,11 +283,12 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
         })
     }
 
-    public async createTask(parentId?: string): Promise<IRawRecord | null> {
+    public async createTask(parameters?: ICreateTaskParameters): Promise<IRawRecord | null> {
+        const parentId = parameters?.parentId;
         this.taskEvents.dispatchEvent('onBeforeTasksCreated', parentId);
         return ErrorHelper.executeWithErrorHandling({
             operation: async () => {
-                const rawRecord = await this._strategy.onCreateTask(parentId);
+                const rawRecord = await this._strategy.onCreateTask(parameters);
                 if (rawRecord) this._createTasks([rawRecord], parentId);
                 this.taskEvents.dispatchEvent('onAfterTasksCreated', rawRecord ? [rawRecord] : null, parentId);
                 return rawRecord;

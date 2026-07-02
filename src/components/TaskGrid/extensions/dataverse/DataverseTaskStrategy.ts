@@ -1,5 +1,5 @@
 import { IRecord, IFetchXmlDataProvider, IRawRecord, FetchXmlDataProvider, FetchXmlBuilder, IAvailableColumnOptions, IAvailableRelatedColumn, IRecordSaveOperationResult, IColumn, Sanitizer, Operators, DataTypes, ISingleRecord, DatasetConstants } from "@talxis/client-libraries";
-import { ITaskDataProviderStrategy, ITaskDataProvider, IDeleteTasksResult, IOpenDatasetItemsResult, ICustomColumnsDataProvider } from "../../providers";
+import { ITaskDataProviderStrategy, ITaskDataProvider, IDeleteTasksResult, IOpenDatasetItemsResult, ICustomColumnsDataProvider, ICreateTaskParameters } from "../../providers";
 import { IRecordTree } from "../../providers/task/record-tree";
 import { LexoRank } from "lexorank";
 import { Liquid } from "liquidjs";
@@ -337,8 +337,9 @@ export class DataverseTaskStrategy implements IDataverseTaskStrategy {
         return this._fetchXmlDataProvider.getAvailableRelatedColumns();
     }
 
-    public async onCreateTask(parentTaskId?: string): Promise<IRawRecord | null> {
-        const data: { [key: string]: any } = {};
+    public async onCreateTask(parameters?: ICreateTaskParameters): Promise<IRawRecord | null> {
+        const parentTaskId = parameters?.parentId;
+        const data: { [key: string]: any } = { ...(parameters?.data ?? {}) };
         let pageInput: Xrm.Navigation.PageInputEntityRecord = {
             pageType: 'entityrecord',
             entityName: this._entityName,
@@ -360,7 +361,7 @@ export class DataverseTaskStrategy implements IDataverseTaskStrategy {
             data[`${parentIdColumnName}type`] = this._entityName;
         }
         const node = this._taskTree.getNode(parentTaskId ?? null);
-        let payload: { [key: string]: any } = {};
+        let payload: { [key: string]: any } = { ...(parameters?.data ?? {}) };
         payload[`${this._getFieldMapping().stackRank}`] = await this._updateStackRank({ previousTaskId: undefined, nextTaskId: node.directChildren[0]?.getRecordId(), skipSave: true });
 
         if (this._projectReference) {
