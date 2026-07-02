@@ -25,15 +25,23 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
     }, []);
 
+    const onContextMenu = useCallback((e: MouseEvent) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+        }
+    }, []);
+
     const onInit = () => {
         window.addEventListener('keyup', onKeyUp);
         window.addEventListener('keydown', onKeyDown);
+        gantt.$root.addEventListener('contextmenu', onContextMenu);
     };
 
     useEffect(() => {
         return () => {
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('keydown', onKeyDown);
+            gantt.$root.removeEventListener('contextmenu', onContextMenu);
             dragging.setDraggingDisabled(false);
             setTaskCreateCursor(false);
         };
