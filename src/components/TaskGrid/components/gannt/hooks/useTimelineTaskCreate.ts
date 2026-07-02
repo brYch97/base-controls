@@ -13,9 +13,16 @@ interface ITimelineTaskCreateLinePreview {
     width: number;
 }
 
+interface ITimelineTaskCreateRowOverlay {
+    top: number;
+    height: number;
+}
+
 interface IActivePreviewState {
     anchorTimelineX: number;
     currentClientX: number;
+    rowHeight: number;
+    rowTop: number;
     top: number;
 }
 
@@ -23,6 +30,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     const gantt = ganttManager.getGanttInstance();
     const dragging = ganttManager.getDragging();
     const [linePreview, setLinePreview] = useState<ITimelineTaskCreateLinePreview | null>(null);
+    const [rowOverlay, setRowOverlay] = useState<ITimelineTaskCreateRowOverlay | null>(null);
     const activePreviewRef = useRef<IActivePreviewState | null>(null);
     const autoScrollIntervalRef = useRef<number | null>(null);
     const autoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
@@ -34,6 +42,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     const clearPreview = () => {
         activePreviewRef.current = null;
         setLinePreview(null);
+        setRowOverlay(null);
     };
 
     const stopAutoScroll = () => {
@@ -57,11 +66,15 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         return element.closest('.gantt_task_row') as HTMLElement | null;
     };
 
-    const getPreviewTop = (rowElement: HTMLElement) => {
+    const getPreviewRowGeometry = (rowElement: HTMLElement) => {
         const rootRect = gantt.$root.getBoundingClientRect();
         const rowRect = rowElement.getBoundingClientRect();
 
-        return rowRect.top - rootRect.top + (rowRect.height / 2);
+        return {
+            top: rowRect.top - rootRect.top,
+            height: rowRect.height,
+            lineTop: rowRect.top - rootRect.top + (rowRect.height / 2),
+        };
     };
 
     const updatePreview = () => {
@@ -79,6 +92,10 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
             left: activePreview.anchorTimelineX - scrollX,
             top: activePreview.top,
             width: Math.max(0, currentTimelineX - activePreview.anchorTimelineX),
+        });
+        setRowOverlay({
+            top: activePreview.rowTop,
+            height: activePreview.rowHeight,
         });
     };
 
@@ -167,12 +184,6 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
     }, []);
 
-    const onContextMenu = useCallback((e: MouseEvent) => {
-        if (e.ctrlKey) {
-            e.preventDefault();
-        }
-    }, []);
-
     const onMouseDown = useCallback((e: MouseEvent) => {
         if (!e.ctrlKey || e.button !== 0) {
             return;
@@ -188,12 +199,14 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         const scrollX = gantt.getScrollState().x;
         const rootLeft = gantt.$root.getBoundingClientRect().left;
         const anchorTimelineX = scrollX + e.clientX - rootLeft;
-        const top = getPreviewTop(rowElement);
+        const rowGeometry = getPreviewRowGeometry(rowElement);
 
         activePreviewRef.current = {
             anchorTimelineX,
             currentClientX: e.clientX,
-            top,
+            rowHeight: rowGeometry.height,
+            rowTop: rowGeometry.top,
+            top: rowGeometry.lineTop,
         };
 
         updatePreview();
@@ -206,8 +219,12 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
 
         const rowElement = getPreviewRowElement(e.target);
-        const top = rowElement ? getPreviewTop(rowElement) : activePreview.top;
-        activePreview.top = top;
+        if (rowElement) {
+            const rowGeometry = getPreviewRowGeometry(rowElement);
+            activePreview.rowHeight = rowGeometry.height;
+            activePreview.rowTop = rowGeometry.top;
+            activePreview.top = rowGeometry.lineTop;
+        }
         activePreview.currentClientX = e.clientX;
         syncAutoScrollDirection(e.clientX);
         updatePreview();
@@ -224,7 +241,6 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
         gantt.$task.addEventListener('mousedown', onMouseDown);
-        gantt.$root.addEventListener('contextmenu', onContextMenu);
     };
 
     useEffect(() => {
@@ -234,7 +250,6 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
             gantt.$task.removeEventListener('mousedown', onMouseDown);
-            gantt.$root.removeEventListener('contextmenu', onContextMenu);
             dragging.setDraggingDisabled(false);
             setTaskCreateCursor(false);
             stopAutoScroll();
@@ -246,5 +261,6 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
 
     return {
         linePreview,
+        rowOverlay,
     };
 };

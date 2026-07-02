@@ -4,7 +4,7 @@ import { useDatasetControl } from '../..';
 import { getGanttStyles } from './styles';
 import { useTheme } from '@fluentui/react';
 import { GanttComponents } from './components/components';
-import { TimelineTaskCreateLine } from './components';
+import { TimelineTaskCreateLine, TimelineTaskCreateRowOverlay } from './components';
 import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTimelineTaskCreate } from './hooks/useTimelineTaskCreate';
@@ -25,7 +25,7 @@ export const Gantt = (props: IGanttProps) => {
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
     const { tooltip } = useTooltip({ gantt });
-    const { linePreview } = useTimelineTaskCreate(ganttManager);
+    const { linePreview, rowOverlay } = useTimelineTaskCreate(ganttManager);
     useSelectionBox(ganttManager);
     useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
 
@@ -45,6 +45,7 @@ export const Gantt = (props: IGanttProps) => {
         <>
             <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                 <div ref={ref} className={styles.root} style={{ width: '100%', height: '100%' }} />
+                {rowOverlay && <TimelineTaskCreateRowOverlay {...rowOverlay} />}
                 {linePreview && <TimelineTaskCreateLine {...linePreview} />}
             </div>
             <GanttComponentsContext.Provider value={components}>
