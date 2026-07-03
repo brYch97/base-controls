@@ -1,5 +1,6 @@
 import { GanttStatic, Task } from 'gantt-trial'
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { GANTT_TASK_ROW_CLASS } from '../classNames';
 
 interface IUseTooltipParams {
 	gantt: GanttStatic;
@@ -17,7 +18,7 @@ export const useTooltip = (params: IUseTooltipParams) => {
 
 	const onMouseMove = useCallback((event: MouseEvent) => {
 		const taskAttr = params.gantt.config.task_attribute;
-		const taskNode = (event.target as HTMLElement).closest<HTMLElement>(`[${taskAttr}]:not(.gantt_task_row)`);
+		const taskNode = (event.target as HTMLElement).closest<HTMLElement>(`[${taskAttr}]:not(.${GANTT_TASK_ROW_CLASS})`);
 		if (!taskNode) {
 			setTooltipState(null);
 			return;
@@ -35,7 +36,7 @@ export const useTooltip = (params: IUseTooltipParams) => {
 	const onMouseOut = useCallback((event: MouseEvent) => {
 		const taskAttr = gantt.config.task_attribute;
 		const related = event.relatedTarget as HTMLElement | null;
-		if (!related?.closest(`[${taskAttr}]:not(.gantt_task_row)`)) {
+		if (!related?.closest(`[${taskAttr}]:not(.${GANTT_TASK_ROW_CLASS})`)) {
 			setTooltipState(null);
 		}
 	}, []);

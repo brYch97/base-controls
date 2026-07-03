@@ -83,10 +83,4 @@ export class TaskGridDatasetControlFactory {
         return parameters.state.savedQuery?.isFlatListEnabled ?? savedQueryDataProvider.getSavedQuery(currentQueryId).isFlatListEnabled ?? false;
     }
 
-    //TODO: should 
-    private static _getShowWeekends(parameters: ITaskGridDatasetControlFactoryParameters, savedQueryDataProvider: ISavedQueryDataProvider): boolean {
-        const currentQueryId = savedQueryDataProvider.getCurrentQuery().id;
-        return parameters.state.savedQuery?.showWeekends ?? savedQueryDataProvider.getSavedQuery(currentQueryId).showWeekends ?? true;
-    }
-
 }

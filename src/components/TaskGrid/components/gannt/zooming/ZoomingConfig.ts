@@ -1,4 +1,5 @@
 import { ZoomConfig } from "gantt-trial";
+import { GANTT_TASK_CONTAINER_CLASS } from "../classNames";
 export class ZoomingConfig {
     public static readonly scrollZoomMinColumnWidth = 60;
     public static readonly scrollZoomMaxColumnWidth = 120;
@@ -169,7 +170,7 @@ export class ZoomingConfig {
             ],
             useKey: "ctrlKey",
             trigger: "wheel",
-            element: () => gantt.$root.querySelector(".gantt_task")!,
+            element: () => gantt.$root.querySelector(`.${GANTT_TASK_CONTAINER_CLASS}`)!,
         };
     }
 }

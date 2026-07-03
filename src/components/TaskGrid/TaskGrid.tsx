@@ -119,7 +119,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                 return (
                                     <div className={styles.container}>
                                         {ganttComponent ? (
-                                            <PanelGroup direction="horizontal">
+                                            <PanelGroup direction="horizontal" onLayout={(layout) => console.log(layout)} >
                                                 <Panel defaultSize={35}>
                                                     <Grid {...props} />
                                                 </Panel>

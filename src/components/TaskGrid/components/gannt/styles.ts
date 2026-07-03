@@ -7,8 +7,18 @@ import {
     TODAY_MARKER_CLASS,
 } from "./GanttMarkers";
 import {
+    GANTT_DATA_AREA_CLASS,
+    GANTT_ROW_INACTIVE_CLASS,
     GANTT_SELECTION_CURSOR_CLASS,
+    GANTT_TASK_BG_CLASS,
+    GANTT_TASK_CELL_CLASS,
+    GANTT_TASK_CONTAINER_CLASS,
+    GANTT_TASK_CONTENT_CLASS,
+    GANTT_TASK_LINE_CLASS,
+    GANTT_TASK_SELECTED_CLASS,
+    GANTT_TASK_SUMMARY_CLASS,
     GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS,
+    WEEKEND_CLASS,
 } from "./classNames";
 
 
@@ -121,7 +131,7 @@ export const getGanttStyles = (theme: ITheme) => {
             // ── Undo / delete toast ────────────────────────────────────────
             '--dhx-gantt-undo-delete-background': theme.semanticColors.bodyText,
             '--dhx-gantt-undo-delete-color': theme.semanticColors.primaryButtonText,
-            '.gantt_row_inactive': {
+            [`.${GANTT_ROW_INACTIVE_CLASS}`]: {
                 position: 'relative',
                 '::after': {
                     content: '""',
@@ -134,45 +144,45 @@ export const getGanttStyles = (theme: ITheme) => {
                     cursor: 'not-allowed',
                 },
             },
-            '.gantt_task_line.gantt_task_selected, .gantt_task_line.gantt_selection_preview': {
+            [`.${GANTT_TASK_LINE_CLASS}.${GANTT_TASK_SELECTED_CLASS}, .${GANTT_TASK_LINE_CLASS}.gantt_selection_preview`]: {
                 filter: 'brightness(1.06) saturate(1.08)',
                 transition: 'outline-color 120ms ease, filter 120ms ease',
                 zIndex: 2,
             },
-            '.gantt_task_line.gantt_task_summary': {
+            [`.${GANTT_TASK_LINE_CLASS}.${GANTT_TASK_SUMMARY_CLASS}`]: {
                 backgroundColor: '#8DB7E8 !important',
                 borderColor: 'transparent !important',
                 boxShadow: 'none',
             },
-            '.gantt_task_line.gantt_task_summary .gantt_task_progress': {
+            [`.${GANTT_TASK_LINE_CLASS}.${GANTT_TASK_SUMMARY_CLASS} .gantt_task_progress`]: {
                 backgroundColor: '#6A9AD6 !important',
             },
-            '.gantt_task_line.gantt_task_summary .gantt_task_content': {
+            [`.${GANTT_TASK_LINE_CLASS}.${GANTT_TASK_SUMMARY_CLASS} .${GANTT_TASK_CONTENT_CLASS}`]: {
                 color: `${theme.palette.neutralPrimary} !important`,
             },
-            '.gantt_task_line:not(.gantt_task_summary)': {
+            [`.${GANTT_TASK_LINE_CLASS}:not(.${GANTT_TASK_SUMMARY_CLASS})`]: {
                 backgroundColor: '#9BCB96 !important',
                 borderColor: 'transparent !important',
                 boxShadow: 'none',
             },
-            '.gantt_task_line:not(.gantt_task_summary) .gantt_task_progress': {
+            [`.${GANTT_TASK_LINE_CLASS}:not(.${GANTT_TASK_SUMMARY_CLASS}) .gantt_task_progress`]: {
                 backgroundColor: '#69A96B !important',
             },
-            '.gantt_data_area': {
+            [`.${GANTT_DATA_AREA_CLASS}`]: {
                 cursor: 'grab',
             },
-            '.gantt_task': {
+            [`.${GANTT_TASK_CONTAINER_CLASS}`]: {
                 overscrollBehaviorX: 'contain',
                 clipPath: 'inset(0)',
             },
-            '.gantt_data_area:active': {
+            [`.${GANTT_DATA_AREA_CLASS}:active`]: {
                 cursor: 'grabbing',
             },
-            [`&.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_data_area, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_line, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_line *, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_left, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_line, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_line *, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_left, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS}`]: {
+            [`&.${GANTT_SELECTION_CURSOR_CLASS} .${GANTT_TASK_BG_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS} .${GANTT_TASK_CELL_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS} .${GANTT_DATA_AREA_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS} .${GANTT_TASK_LINE_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS} .${GANTT_TASK_LINE_CLASS} *, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_left, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .${GANTT_TASK_BG_CLASS}, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .${GANTT_TASK_CELL_CLASS}, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .${GANTT_DATA_AREA_CLASS}, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .${GANTT_TASK_LINE_CLASS}, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .${GANTT_TASK_LINE_CLASS} *, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_left, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS}`]: {
                 cursor: 'default',
             },
             position: 'relative',
-            '.gantt_task_content': {
+            [`.${GANTT_TASK_CONTENT_CLASS}`]: {
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
@@ -189,7 +199,7 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_task_scale': {
                 fontWeight: 600
             },
-            '.gantt_scale_cell.weekend, .gantt_task_cell.weekend': {
+            [`.gantt_scale_cell.${WEEKEND_CLASS}, .${GANTT_TASK_CELL_CLASS}.${WEEKEND_CLASS}`]: {
                 backgroundColor: theme.semanticColors.disabledBackground
             },
             // ── Marker vertical lines ─────────────────────────────────────

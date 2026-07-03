@@ -2,7 +2,10 @@ import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
 import { IGanttDates } from './GanttDates';
-import { GANTT_DRAGGING_DISABLED_CLASS, GANTT_TASK_LINE_CLASS } from './classNames';
+import {
+    GANTT_DRAGGING_DISABLED_CLASS,
+    GANTT_TASK_LINE_CLASS,
+} from './classNames';
 
 export interface IGanttDragging {
     setDraggingDisabled: (disabled: boolean) => void;

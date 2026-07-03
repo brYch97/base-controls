@@ -2,7 +2,16 @@ import { useCallback, useEffect } from "react";
 import { useRef, useState } from "react";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../hooks";
-import { GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS } from "../classNames";
+import {
+    GANTT_DATA_AREA_CLASS,
+    GANTT_TASK_BG_CLASS,
+    GANTT_TASK_CELL_CLASS,
+    GANTT_TASK_CONTENT_CLASS,
+    GANTT_TASK_ID_ATTRIBUTE,
+    GANTT_TASK_LINE_CLASS,
+    GANTT_TASK_ROW_CLASS,
+    GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS,
+} from "../classNames";
 import { useTaskDataProvider } from "../../../context";
 
 const EDGE_SCROLL_THRESHOLD = 50;
@@ -69,7 +78,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
 
         return gantt.$root.contains(element)
-            && !!element.closest('.gantt_task_bg, .gantt_task_cell, .gantt_task_line, .gantt_task_content, .gantt_data_area, [data-task-id]');
+            && !!element.closest(`.${GANTT_TASK_BG_CLASS}, .${GANTT_TASK_CELL_CLASS}, .${GANTT_TASK_LINE_CLASS}, .${GANTT_TASK_CONTENT_CLASS}, .${GANTT_DATA_AREA_CLASS}, [${GANTT_TASK_ID_ATTRIBUTE}]`);
     };
 
     const getPreviewTargetState = (target: EventTarget | null): Pick<IActivePreviewState, 'currentTaskId' | 'rowHeight' | 'rowTop' | 'top'> | null => {
@@ -83,19 +92,19 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
 
         const rootRect = gantt.$root.getBoundingClientRect();
-        const rowElement = element.closest('.gantt_task_row') as HTMLElement | null;
+        const rowElement = element.closest(`.${GANTT_TASK_ROW_CLASS}`) as HTMLElement | null;
 
         if (rowElement) {
             const rowRect = rowElement.getBoundingClientRect();
             return {
-                currentTaskId: rowElement.closest('[data-task-id]')?.getAttribute('data-task-id') ?? undefined,
+                currentTaskId: rowElement.closest(`[${GANTT_TASK_ID_ATTRIBUTE}]`)?.getAttribute(GANTT_TASK_ID_ATTRIBUTE) ?? undefined,
                 rowHeight: rowRect.height,
                 rowTop: rowRect.top - rootRect.top,
                 top: rowRect.top - rootRect.top + (rowRect.height / 2),
             };
         }
 
-        const taskElement = element.closest('[data-task-id]') as HTMLElement | null;
+        const taskElement = element.closest(`[${GANTT_TASK_ID_ATTRIBUTE}]`) as HTMLElement | null;
         if (!taskElement) {
             return null;
         }
@@ -105,7 +114,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         const rowTop = taskRect.top - rootRect.top - ((rowHeight - taskRect.height) / 2);
 
         return {
-            currentTaskId: taskElement.getAttribute('data-task-id') ?? undefined,
+            currentTaskId: taskElement.getAttribute(GANTT_TASK_ID_ATTRIBUTE) ?? undefined,
             rowHeight,
             rowTop,
             top: rowTop + (rowHeight / 2),

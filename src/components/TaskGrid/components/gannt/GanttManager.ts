@@ -11,6 +11,14 @@ import { GanttMarkers, IGanttMarkers } from './GanttMarkers';
 import { GanttZooming, IGanttZooming } from './zooming';
 import { GanttSelection, IGanttSelection } from './GanttSelection';
 import { GanttData, IGanttData } from './GanttData';
+import {
+    GANTT_DATA_AREA_CLASS,
+    GANTT_ROW_INACTIVE_CLASS,
+    GANTT_SELECTED_ROW_CLASS,
+    GANTT_TASK_SELECTED_CLASS,
+    GANTT_TASK_SUMMARY_CLASS,
+    WEEKEND_CLASS,
+} from './classNames';
 
 
 interface IInitParams {
@@ -160,7 +168,7 @@ export class GanttManager implements IGanttManager {
 
     private _getWeekendClass(date: Date): string | undefined {
         const showWeekends = this._datasetControl.getShowWeekends();
-        return showWeekends &&this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? 'weekend' : undefined;
+        return showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? WEEKEND_CLASS : undefined;
     }
 
     private _isWeekend(date: Date) {
@@ -216,10 +224,10 @@ export class GanttManager implements IGanttManager {
         const id = task.id as string;
         const classNames = [];
         if (!task.active) {
-            classNames.push('gantt_row_inactive');
+            classNames.push(GANTT_ROW_INACTIVE_CLASS);
         }
         if (this._dataProvider.getSelectedRecordIds().includes(id)) {
-            classNames.push('gantt_selected');
+            classNames.push(GANTT_SELECTED_ROW_CLASS);
         }
         return classNames.join(' ');
     }
@@ -228,10 +236,10 @@ export class GanttManager implements IGanttManager {
         const id = task.id as string;
         const classNames = [];
         if (this._dataProvider.getRecordTree().hasChildren(id)) {
-            classNames.push('gantt_task_summary');
+            classNames.push(GANTT_TASK_SUMMARY_CLASS);
         }
         if (this._dataProvider.getSelectedRecordIds().includes(id)) {
-            classNames.push('gantt_task_selected');
+            classNames.push(GANTT_TASK_SELECTED_CLASS);
         }
         return classNames.join(' ');
     }
@@ -252,7 +260,7 @@ export class GanttManager implements IGanttManager {
         this._gantt.scrollTo(undefined, scrollTop);
     }
     private _getScrollingContainer(): Element {
-        const container = this._gantt.$root?.querySelector('.gantt_data_area');
+        const container = this._gantt.$root?.querySelector(`.${GANTT_DATA_AREA_CLASS}`);
         if (!container) {
             throw new Error("Could not find Gantt scrolling container");
         }
