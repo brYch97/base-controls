@@ -38,7 +38,10 @@ export const AddTaskButton = (props: ICellProps) => {
             iconProps: {
                 iconName: 'Add'
             },
-            onClick: () => { taskDataProvider.createTask({ parentId: record.getRecordId() }) }
+            onClick: () => { taskDataProvider.createTask({ 
+                parentId: record.getRecordId(),
+                nextTaskId: taskDataProvider.getRecordTree().getNode(record.getRecordId()).directChildren[0]?.getRecordId()
+            }) }
         },
         {
             key: 'divider',
@@ -81,7 +84,10 @@ export const AddTaskButton = (props: ICellProps) => {
         return <IconButton
             className={`${styles.addTaskBtnRoot} talxis_task-grid_add-task-button`}
             iconProps={{ iconName: 'Add' }}
-            onClick={!isTemplatingEnabled ? () => taskDataProvider.createTask({ parentId: record.getRecordId() }) : undefined}
+            onClick={!isTemplatingEnabled ? () => taskDataProvider.createTask({ 
+                parentId: record.getRecordId(),
+                nextTaskId: taskDataProvider.getRecordTree().getNode(record.getRecordId()).directChildren[0]?.getRecordId()
+            }) : undefined}
             menuProps={isTemplatingEnabled ? { items: getMenuItems() } : undefined}
             styles={{ menuIcon: styles.addTaskMenuIcon }} />
     }

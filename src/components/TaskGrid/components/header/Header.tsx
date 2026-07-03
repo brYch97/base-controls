@@ -53,7 +53,9 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 disabled: isLoading,
                 iconProps: { iconName: 'AddToShoppingList' },
                 text: localizationService.getLocalizedString('topLevel'),
-                onClick: () => { provider.createTask(); }
+                onClick: () => { provider.createTask({
+                    nextTaskId: provider.getRecordTree().getNode(null).directChildren[0]?.getRecordId()
+                }); }
             }] : []),
             ...(isTemplatingEnabled ? [
                 ...(isTaskAddingEnabled ? [{ key: 'divider', itemType: ContextualMenuItemType.Divider }] : []),
@@ -107,7 +109,9 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 text: localizationService.getLocalizedString('new'),
                 disabled: isLoading,
                 iconProps: { iconName: 'Add' },
-                onClick: (isTaskAddingEnabled && !isTemplatingEnabled) ? () => { provider.createTask(); } : undefined,
+                onClick: (isTaskAddingEnabled && !isTemplatingEnabled) ? () => { provider.createTask({
+                    nextTaskId: provider.getRecordTree().getNode(null).directChildren[0]?.getRecordId()
+                }); } : undefined,
                 subMenuProps: (isTaskAddingEnabled && !isTemplatingEnabled) ? undefined : { items: getNewSubMenuItems(isTemplatingEnabled, isTaskAddingEnabled, selectedIds, isLoading) }
             }] : []),
             ...(selectedIds.length !== 0 ? [
@@ -192,7 +196,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
                             }
                         })
                     },
-                    
+
                 })}
                 {editColumnsOpen &&
                     <EditColumns onDismiss={() => setEditColumnsOpen(false)} />

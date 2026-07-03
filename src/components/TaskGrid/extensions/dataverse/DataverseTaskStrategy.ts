@@ -339,9 +339,8 @@ export class DataverseTaskStrategy implements IDataverseTaskStrategy {
 
     public async onCreateTask(parameters?: ICreateTaskParameters): Promise<IRawRecord | null> {
         const parentTaskId = parameters?.parentId;
-        const node = this._taskTree.getNode(parentTaskId ?? null);
         const previousTaskId = parameters?.previousTaskId;
-        const nextTaskId = parameters?.nextTaskId ?? node.directChildren[0]?.getRecordId();
+        const nextTaskId = parameters?.nextTaskId;
         const data: { [key: string]: any } = { ...(parameters?.data ?? {}) };
         let pageInput: Xrm.Navigation.PageInputEntityRecord = {
             pageType: 'entityrecord',

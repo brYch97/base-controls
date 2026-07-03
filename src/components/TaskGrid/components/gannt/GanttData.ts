@@ -191,17 +191,13 @@ export class GanttData implements IGanttData {
         const parent: ComponentFramework.EntityReference | null = record.getValue(parentColumnName)?.[0];
         let startDate = this._dates.getDateFromString(record.getValue(this._dates.getStartDateColumnName())) ?? undefined;
         let endDate = this._dates.getDateFromString(record.getValue(this._dates.getEndDateColumnName())) ?? undefined;
-        const isMilestone = !endDate;
-
         const hasChildren = this._dataProvider.getRecordTree().hasChildren(record.getRecordId());
-        const taskType = String(isMilestone ? this._gantt.config.types.milestone : this._gantt.config.types.task);
         
         return {
             id: record.getRecordId(),
             text: record.getNamedReference().name,
             start_date: startDate,
             end_date: endDate,
-            type: taskType,
             bar_height: hasChildren ? 16 : 26,
             progress: this._getPercentComplete(record),
             parent: this._dataProvider.isFlatListEnabled() ? undefined : parent?.id?.guid,

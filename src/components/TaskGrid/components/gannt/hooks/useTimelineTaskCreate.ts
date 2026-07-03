@@ -43,6 +43,11 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         gantt.$root.classList.toggle(GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS, enabled);
     };
 
+    const setTaskCreateMode = (enabled: boolean) => {
+        dragging.setDraggingDisabled(enabled);
+        setTaskCreateCursor(enabled);
+    };
+
     const clearPreview = () => {
         activePreviewRef.current = null;
         setLinePreview(null);
@@ -178,8 +183,10 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
 
     const onKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Control') {
-            dragging.setDraggingDisabled(false);
-            setTaskCreateCursor(false);
+            if (activePreviewRef.current) {
+                return;
+            }
+            setTaskCreateMode(false);
             stopAutoScroll();
             clearPreview();
         }
@@ -187,8 +194,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
 
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Control') {
-            dragging.setDraggingDisabled(true);
-            setTaskCreateCursor(true);
+            setTaskCreateMode(true);
         }
     }, []);
 
@@ -244,6 +250,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         stopAutoScroll();
         createTask(activePreviewRef.current);
         clearPreview();
+        setTaskCreateMode(false);
     }, []);
 
     const createTask = (activePreview: IActivePreviewState | null) => {
@@ -291,8 +298,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
             gantt.$task.removeEventListener('mousedown', onMouseDown);
-            dragging.setDraggingDisabled(false);
-            setTaskCreateCursor(false);
+            setTaskCreateMode(false);
             stopAutoScroll();
             clearPreview();
         };
