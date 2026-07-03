@@ -99,11 +99,27 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.scale_height = 43;
         this._gantt.config.show_tasks_outside_timescale = true;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
+        this._setUpLayout();
         this._setUpClasses();
         this._setUpWeekendVisibility();
         this._gantt.init(params.container);
         this._registerEventListeners();
         this.events.dispatchEvent('onInit');
+    }
+
+    private _setUpLayout() {
+        this._gantt.config.layout = {
+            css: 'gantt_container',
+            rows: [
+                {
+                    cols: [
+                        { view: 'timeline', scrollX: 'scrollHor', scrollY: 'scrollVer' },
+                        { view: 'scrollbar', id: 'scrollVer' },
+                    ],
+                },
+                { view: 'scrollbar', id: 'scrollHor', height: 20 },
+            ],
+        };
     }
 
     public getGanttInstance() {

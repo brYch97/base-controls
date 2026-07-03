@@ -16,6 +16,10 @@ import { IProjectDataProvider } from "./extensions/providers/project";
 
 const STATE_CODE_ACTIVE = 0;
 
+export interface ITaskGridDatasetControlEvents {
+    
+}
+
 export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> implements ITaskGridDatasetControl {
     private _dataset: IDataset;
     private _descriptor: ITaskGridDescriptor;
@@ -30,7 +34,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     private _commands: ICommand[] = [];
     private _getPcfContext: () => ComponentFramework.Context<any, any>;
     private _changeToQueryId!: string;
-    public readonly events: IEventEmitter<IDatasetControlEvents> = new EventEmitter<IDatasetControlEvents>();
+    public readonly events: IEventEmitter<ITaskGridDatasetControlEvents> = new EventEmitter<ITaskGridDatasetControlEvents>();
     public readonly ganttGridBridge = new GanttGridBridge();
 
     constructor(parameters: ITaskGridDatasetControlParameters) {
@@ -342,7 +346,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     }
     public destroy(): void {
         this.saveState();
-        this.events.clearEventListeners();
         this.ganttGridBridge.clearEventListeners();
         this._dataProvider.destroy();
         this._savedQueryDataProvider.destroy();

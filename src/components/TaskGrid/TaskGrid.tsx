@@ -19,8 +19,9 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { LocalizationService } from "../../utils";
 import { Gantt } from "./components/gannt/Gantt";
 
-const CHECKBOX_CONTROL_BTN_OFFSET = 80;
 const DEFAULT_GANTT_PANE_SIZE = 65;
+const MIN_GRID_PANE_SIZE = 8;
+const MIN_FLAT_LIST_GRID_PANE_SIZE = 5;
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -99,6 +100,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     });
     const defaultGanttPaneSize = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_PANE_SIZE;
     const defaultGridPaneSize = 100 - defaultGanttPaneSize;
+    const minGridPaneSize = provider.isFlatListEnabled() ? MIN_FLAT_LIST_GRID_PANE_SIZE : MIN_GRID_PANE_SIZE;
 
     const onLayout = (layout: number[]) => {
         const ganttPaneSize = layout[1];
@@ -126,7 +128,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                     <div className={styles.container}>
                                         {ganttComponent ? (
                                             <PanelGroup direction="horizontal" onLayout={onLayout}>
-                                                <Panel defaultSize={defaultGridPaneSize}>
+                                                <Panel defaultSize={defaultGridPaneSize} minSize={minGridPaneSize}>
                                                     <Grid {...props} />
                                                 </Panel>
                                                 <PanelResizeHandle className={styles.divider} />
