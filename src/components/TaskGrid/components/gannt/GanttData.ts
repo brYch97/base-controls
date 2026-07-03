@@ -33,7 +33,7 @@ export class GanttData implements IGanttData {
         this._dataProvider.addEventListener('onNewDataLoaded', () => this._loadTasksToGantt());
         this._dataProvider.addEventListener('onAfterRecordSaved', (result) => this._syncRecordsToGanttByIds([result.recordId]));
         this._dataProvider.taskEvents.addEventListener('onTaskDataUpdated', (data) => this._onTaskDataUpdated(data));
-        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId) => this._onAfterTaskMoved(movingFromTaskId));
+        this._dataProvider.taskEvents.addEventListener('onAfterTaskMoved', (parameters) => this._onAfterTaskMoved(parameters.movingTaskId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
         this._dataProvider.taskEvents.addEventListener('onAfterTasksDeleted', (result) => this._onAfterTasksDeleted(result));
     }

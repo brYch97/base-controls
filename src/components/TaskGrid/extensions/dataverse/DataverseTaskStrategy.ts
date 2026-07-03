@@ -1,5 +1,5 @@
 import { IRecord, IFetchXmlDataProvider, IRawRecord, FetchXmlDataProvider, FetchXmlBuilder, IAvailableColumnOptions, IAvailableRelatedColumn, IRecordSaveOperationResult, IColumn, Sanitizer, Operators, DataTypes, ISingleRecord, DatasetConstants } from "@talxis/client-libraries";
-import { ITaskDataProviderStrategy, ITaskDataProvider, IDeleteTasksResult, IOpenDatasetItemsResult, ICustomColumnsDataProvider, ICreateTaskParameters } from "../../providers";
+import { ITaskDataProviderStrategy, ITaskDataProvider, IDeleteTasksResult, IOpenDatasetItemsResult, ICustomColumnsDataProvider, ICreateTaskParameters, IMoveTaskParameters } from "../../providers";
 import { IRecordTree } from "../../providers/task/record-tree";
 import { LexoRank } from "lexorank";
 import { Liquid } from "liquidjs";
@@ -462,40 +462,21 @@ export class DataverseTaskStrategy implements IDataverseTaskStrategy {
         const result = await this._editMultipleTasks(entityReferences.map(ref => ref.id.guid));
         return result;
     }
-    public async onMoveTask(movingTaskId: string, movingToTaskId: string, position: "above" | "below" | "child"): Promise<IRawRecord[] | null> {
-        const movingToRecord = this._provider.getRecordsMap()[movingToTaskId];
+    public async onMoveTask(parameters: IMoveTaskParameters): Promise<IRawRecord[] | null> {
+        const { movingTaskId, parentId, newPreviousSiblingTaskId, newNextSiblingTaskId } = parameters;
         let payload: { [key: string]: any } = {};
-        if (position === 'child') {
-            //change parent
-            payload[`${await this._getNavigationalPropertyName(this._entityName, this._getFieldMapping().parentId)}@odata.bind`] = `/${this._entitySetName}(${movingToTaskId})`;
-            const firstChild = this._taskTree.getNode(movingToTaskId).directChildren
-                .find(c => c.getRecordId() !== movingTaskId);
-            if (firstChild) {
-                //change stack rank to be before first child
-                payload[`${this._getFieldMapping().stackRank}`] = await this._updateStackRank({ recordId: movingTaskId, previousTaskId: undefined, nextTaskId: firstChild.getRecordId(), skipSave: true });
-            }
-            await window.Xrm.WebApi.updateRecord(this._entityName, movingTaskId, payload);
-            const rawRecord = (await this.onGetRawRecords([movingTaskId]))[0];
-            return [rawRecord];
-        }
-        else {
-            const movingToRecordParent = this._taskTree.getNodeMap().get(movingToRecord.getRecordId())?.parent;
-            payload[`${await this._getNavigationalPropertyName(this._entityName, this._getFieldMapping().parentId)}@odata.bind`] = movingToRecordParent ? `/${this._entitySetName}(${movingToRecordParent.getRecordId()})` : null;
-
-            let prevSiblingId: string | undefined;
-            let nextSiblingId: string | undefined;
-            if (position === 'above') {
-                prevSiblingId = this._taskTree.getPreviousSibling(movingToTaskId)?.getRecordId();
-                nextSiblingId = movingToRecord.getRecordId();
-            } else {
-                prevSiblingId = movingToRecord.getRecordId();
-                nextSiblingId = this._taskTree.getNextSibling(movingToTaskId)?.getRecordId();
-            }
-            payload[`${this._getFieldMapping().stackRank}`] = await this._updateStackRank({ recordId: movingTaskId, previousTaskId: prevSiblingId, nextTaskId: nextSiblingId, skipSave: true });
-            await window.Xrm.WebApi.updateRecord(this._entityName, movingTaskId, payload);
-            const rawRecord = (await this.onGetRawRecords([movingTaskId]))[0];
-            return [rawRecord];
-        }
+        payload[`${await this._getNavigationalPropertyName(this._entityName, this._getFieldMapping().parentId)}@odata.bind`] = parentId
+            ? `/${this._entitySetName}(${parentId})`
+            : null;
+        payload[`${this._getFieldMapping().stackRank}`] = await this._updateStackRank({
+            recordId: movingTaskId,
+            previousTaskId: newPreviousSiblingTaskId,
+            nextTaskId: newNextSiblingTaskId,
+            skipSave: true
+        });
+        await window.Xrm.WebApi.updateRecord(this._entityName, movingTaskId, payload);
+        const rawRecord = (await this.onGetRawRecords([movingTaskId]))[0];
+        return [rawRecord];
     }
 
     /**

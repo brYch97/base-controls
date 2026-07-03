@@ -1,5 +1,5 @@
 import { BodyScrollEvent, ColDef as ColDefBase, GridApi as GridApiBase, IRowNode, IsServerSideGroupOpenByDefaultParams, RowClassRules as RowClassRulesBase, RowGroupOpenedEvent } from "@ag-grid-community/core";
-import { ITaskDataProvider } from "../../../providers/task";
+import { IMoveTaskParameters, ITaskDataProvider } from "../../../providers/task";
 import { DatasetConstants, IColumn, IRawRecord, IRecord } from "@talxis/client-libraries";
 import { GridDragHandler, IDragOperation } from "../grid-drag-handler";
 import { GroupCell } from "../group-cell";
@@ -313,31 +313,67 @@ export class GridCustomizer implements IGridCustomizer {
         return true;
     }
 
-    private _getPositionFromDragOverSection(dragOverSection: IDragOperation['dragOverSection']): 'above' | 'below' | 'child' {
-        switch (dragOverSection) {
-            case 'top': {
-                return 'above';
-            }
-            case 'bottom': {
-                return 'below';
-            }
-            case 'middle': {
-                return 'child';
-            }
-        }
-    }
-
     private async _moveTask(dragOperation: IDragOperation) {
-        const { draggedNode, overNode, dragOverSection } = dragOperation;
-        const position = this._getPositionFromDragOverSection(dragOverSection);
-        this._taskDataProvider.moveTask(draggedNode.id!, overNode.id!, position);
+        this._taskDataProvider.moveTask(this._getMoveTaskParameters(dragOperation));
     }
 
-    private _moveInto(movingFromRecordId: string, movingToRecordId: string, position: 'child' | 'above' | 'below') {
-        const draggedRecordNode = this._taskDataProvider.getRecordTree().getNode(movingFromRecordId);
-        const draggedRecord = this._taskDataProvider.getRecordsMap()[movingFromRecordId];
-        const draggedNode = this._gridApi.getRowNode(movingFromRecordId)!;
-        const overNode = this._gridApi.getRowNode(movingToRecordId)!;
+    private _getMoveTaskParameters(dragOperation: IDragOperation): IMoveTaskParameters {
+        const { draggedNode, overNode, dragOverSection } = dragOperation;
+        const movingTaskId = draggedNode.id!;
+        const recordTree = this._taskDataProvider.getRecordTree();
+
+        if (dragOverSection === 'middle') {
+            const directChildren = recordTree.getNode(overNode.id!).directChildren
+                .map((record) => record.getRecordId())
+                .filter((recordId) => recordId !== movingTaskId);
+
+            return {
+                movingTaskId,
+                movingToTaskId: overNode.id!,
+                parentId: overNode.id!,
+                newNextSiblingTaskId: directChildren[0],
+            };
+        }
+
+        const parentId = overNode.parent?.id;
+        const siblingIds = recordTree.getNode(parentId ?? null).directChildren
+            .map((record) => record.getRecordId())
+            .filter((recordId) => recordId !== movingTaskId);
+        const overIndex = siblingIds.indexOf(overNode.id!);
+
+        if (overIndex < 0) {
+            throw new Error(`Could not resolve target sibling placement for task ${overNode.id}`);
+        }
+
+        if (dragOverSection === 'top') {
+            return {
+                movingTaskId,
+                movingToTaskId: overNode.id!,
+                parentId,
+                newPreviousSiblingTaskId: siblingIds[overIndex - 1],
+                newNextSiblingTaskId: overNode.id!,
+            };
+        }
+
+        return {
+            movingTaskId,
+            movingToTaskId: overNode.id!,
+            parentId,
+            newPreviousSiblingTaskId: overNode.id!,
+            newNextSiblingTaskId: siblingIds[overIndex + 1],
+        };
+    }
+
+    private _moveInto(parameters: IMoveTaskParameters) {
+        const { movingTaskId, parentId } = parameters;
+        const draggedRecordNode = this._taskDataProvider.getRecordTree().getNode(movingTaskId);
+        const draggedRecord = this._taskDataProvider.getRecordsMap()[movingTaskId];
+        const draggedNode = this._gridApi.getRowNode(movingTaskId)!;
+        const parentNode = parentId ? this._gridApi.getRowNode(parentId) ?? null : null;
+
+        if (parentId && !parentNode) {
+            throw new Error(`Could not find parent grid node for task ${parentId}`);
+        }
 
         let addIndex: number | null = draggedRecordNode.index;
 
@@ -353,22 +389,23 @@ export class GridCustomizer implements IGridCustomizer {
             update: [draggedNode.data],
         });
 
-        //update the store where over node is (so the arrow can appear if needed)
-        this._gridApi.applyServerSideTransaction({
-            route: this._getPathToParent(overNode),
-            update: [overNode.data],
-        });
+        if (parentNode) {
+            //update the store where new parent node is (so the arrow can appear if needed)
+            this._gridApi.applyServerSideTransaction({
+                route: this._getPathToParent(parentNode),
+                update: [parentNode.data],
+            });
+        }
         //then add to new location
         this._gridApi.applyServerSideTransaction({
-            // i need to set route to parent of over node
-            route: [...this._getPathToParent(overNode), ...(position === 'child' ? [overNode.id!] : [])],
+            route: parentId ? [...this._getPathToParent(parentNode), parentId] : [],
             add: [draggedRecord],
             addIndex: addIndex !== null ? addIndex : undefined,
         });
 
-        if (position === 'child') {
+        if (parentNode) {
             setTimeout(() => {
-                overNode.setExpanded(true);
+                parentNode.setExpanded(true);
             }, 0);
         }
         this._gridApi.refreshCells({
@@ -420,7 +457,7 @@ export class GridCustomizer implements IGridCustomizer {
 
 
     private _registerEventListeners() {
-        this._taskDataProvider.taskEvents.addEventListener('onAfterTaskMoved', (movingFromTaskId, movingToTaskId, position) => this._moveInto(movingFromTaskId, movingToTaskId, position));
+        this._taskDataProvider.taskEvents.addEventListener('onAfterTaskMoved', (parameters) => this._moveInto(parameters));
         this._taskDataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));

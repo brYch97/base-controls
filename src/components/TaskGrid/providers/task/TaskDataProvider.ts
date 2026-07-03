@@ -39,6 +39,14 @@ export interface ICreateTaskParameters {
     data?: { [key: string]: any };
 }
 
+export interface IMoveTaskParameters {
+    movingTaskId: string;
+    movingToTaskId: string;
+    parentId?: string;
+    newPreviousSiblingTaskId?: string;
+    newNextSiblingTaskId?: string;
+}
+
 /** Strategy interface that handles all data access and mutation operations for tasks. */
 export interface ITaskDataProviderStrategy {
     /**
@@ -68,8 +76,8 @@ export interface ITaskDataProviderStrategy {
      * when `false` they point to a related entity (e.g. a lookup target).
      */
     onOpenDatasetItems(entityReferences: ComponentFramework.EntityReference[], isTaskEntity: boolean): Promise<IOpenDatasetItemsResult | null>;
-    /** Moves a task to a new position relative to another task. Returns the updated raw records, or `null` on cancellation. */
-    onMoveTask(movingTaskId: string, movingToTaskId: string, position: 'above' | 'below' | 'child'): Promise<IRawRecord[] | null>;
+    /** Moves a task to a resolved parent/sibling placement. Returns the updated raw records, or `null` on cancellation. */
+    onMoveTask(parameters: IMoveTaskParameters): Promise<IRawRecord[] | null>;
     /** Persists inline cell edits for the given record. */
     onRecordSave(record: IRecord): Promise<IRecordSaveOperationResult>;
     /** Returns whether the given task record is currently active (non-completed). */
@@ -86,7 +94,7 @@ export interface ITaskDataProviderEventListener {
     onBeforeTasksCreated: (parentId?: string) => void;
     onAfterTasksCreated: (records: IRawRecord[] | null, parentId?: string) => void;
     onBeforeTaskMoved: () => void;
-    onAfterTaskMoved: (movingFromTaskId: string, movingToTaskId: string, position: 'above' | 'below' | 'child') => void;
+    onAfterTaskMoved: (parameters: IMoveTaskParameters) => void;
     onTaskDataUpdated: (data: IRawRecord[]) => void;
     onRecordTreeUpdated: (updatedParentIds: (string | undefined)[]) => void;
     onBeforeDatasetItemsOpened: (entityReferences: ComponentFramework.EntityReference[], isTaskEntity: boolean) => void;
@@ -134,8 +142,8 @@ export interface ITaskDataProvider extends IDataProvider {
     getRootTaskId: () => string | null;
 
     getProjectDataProvider: () => IProjectDataProvider | null;
-    /** Moves a task to a position relative to another task. Returns the updated raw records, or `null` on cancellation. */
-    moveTask(movingTaskId: string, movingToTaskId: string, position: 'above' | 'below' | 'child'): Promise<IRawRecord[] | null>;
+    /** Moves a task to a resolved parent/sibling placement. Returns the updated raw records, or `null` on cancellation. */
+    moveTask(parameters: IMoveTaskParameters): Promise<IRawRecord[] | null>;
 }
 
 export class TaskDataProvider extends MemoryDataProvider implements ITaskDataProvider {
@@ -272,13 +280,13 @@ export class TaskDataProvider extends MemoryDataProvider implements ITaskDataPro
         return provider;
     }
 
-    public async moveTask(movingFromTaskId: string, movingToTaskId: string, position: "above" | "below" | "child"): Promise<IRawRecord[] | null> {
+    public async moveTask(parameters: IMoveTaskParameters): Promise<IRawRecord[] | null> {
         return ErrorHelper.executeWithErrorHandling({
             operation: async () => {
                 this.taskEvents.dispatchEvent('onBeforeTaskMoved');
-                const result = await this._strategy.onMoveTask(movingFromTaskId, movingToTaskId, position);
+                const result = await this._strategy.onMoveTask(parameters);
                 if (result !== null) this.updateTaskData(result);
-                this.taskEvents.dispatchEvent('onAfterTaskMoved', movingFromTaskId, movingToTaskId, position);
+                this.taskEvents.dispatchEvent('onAfterTaskMoved', parameters);
                 return result;
             },
             onError: (error, message) => this.taskEvents.dispatchEvent('onError', error, message)
