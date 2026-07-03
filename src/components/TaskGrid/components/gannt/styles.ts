@@ -168,7 +168,7 @@ export const getGanttStyles = (theme: ITheme) => {
             '.gantt_data_area:active': {
                 cursor: 'grabbing',
             },
-            [`&.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS}`]: {
+            [`&.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_data_area, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_line, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_task_line *, &.${GANTT_SELECTION_CURSOR_CLASS} .gantt_left, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_bg, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_cell, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_data_area, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_line, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_task_line *, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS} .gantt_left, &.${GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS}, &.${GANTT_SELECTION_CURSOR_CLASS}`]: {
                 cursor: 'default',
             },
             position: 'relative',

@@ -33,6 +33,11 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
         gantt.$root.classList.toggle(GANTT_SELECTION_CURSOR_CLASS, enabled);
     };
 
+    const setSelectionMode = (enabled: boolean) => {
+        dragging.setDraggingDisabled(enabled);
+        setSelectionCursor(enabled);
+    };
+
     const onInit = () => {
         const container = gantt.$task;
         selectoRef.current = new Selecto({
@@ -57,15 +62,13 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
 
     const onKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
-            dragging.setDraggingDisabled(false);
-            setSelectionCursor(false);
+            setSelectionMode(false);
         }
     }, []);
 
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Shift') {
-            dragging.setDraggingDisabled(true);
-            setSelectionCursor(true);
+            setSelectionMode(true);
         }
     }, []);
 
@@ -93,21 +96,17 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             dataProvider.setSelectedRecordIds(Array.from(selectedRecordIdsRef.current));
         }
         selectedRecordIdsRef.current.clear();
-        dragging.setDraggingDisabled(false);
-        setSelectionCursor(false);
+        setSelectionMode(!!e.inputEvent?.shiftKey);
     }
 
     const onDragStart = (e: OnDragStart<Selecto>) => {
-        const taskElement = e.inputEvent.target.closest(`.${GANTT_TASK_LINE_CLASS}`);
-        if (!e.inputEvent.shiftKey || taskElement) {
-            dragging.setDraggingDisabled(false);
-            setSelectionCursor(false);
+        if (!e.inputEvent.shiftKey) {
+            setSelectionMode(false);
             e.stop();
             return;
         }
 
-        dragging.setDraggingDisabled(true);
-        setSelectionCursor(true);
+        setSelectionMode(true);
     };
 
     const onScroll = (e: OnScroll) => {
@@ -133,8 +132,7 @@ export const useSelectionBox = (ganttManager: IGanttManager) => {
             selectoRef.current?.destroy();
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('keydown', onKeyDown);
-            dragging.setDraggingDisabled(false);
-            setSelectionCursor(false);
+            setSelectionMode(false);
         }
     }, []);
 

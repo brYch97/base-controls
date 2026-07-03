@@ -41,6 +41,9 @@ export class GanttDragging implements IGanttDragging {
     }
 
     private _onBeforeTaskDrag(taskId: string, mode?: string) {
+        if (this._gantt.$root.classList.contains(GANTT_DRAGGING_DISABLED_CLASS)) {
+            return false;
+        }
         const task = this._gantt.getTask(taskId);
         if (!task?.active) return false;
         return true;
