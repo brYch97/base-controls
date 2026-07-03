@@ -1,4 +1,5 @@
 import { Gantt, GanttStatic, Task } from 'gantt-trial';
+import debounce from 'debounce';
 import { ITaskGridDatasetControl } from '../..';
 import { ITaskDataProvider } from '../../providers';
 import { EventEmitter, IEventEmitter } from '@talxis/client-libraries';
@@ -43,7 +44,7 @@ export class GanttManager implements IGanttManager {
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
     private _expandedNodeSet: Set<string> = new Set();
-    private _pendingTaskClickTimeout: number | null = null;
+    private _debouncedToggleTaskExpansion: debounce.DebouncedFunction<(taskId: string) => void>;
     private _dragging: IGanttDragging;
     private _zooming: IGanttZooming;
     private _timeline: IGanttInfiniteTimeline;
@@ -63,6 +64,7 @@ export class GanttManager implements IGanttManager {
             drag_timeline: true,
             marker: true
         });
+        this._debouncedToggleTaskExpansion = debounce((taskId: string) => this._toggleTaskExpansion(taskId), GanttManager._taskClickDelayMs);
 
         this._dates = new GanttDates({ datasetControl: this._datasetControl });
         this._timeline = new GanttInfiniteTimeline({ gantt: this._gantt });
@@ -117,7 +119,7 @@ export class GanttManager implements IGanttManager {
     }
 
     public destroy() {
-        this._clearPendingTaskClick();
+        this._debouncedToggleTaskExpansion.clear();
         this._selection.destroy();
         this._zooming.destroy();
     }
@@ -166,47 +168,16 @@ export class GanttManager implements IGanttManager {
     }
 
     private _onTaskDblClick(taskId: string, event?: MouseEvent) {
-        this._clearPendingTaskClick();
+        this._debouncedToggleTaskExpansion.clear();
         this._dataProvider.openTaskItems([taskId]);
         return false;
     }
 
     private _onTaskClick(taskId: string, event?: MouseEvent) {
-        if (
-            event?.shiftKey
-            || event?.ctrlKey
-            || event?.metaKey
-            || this._dataProvider.isFlatListEnabled()
-            || !this._dataProvider.getRecordTree().hasChildren(taskId)
-            || !this._gantt.isTaskExists(taskId)
-        ) {
-            return true;
-        }
-
-        this._clearPendingTaskClick();
-        this._pendingTaskClickTimeout = window.setTimeout(() => {
-            this._pendingTaskClickTimeout = null;
-            const isExpanded = !!this._gantt.getTask(taskId).$open;
-            if (isExpanded) {
-                this._setTaskExpanded(taskId, false);
-                this._bridge.dispatchEvent('onGanttTaskCollapsed', taskId);
-                return;
-            }
-
-            this._setTaskExpanded(taskId, true);
-            this._bridge.dispatchEvent('onGanttTaskExpanded', taskId);
-        }, GanttManager._taskClickDelayMs);
+        this._debouncedToggleTaskExpansion.clear();
+        this._debouncedToggleTaskExpansion(taskId);
 
         return true;
-    }
-
-    private _clearPendingTaskClick() {
-        if (this._pendingTaskClickTimeout == null) {
-            return;
-        }
-
-        window.clearTimeout(this._pendingTaskClickTimeout);
-        this._pendingTaskClickTimeout = null;
     }
 
     private _setTaskExpanded(taskId: string, expanded: boolean) {
@@ -227,6 +198,18 @@ export class GanttManager implements IGanttManager {
         if (!expanded && task.$open) {
             this._gantt.close(taskId);
         }
+    }
+
+    private _toggleTaskExpansion(taskId: string) {
+        const isExpanded = !!this._gantt.getTask(taskId).$open;
+        if (isExpanded) {
+            this._setTaskExpanded(taskId, false);
+            this._bridge.dispatchEvent('onGanttTaskCollapsed', taskId);
+            return;
+        }
+
+        this._setTaskExpanded(taskId, true);
+        this._bridge.dispatchEvent('onGanttTaskExpanded', taskId);
     }
 
     private _getTaskRowClass(task: Task) {
