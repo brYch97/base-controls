@@ -188,7 +188,7 @@ export class GridCustomizer implements IGridCustomizer {
         columnDefs.sort((a, b) => this._getColumnPriority(a) - this._getColumnPriority(b));
         columnDefs = this._strategy?.onGetColumnDefinitions?.(columnDefs) ?? columnDefs;
         //gantt
-        if(true) {
+        if (true) {
             columnDefs.map(colDef => colDef.autoHeight = false)
         }
         return columnDefs;
@@ -392,7 +392,9 @@ export class GridCustomizer implements IGridCustomizer {
             const recordId = records[0][primaryIdAttribute] as string;
             const node = this._gridApi.getRowNode(recordId);
             if (!node) return;
-            if (records.length === 1 && this._datasetControl.isInlineCreateEnabled()) {
+            this._gridApi.ensureNodeVisible(node!);
+            this._gridApi.setFocusedCell(node!.rowIndex!, this._nativeColumns.subject);
+/*             if (records.length === 1 && this._datasetControl.isInlineCreateEnabled()) {
                 const rowIndex = node.rowIndex!;
                 this._gridApi.startEditingCell({
                     rowIndex: rowIndex,
@@ -402,7 +404,7 @@ export class GridCustomizer implements IGridCustomizer {
             else {
                 this._gridApi.setFocusedCell(node!.rowIndex!, this._nativeColumns.subject);
                 this._gridApi.ensureNodeVisible(node!);
-            }
+            } */
         }, 100);
     }
 
