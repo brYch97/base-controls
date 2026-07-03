@@ -34,7 +34,7 @@ export const getGanttStyles = (theme: ITheme) => {
             '--dhx-gantt-base-colors-disabled': theme.semanticColors.disabledBackground,
             '--dhx-gantt-base-colors-readonly': theme.semanticColors.disabledText,
             '--dhx-gantt-base-colors-hover-color': theme.semanticColors.menuItemBackgroundHovered,
-            '--dhx-gantt-base-colors-select': theme.palette.themeLighterAlt,
+            '--dhx-gantt-base-colors-select': 'transparent',
             // Primary shades
             '--dhx-gantt-base-colors-primary': theme.palette.themePrimary,
             '--dhx-gantt-base-colors-primary-hover': theme.palette.themeDarkAlt,
@@ -132,19 +132,6 @@ export const getGanttStyles = (theme: ITheme) => {
                     zIndex: 1,
                     pointerEvents: 'none',
                     cursor: 'not-allowed',
-                },
-            },
-            '.gantt_task_row.gantt_selected': {
-                backgroundColor: 'transparent !important',
-                position: 'relative',
-                '::after': {
-                    content: '""',
-                    opacity: 0.2,
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundColor: theme.palette.themePrimary,
-                    pointerEvents: 'none',
-                    zIndex: 0,
                 },
             },
             '.gantt_task_line.gantt_task_selected, .gantt_task_line.gantt_selection_preview': {

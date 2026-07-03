@@ -36,10 +36,14 @@ export interface IGanttManager {
 }
 
 export class GanttManager implements IGanttManager {
+    private static readonly _taskClickDelayMs = 200;
+
     public events: IEventEmitter<IGanttManagerEvents> = new EventEmitter();
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _bridge: IGanttGridBridge;
+    private _expandedNodeSet: Set<string> = new Set();
+    private _pendingTaskClickTimeout: number | null = null;
     private _dragging: IGanttDragging;
     private _zooming: IGanttZooming;
     private _timeline: IGanttInfiniteTimeline;
@@ -65,7 +69,12 @@ export class GanttManager implements IGanttManager {
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
         this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates, timeline: this._timeline });
         this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
-        this._data = new GanttData({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        this._data = new GanttData({
+            datasetControl: this._datasetControl,
+            gantt: this._gantt,
+            dates: this._dates,
+            expandedNodeSet: this._expandedNodeSet,
+        });
         this._selection = new GanttSelection({ gantt: this._gantt, dataProvider: this._dataProvider });
     }
 
@@ -108,16 +117,18 @@ export class GanttManager implements IGanttManager {
     }
 
     public destroy() {
+        this._clearPendingTaskClick();
         this._selection.destroy();
         this._zooming.destroy();
     }
 
     private _registerEventListeners() {
         this._bridge.addEventListener('onShowWeekendsChanged', () => this._onShowWeekendsRequested());
-        this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._data.onAgGridTaskExpanded(taskId));
-        this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._data.onAgGridTaskCollapsed(taskId));
+        this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._setTaskExpanded(taskId, true));
+        this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._setTaskExpanded(taskId, false));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
+        this._gantt.attachEvent('onTaskClick', (id: string, e?: MouseEvent) => this._onTaskClick(id, e));
         this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
     }
 
@@ -155,8 +166,67 @@ export class GanttManager implements IGanttManager {
     }
 
     private _onTaskDblClick(taskId: string, event?: MouseEvent) {
+        this._clearPendingTaskClick();
         this._dataProvider.openTaskItems([taskId]);
         return false;
+    }
+
+    private _onTaskClick(taskId: string, event?: MouseEvent) {
+        if (
+            event?.shiftKey
+            || event?.ctrlKey
+            || event?.metaKey
+            || this._dataProvider.isFlatListEnabled()
+            || !this._dataProvider.getRecordTree().hasChildren(taskId)
+            || !this._gantt.isTaskExists(taskId)
+        ) {
+            return true;
+        }
+
+        this._clearPendingTaskClick();
+        this._pendingTaskClickTimeout = window.setTimeout(() => {
+            this._pendingTaskClickTimeout = null;
+            const isExpanded = !!this._gantt.getTask(taskId).$open;
+            if (isExpanded) {
+                this._setTaskExpanded(taskId, false);
+                this._bridge.dispatchEvent('onGanttTaskCollapsed', taskId);
+                return;
+            }
+
+            this._setTaskExpanded(taskId, true);
+            this._bridge.dispatchEvent('onGanttTaskExpanded', taskId);
+        }, GanttManager._taskClickDelayMs);
+
+        return true;
+    }
+
+    private _clearPendingTaskClick() {
+        if (this._pendingTaskClickTimeout == null) {
+            return;
+        }
+
+        window.clearTimeout(this._pendingTaskClickTimeout);
+        this._pendingTaskClickTimeout = null;
+    }
+
+    private _setTaskExpanded(taskId: string, expanded: boolean) {
+        if (expanded) {
+            this._expandedNodeSet.add(taskId);
+        } else {
+            this._expandedNodeSet.delete(taskId);
+        }
+
+        if (!this._gantt.isTaskExists(taskId)) {
+            return;
+        }
+
+        const task = this._gantt.getTask(taskId);
+        if (expanded && !task.$open) {
+            this._gantt.open(taskId);
+        }
+        if (!expanded && task.$open) {
+            this._gantt.close(taskId);
+        }
     }
 
     private _getTaskRowClass(task: Task) {

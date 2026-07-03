@@ -1,19 +1,16 @@
 import { IRawRecord, IRecord } from "@talxis/client-libraries";
-import dayjs from "dayjs";
 import { GanttStatic, Task } from "gantt-trial";
 import { ITaskGridDatasetControl } from "../..";
 import { IDeleteTasksResult, ITaskDataProvider } from "../../providers";
 import { IGanttDates } from "./GanttDates";
 
-export interface IGanttData {
-    onAgGridTaskExpanded: (taskId: string) => void;
-    onAgGridTaskCollapsed: (taskId: string) => void;
-}
+export interface IGanttData { }
 
 interface IGanttDataParams {
     datasetControl: ITaskGridDatasetControl;
     gantt: GanttStatic;
     dates: IGanttDates;
+    expandedNodeSet: ReadonlySet<string>;
 }
 
 export class GanttData implements IGanttData {
@@ -21,28 +18,15 @@ export class GanttData implements IGanttData {
     private _dataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _dates: IGanttDates;
-    private _expandedNodeSet: Set<string> = new Set();
+    private _expandedNodeSet: ReadonlySet<string>;
 
     constructor(params: IGanttDataParams) {
         this._datasetControl = params.datasetControl;
         this._dataProvider = params.datasetControl.getDataProvider();
         this._gantt = params.gantt;
         this._dates = params.dates;
+        this._expandedNodeSet = params.expandedNodeSet;
         this._registerEventListeners();
-    }
-
-    public onAgGridTaskExpanded(taskId: string) {
-        this._expandedNodeSet.add(taskId);
-        if (this._gantt.isTaskExists(taskId) && !this._gantt.getTask(taskId).$open) {
-            this._gantt.open(taskId);
-        }
-    }
-
-    public onAgGridTaskCollapsed(taskId: string) {
-        this._expandedNodeSet.delete(taskId);
-        if (this._gantt.isTaskExists(taskId) && this._gantt.getTask(taskId).$open) {
-            this._gantt.close(taskId);
-        }
     }
 
     private _registerEventListeners() {
@@ -126,9 +110,8 @@ export class GanttData implements IGanttData {
             }
 
             if (parentId && this._gantt.isTaskExists(parentId)) {
-                this._expandedNodeSet.add(parentId);
-                this._gantt.open(parentId);
                 this._syncRecordsToGanttByIds([parentId], false);
+                this._gantt.open(parentId);
             }
         });
 
