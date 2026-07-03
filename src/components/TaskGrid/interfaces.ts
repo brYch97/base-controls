@@ -179,10 +179,14 @@ export interface ITaskGridDatasetControl extends IDatasetControl {
     getInactiveTasksVisibility: () => boolean;
     /** Returns `true` when weekends should be shown in the gantt timeline for the active saved query. */
     getShowWeekends: () => boolean;
+    /** Returns the saved gantt panel width percentage for the active saved query, when available. */
+    getGanttWidth: () => number | undefined;
     /** Switches between hierarchical (tree) and flat-list view modes. Triggers a column re-sort. */
     toggleFlatList: (enabled: boolean) => void;
     /** Updates weekend visibility on the active saved query. */
     toggleShowWeekends: (showWeekends: boolean) => void;
+    /** Updates the gantt panel width percentage on the active saved query. */
+    setGanttWidth: (ganttWidth: number) => void;
     /** Adds or removes the `stateCode = 0` filter to show/hide inactive tasks. */
     toggleHideInactiveTasks: (hide: boolean) => void;
     /**

@@ -141,6 +141,17 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     public getShowWeekends(): boolean {
         return this._state.savedQuery?.showWeekends ?? false;
     }
+
+    public getGanttWidth(): number | undefined {
+        return this._state.savedQuery?.ganttWidth;
+    }
+
+    public setGanttWidth(ganttWidth: number): void {
+        if (!this._state.savedQuery) {
+            throw new Error('Cannot update gantt width when there is no saved query in state');
+        }
+        this._state.savedQuery.ganttWidth = ganttWidth;
+    }
     
     public isViewManagerEnabled(): boolean {
         return this._gridParameters.enableQueryManager ?? false;
@@ -370,6 +381,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
                 linking: this._dataProvider.getLinking(),
                 isFlatListEnabled: this._dataProvider.isFlatListEnabled(),
                 showWeekends: this.getShowWeekends(),
+                ganttWidth: this.getGanttWidth(),
             }
         }
     }

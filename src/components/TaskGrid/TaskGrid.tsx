@@ -20,6 +20,7 @@ import { LocalizationService } from "../../utils";
 import { Gantt } from "./components/gannt/Gantt";
 
 const CHECKBOX_CONTROL_BTN_OFFSET = 80;
+const DEFAULT_GANTT_PANE_SIZE = 65;
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -96,11 +97,16 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const ganttComponent = taskGridDescriptor.extensions?.gantt?.onGetGanttComponent({
         components: {}
     });
+    const defaultGanttPaneSize = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_PANE_SIZE;
+    const defaultGridPaneSize = 100 - defaultGanttPaneSize;
 
-    const getDefaultGridPaneSize = () => {
-        const visibleColumns = datasetControl.getDataset().columns.filter(col => !col.isHidden);
-        const totalSizeFactor = visibleColumns.reduce((sum, col) => sum + (col.visualSizeFactor ?? 0), 0);
-    }
+    const onLayout = (layout: number[]) => {
+        const ganttPaneSize = layout[1];
+        if (ganttPaneSize == undefined) {
+            return;
+        }
+        datasetControl.setGanttWidth(ganttPaneSize);
+    };
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
 
@@ -119,12 +125,12 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                 return (
                                     <div className={styles.container}>
                                         {ganttComponent ? (
-                                            <PanelGroup direction="horizontal" onLayout={(layout) => console.log(layout)} >
-                                                <Panel defaultSize={35}>
+                                            <PanelGroup direction="horizontal" onLayout={onLayout}>
+                                                <Panel defaultSize={defaultGridPaneSize}>
                                                     <Grid {...props} />
                                                 </Panel>
                                                 <PanelResizeHandle className={styles.divider} />
-                                                <Panel className={styles.ganttPanel} defaultSize={65}>
+                                                <Panel className={styles.ganttPanel} defaultSize={defaultGanttPaneSize}>
                                                     {ganttComponent}
                                                 </Panel>
                                             </PanelGroup>
