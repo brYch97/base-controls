@@ -33,7 +33,7 @@ export class GanttGridBridge extends EventEmitter<IGanttGridBridgeEvents> implem
 
     constructor() {
         super();
-        this._debouncedClean = debounce(() => this._suppressedEvents.clear(), 0);
+        this._debouncedClean = debounce(() => this._suppressedEvents.clear(), 100);
     }
 
     public setZoomLevel(zoomLevel: number) {
@@ -64,7 +64,7 @@ export class GanttGridBridge extends EventEmitter<IGanttGridBridgeEvents> implem
             this._suppressedEvents.add(mirror);
             this._debouncedClean();
         }
-        //console.log(`Event dispatched: ${event} with args:`, args);
+        console.log(`Event dispatched: ${event} with args:`, args);
         return super.dispatchEvent(event, ...args);
     }
 }

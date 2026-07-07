@@ -431,17 +431,17 @@ export class GridCustomizer implements IGridCustomizer {
             if (!node) return;
             this._gridApi.ensureNodeVisible(node!);
             this._gridApi.setFocusedCell(node!.rowIndex!, this._nativeColumns.subject);
-/*             if (records.length === 1 && this._datasetControl.isInlineCreateEnabled()) {
-                const rowIndex = node.rowIndex!;
-                this._gridApi.startEditingCell({
-                    rowIndex: rowIndex,
-                    colKey: this._nativeColumns.subject
-                });
-            }
-            else {
-                this._gridApi.setFocusedCell(node!.rowIndex!, this._nativeColumns.subject);
-                this._gridApi.ensureNodeVisible(node!);
-            } */
+            /*             if (records.length === 1 && this._datasetControl.isInlineCreateEnabled()) {
+                            const rowIndex = node.rowIndex!;
+                            this._gridApi.startEditingCell({
+                                rowIndex: rowIndex,
+                                colKey: this._nativeColumns.subject
+                            });
+                        }
+                        else {
+                            this._gridApi.setFocusedCell(node!.rowIndex!, this._nativeColumns.subject);
+                            this._gridApi.ensureNodeVisible(node!);
+                        } */
         }, 100);
     }
 
@@ -461,7 +461,6 @@ export class GridCustomizer implements IGridCustomizer {
         this._taskDataProvider.taskEvents.addEventListener('onAfterTasksCreated', (records, parentId) => this._onAfterTasksCreated(records, parentId));
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));
-        //ag grid api scroll event has weird behavior
         this._getAgGridVerticalViewport()?.addEventListener('scroll', (event) => this._onAgGridScrolled((event.target as Element).scrollTop));
         this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
@@ -472,7 +471,10 @@ export class GridCustomizer implements IGridCustomizer {
 
     private _onGanttScrolled(scrollTop: number) {
         const viewport = this._getAgGridVerticalViewport();
-        viewport!.scrollTop = scrollTop;
+        viewport.scrollTo({
+            top: scrollTop,
+            behavior: 'instant'
+        });
     }
 
     private _onAgGridScrolled(scrollTop: number) {
@@ -496,9 +498,13 @@ export class GridCustomizer implements IGridCustomizer {
     }
 
 
-    private _getAgGridVerticalViewport(): HTMLElement | null {
+    private _getAgGridVerticalViewport(): HTMLElement {
         const rootElement = document.getElementById(this._datasetControl.getControlId() + '-root');
-        return rootElement?.querySelector('.ag-body-vertical-scroll-viewport') ?? null;
+        const viewPort = rootElement?.querySelector('.ag-body-viewport') ?? null;
+        if (!viewPort) {
+            throw new Error('AgGrid vertical viewport not found');
+        }
+        return viewPort as HTMLElement;
     }
 
     private _onRowGroupOpened(event: RowGroupOpenedEvent) {

@@ -269,10 +269,10 @@ export class GanttManager implements IGanttManager {
 
 
     private _onAgGridScrolled(scrollTop: number) {
-        if (this._gantt.getScrollState()?.y === scrollTop) {
-            return;
-        }
-        this._gantt.scrollTo(null, scrollTop);
+        this._gantt.$scroll_ver.scrollTo({
+            top: scrollTop,
+            behavior: 'instant'
+        });
     }
 
     private _onGanttScrolled(scrollTop: number) {
