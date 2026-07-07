@@ -10,12 +10,27 @@ import { useMemo } from 'react';
 import { GanttComponentsContext } from './context';
 import { GanttComponents } from './gantt-timeline/components';
 
-const DEFAULT_GANTT_PANE_SIZE = 65;
-const MIN_GRID_PANEL_WIDTH_PX = 200;
-const MIN_FLAT_LIST_GRID_PANEL_WIDTH_PX = 100;
+const DEFAULT_GRID_PANEL_SIZE_PX = 300;
+
+const MIN_GRID_PANEL_WIDTH_PX = 90;
+const MIN_FLAT_LIST_GRID_PANEL_WIDTH_PX = 40;
 
 export interface IGanttProps {
     components?: Partial<IGanttComponents>;
+}
+
+const getPercentageFromPx = (containerWidth: number, px: number) => {
+    if (containerWidth <= 0) {
+        return 0;
+    }
+    return (px / containerWidth) * 100;
+}
+
+const getPxFromPercentage = (containerWidth: number, percentage: number) => {
+    if (containerWidth <= 0) {
+        return 0;
+    }
+    return (percentage / 100) * containerWidth;
 }
 
 //props should be the components, labels in future
@@ -27,22 +42,26 @@ export const Gantt = (props: IGanttProps) => {
     const { ref: containerRef, width: containerWidth } = useContainerWidth();
 
     const isFlatList = provider.isFlatListEnabled();
-    const minPx = isFlatList ? MIN_FLAT_LIST_GRID_PANEL_WIDTH_PX : MIN_GRID_PANEL_WIDTH_PX;
-    const minGridPaneSize = containerWidth > 0 ? (minPx / containerWidth) * 100 : 0;
-
-    const defaultGanttPaneSize = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_PANE_SIZE;
-    const defaultGridPaneSize = 100 - defaultGanttPaneSize;
+    const minGridSizePx = isFlatList ? MIN_FLAT_LIST_GRID_PANEL_WIDTH_PX : MIN_GRID_PANEL_WIDTH_PX;
+    const minGridPercentage = getPercentageFromPx(containerWidth, minGridSizePx);
+    
+    const ganttWidthPx = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_PANE_SIZE_PX;
+    const ganttPercentage = getPercentageFromPx(containerWidth, ganttWidthPx);
+    const gridPercentage = 100 - ganttPercentage;
 
     const onLayout = (layout: number[]) => {
+        if (containerWidth <= 0) return;
         const ganttPaneSize = layout[1];
-        datasetControl.setGanttWidth(ganttPaneSize);
+        const ganttWidthPx = getPxFromPercentage(containerWidth, ganttPaneSize);
+        datasetControl.setGanttWidth(ganttWidthPx);
     };
+
 
     return (
         <GanttComponentsContext.Provider value={components}>
             <div ref={containerRef} className={styles.taskGridWithGanttRoot}>
                 <PanelGroup direction="horizontal" onLayout={onLayout}>
-                    <Panel defaultSize={defaultGridPaneSize} minSize={minGridPaneSize}>
+                    <Panel defaultSize={gridPercentage} minSize={minGridPercentage}>
                         <Grid
                             context={datasetControl.getPcfContext()}
                             parameters={datasetControl.getParameters()}
@@ -50,7 +69,7 @@ export const Gantt = (props: IGanttProps) => {
                         />
                     </Panel>
                     <PanelResizeHandle />
-                    <Panel defaultSize={defaultGanttPaneSize}>
+                    <Panel defaultSize={ganttPercentage}>
                         <GanttTimeline />
                     </Panel>
                 </PanelGroup>
