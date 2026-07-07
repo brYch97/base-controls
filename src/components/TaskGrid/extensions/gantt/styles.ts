@@ -9,8 +9,8 @@ export const getGanttStyles = () => {
             },
             '.ag-body-vertical-scroll': {
                 //we use gantt for vertical scrolling, so we hide the ag-grid scrollbar and sync scroll positions
-                width: '0px !important',
-                minWidth: '0px !important',
+                //width: '0px !important',
+                //minWidth: '0px !important',
             },
         }
     });

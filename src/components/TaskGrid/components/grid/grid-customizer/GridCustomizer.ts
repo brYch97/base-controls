@@ -462,7 +462,7 @@ export class GridCustomizer implements IGridCustomizer {
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));
         //ag grid api scroll event has weird behavior
-        this._getAgGridBodyViewport()?.addEventListener('scroll', (event) => this._bridge.dispatchEvent('onAgGridScrolled', (event.target as HTMLElement).scrollTop));
+        this._getAgGridVerticalViewport()?.addEventListener('scroll', (event) => this._onAgGridScrolled((event.target as Element).scrollTop));
         this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
         this._bridge.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
@@ -471,14 +471,12 @@ export class GridCustomizer implements IGridCustomizer {
     }
 
     private _onGanttScrolled(scrollTop: number) {
-        const viewport = this._getAgGridBodyViewport();
-        // Skip when already aligned. Assigning the same scrollTop would emit a
-        // redundant scroll event that bounces back through the bridge, so this
-        // short-circuit breaks any echo loop regardless of suppression timing.
-        if (viewport && viewport.scrollTop !== scrollTop) {
-            viewport.style.scrollBehavior = 'auto';
-            viewport.scrollTop = scrollTop;
-        }
+        const viewport = this._getAgGridVerticalViewport();
+        viewport!.scrollTop = scrollTop;
+    }
+
+    private _onAgGridScrolled(scrollTop: number) {
+        this._bridge.dispatchEvent('onAgGridScrolled', scrollTop);
     }
 
     private _onGanttRowExpanded(taskId: string) {
@@ -498,9 +496,9 @@ export class GridCustomizer implements IGridCustomizer {
     }
 
 
-    private _getAgGridBodyViewport(): HTMLElement | null {
+    private _getAgGridVerticalViewport(): HTMLElement | null {
         const rootElement = document.getElementById(this._datasetControl.getControlId() + '-root');
-        return rootElement?.querySelector('.ag-body-viewport') ?? null;
+        return rootElement?.querySelector('.ag-body-vertical-scroll-viewport') ?? null;
     }
 
     private _onRowGroupOpened(event: RowGroupOpenedEvent) {

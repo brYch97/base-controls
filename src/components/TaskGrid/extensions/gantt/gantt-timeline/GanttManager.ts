@@ -147,6 +147,7 @@ export class GanttManager implements IGanttManager {
         this._debouncedToggleTaskExpansion.clear();
         this._selection.destroy();
         this._zooming.destroy();
+        this._gantt.destructor();
     }
 
     private _registerEventListeners() {
@@ -154,7 +155,7 @@ export class GanttManager implements IGanttManager {
         this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._setTaskExpanded(taskId, true));
         this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._setTaskExpanded(taskId, false));
         this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
-        this._getScrollingContainer().addEventListener('scroll', (event) => this._bridge.dispatchEvent('onGanttScrolled', (event.target as Element).scrollTop));
+        this._gantt.$scroll_ver.addEventListener('scroll', (event) => this._onGanttScrolled((event.target as Element).scrollTop));
         this._gantt.attachEvent('onTaskClick', (id: string, e?: MouseEvent) => this._onTaskClick(id, e));
         this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
     }
@@ -271,13 +272,10 @@ export class GanttManager implements IGanttManager {
         if (this._gantt.getScrollState()?.y === scrollTop) {
             return;
         }
-        this._gantt.scrollTo(undefined, scrollTop);
+        this._gantt.scrollTo(null, scrollTop);
     }
-    private _getScrollingContainer(): Element {
-        const container = this._gantt.$root?.querySelector(`.${GANTT_DATA_AREA_CLASS}`);
-        if (!container) {
-            throw new Error("Could not find Gantt scrolling container");
-        }
-        return container;
+
+    private _onGanttScrolled(scrollTop: number) {
+        this._bridge.dispatchEvent('onGanttScrolled', scrollTop);
     }
 }
