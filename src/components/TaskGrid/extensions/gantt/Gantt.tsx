@@ -7,6 +7,7 @@ import { IGanttComponents } from './gantt-timeline/context';
 import { useMemo, useRef, useState } from 'react';
 import { GanttComponentsContext } from './context';
 import { GanttComponents } from './gantt-timeline/components';
+import { GanttSkeleton } from './components/skeleton';
 import { IDataProviderEventListeners } from '@talxis/client-libraries';
 import { useEventEmitter } from '../../../../hooks';
 
@@ -51,7 +52,7 @@ export const Gantt = (props: IGanttProps) => {
                     </Panel>
                     <PanelResizeHandle />
                     <Panel defaultSize={ganttWidthPercentage}>
-                        {isGanttReady ? <GanttTimeline /> : <div>loading</div>}
+                        {isGanttReady ? <GanttTimeline /> : <GanttSkeleton />}
                     </Panel>
                 </PanelGroup>
             </div>
