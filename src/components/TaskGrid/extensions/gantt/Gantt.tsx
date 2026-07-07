@@ -4,13 +4,15 @@ import { useDatasetControl, useTaskDataProvider } from '../../context';
 import { Grid } from '../../components/grid';
 import { GanttTimeline } from './gantt-timeline';
 import { IGanttComponents } from './gantt-timeline/context';
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { GanttComponentsContext } from './context';
 import { GanttComponents } from './gantt-timeline/components';
+import { IDataProviderEventListeners } from '@talxis/client-libraries';
+import { useEventEmitter } from '../../../../hooks';
 
 const DEFAULT_GANTT_WIDTH_PERCENTAGE = 70;
-const MIN_GRID_WIDTH_PERCENTAGE = 10;
-const MIN_FLAT_LIST_GRID_WIDTH_PERCENTAGE = 5;
+const MIN_GRID_WIDTH_PERCENTAGE = 0;
+const MIN_FLAT_LIST_GRID_WIDTH_PERCENTAGE = 0;
 
 export interface IGanttProps {
     components?: Partial<IGanttComponents>;
@@ -28,10 +30,13 @@ export const Gantt = (props: IGanttProps) => {
     const ganttWidthPercentage = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_WIDTH_PERCENTAGE;
     const gridWidthPercentage = 100 - ganttWidthPercentage;
 
+    const [isGanttReady, setIsGanttReady] = useState(false);
+
     const onLayout = (layout: number[]) => {
         datasetControl.setGanttWidth(layout[1]);
     };
 
+    useEventEmitter<IDataProviderEventListeners>(provider, 'onFirstDataLoaded', () => setIsGanttReady(true));
 
     return (
         <GanttComponentsContext.Provider value={components}>
@@ -46,7 +51,7 @@ export const Gantt = (props: IGanttProps) => {
                     </Panel>
                     <PanelResizeHandle />
                     <Panel defaultSize={ganttWidthPercentage}>
-                        <GanttTimeline />
+                        {isGanttReady ? <GanttTimeline /> : <div>loading</div>}
                     </Panel>
                 </PanelGroup>
             </div>

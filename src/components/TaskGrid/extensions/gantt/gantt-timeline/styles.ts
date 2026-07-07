@@ -208,6 +208,7 @@ export const getGanttStyles = (theme: ITheme) => {
                 marginLeft: -1,
                 opacity: 1,
                 pointerEvents: 'none',
+                zIndex: 1
             },
             [`.gantt_marker.${TODAY_MARKER_CLASS}`]: {
                 backgroundColor: 'var(--today-marker-color)',
