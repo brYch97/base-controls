@@ -9,16 +9,12 @@ import { ISavedQueryDataProvider, PATH_COLUMN_NAME } from "./providers/saved-que
 import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { Type } from "@talxis/client-libraries/dist/utils/fetch-xml/filter/Type";
 import { ICustomColumnsDataProvider } from "./providers/custom-columns/CustomColumnsDataProvider";
-import { ITaskGridDatasetControl, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
+import { ITaskGridDatasetControl, ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
 import { ErrorHelper } from "../../utils/error-handling";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project";
 
 const STATE_CODE_ACTIVE = 0;
-
-export interface ITaskGridDatasetControlEvents {
-    
-}
 
 export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> implements ITaskGridDatasetControl {
     private _dataset: IDataset;
@@ -101,7 +97,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     public isCustomColumnCreationEnabled(): boolean {
         return this._gridParameters.enableCustomColumnCreation ?? false;
     }
-    
+
     public isCustomColumnEditingEnabled(): boolean {
         return this._gridParameters.enableCustomColumnEditing ?? false;
     }
@@ -156,7 +152,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         }
         this._state.savedQuery.ganttWidth = ganttWidth;
     }
-    
+
     public isViewManagerEnabled(): boolean {
         return this._gridParameters.enableQueryManager ?? false;
     }
@@ -206,6 +202,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         //update the columns to trigger column sort
         this._dataProvider.setColumns(this._dataProvider.getColumns());
         this._dataProvider.refresh();
+        this.events.dispatchEvent('onFlatListToggled', enabled);
     }
 
     public toggleHideInactiveTasks(hide: boolean) {
@@ -311,7 +308,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
             RowHeight: {
                 raw: this._gridParameters.rowHeight ?? null
             }
-            
+
         }
     }
     public async loadCommands(ids: string[]): Promise<void> {
@@ -367,7 +364,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
                 id: this._changeToQueryId
             }
             //@ts-ignore
-            if(this._state.AgGridState) {
+            if (this._state.AgGridState) {
                 //clean up AgGrid state as it might not be compatible with new query
                 //@ts-ignore
                 delete this._state.AgGridState;

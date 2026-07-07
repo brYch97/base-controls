@@ -1,4 +1,4 @@
-import { IDataset, IDataProvider } from "@talxis/client-libraries";
+import { IDataset, IDataProvider, IEventEmitter } from "@talxis/client-libraries";
 import { IDatasetControl } from "../../utils/dataset-control";
 import { IGridCustomizerStrategy } from "./components/grid/grid-customizer";
 import { ICustomColumnsDataProvider, ICustomColumnsStrategy } from "./providers/custom-columns/CustomColumnsDataProvider";
@@ -22,6 +22,10 @@ export interface ITaskGridDatasetControlParameters {
     templateDataProvider?: IDataProvider;
     customColumnsDataProvider?: ICustomColumnsDataProvider;
     onGetPcfContext: () => ComponentFramework.Context<any>;
+}
+
+export interface ITaskGridDatasetControlEvents {
+    onFlatListToggled: (enabled: boolean) => void;
 }
 
 /** Maps functional column roles to the physical attribute (field) names in the consuming entity's schema. */
@@ -150,6 +154,7 @@ export interface ITaskGridDescriptor {
 
 /** Runtime interface for the TaskGrid control returned by `TaskGridDatasetControlFactory.createInstance`. */
 export interface ITaskGridDatasetControl extends IDatasetControl {
+    events: IEventEmitter<ITaskGridDatasetControlEvents>;
     extensions: IExtensions;
     /** Bridge for view-level sync between AG Grid and the Gantt chart (scroll, expand/collapse). */
     ganttGridBridge: GanttGridBridge;

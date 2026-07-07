@@ -2,9 +2,10 @@ import { useEventEmitter } from "../../hooks/useEventEmitter"
 import { IDatasetControlEvents } from "../../utils/dataset-control";
 import { useRef } from "react";
 import * as React from "react";
+import { useRerender } from "@talxis/react-components";
 import { AgGridLicenseKeyContext, DatasetControlContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext, usePcfContext } from "./context";
 import { DatasetControl as DatasetControlRenderer } from "../DatasetControl";
-import { Callout, IconButton, useTheme } from "@fluentui/react";
+import { useTheme } from "@fluentui/react";
 import { getDatasetControlStyles } from "./styles";
 import { Grid } from "./components/grid";
 import { ITaskDataProvider } from "./providers/task";
@@ -13,15 +14,13 @@ import { TASK_GRID_LABELS } from "./labels";
 import { ITaskGridState, TaskGridDatasetControlFactory } from "./TaskGridDatasetControlFactory";
 import { Header } from "./components/header/Header";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
-import { ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
+import { ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-//offset of the checkbox control button in ag-grid, used for calculating default grid pane size
 import { LocalizationService } from "../../utils";
-import { Gantt } from "./components/gannt/Gantt";
 
 const DEFAULT_GANTT_PANE_SIZE = 65;
-const MIN_GRID_PANE_SIZE = 8;
-const MIN_FLAT_LIST_GRID_PANE_SIZE = 5;
+const MIN_GRID_PANE_SIZE = 7.8;
+const MIN_FLAT_LIST_GRID_PANE_SIZE = 3.6;
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -91,6 +90,7 @@ export const TaskGrid = (props: ITaskGridProps) => {
 
 const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const { datasetControl, onRemountRequested, taskGridDescriptor } = props;
+    const rerender = useRerender();
     const theme = useTheme();
     const styles = React.useMemo(() => getDatasetControlStyles(theme, '100%'), [theme]);
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
@@ -111,6 +111,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     };
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
+    useEventEmitter<ITaskGridDatasetControlEvents>(datasetControl.events, 'onFlatListToggled', rerender);
 
     React.useEffect(() => {
         datasetControl.getDataset().refresh();
@@ -128,7 +129,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                     <div className={styles.container}>
                                         {ganttComponent ? (
                                             <PanelGroup direction="horizontal" onLayout={onLayout}>
-                                                <Panel defaultSize={defaultGridPaneSize} minSize={minGridPaneSize}>
+                                                <Panel defaultSize={defaultGridPaneSize} maxSize="33px" minSize={minGridPaneSize}>
                                                     <Grid {...props} />
                                                 </Panel>
                                                 <PanelResizeHandle className={styles.divider} />
