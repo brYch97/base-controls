@@ -43,7 +43,7 @@ export interface ISavedQueryMetadata {
     linking?: ComponentFramework.PropertyHelper.DataSetApi.LinkEntityExposedExpression[];
     isFlatListEnabled?: boolean;
     showWeekends?: boolean;
-    gridWidth?: number;
+    ganttWidth?: number;
     searchQuery?: string | undefined;
     quickFindColumns?: string[];
 }
@@ -302,7 +302,7 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
             searchQuery: provider.getSearchQuery(),
             isFlatListEnabled: provider.isFlatListEnabled(),
             showWeekends: this._getState().savedQuery?.showWeekends ?? false,
-            gridWidth: this._getState().savedQuery?.gridWidth,
+            ganttWidth: this._getState().savedQuery?.ganttWidth,
             quickFindColumns: provider.getQuickFindColumns().map(col => col.name),
             columns: [
                 ...provider.getColumns().map((col: any) => {
