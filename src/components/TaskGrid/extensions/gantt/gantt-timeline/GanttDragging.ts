@@ -1,6 +1,6 @@
 import { GanttStatic } from 'gantt-trial';
-import { ITaskGridDatasetControl } from '../..';
-import { ITaskDataProvider } from '../../providers';
+import { ITaskGridDatasetControl } from '../../../interfaces';
+import { ITaskDataProvider } from '../../../providers';
 import { IGanttDates } from './GanttDates';
 import {
     GANTT_DRAGGING_DISABLED_CLASS,

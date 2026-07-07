@@ -1,6 +1,6 @@
 import { IRecord } from "@talxis/client-libraries";
-import { ITaskGridDatasetControl } from "../../interfaces";
-import { ITaskDataProvider } from "../../providers";
+import { ITaskGridDatasetControl } from "../../../interfaces";
+import { ITaskDataProvider } from "../../../providers";
 
 export interface IGanttDates {
     getStartDate: (records?: IRecord[]) => Date | null;

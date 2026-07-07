@@ -1,8 +1,8 @@
 import { Formatting } from '@talxis/client-libraries';
 import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
-import { ITaskGridDatasetControl } from '../../../interfaces';
-import { ITaskDataProvider } from '../../../providers';
+import { ITaskGridDatasetControl } from '../../../../interfaces';
+import { ITaskDataProvider } from '../../../../providers';
 import { IGanttDates } from '../GanttDates';
 import { ZoomingConfig } from './ZoomingConfig';
 import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';

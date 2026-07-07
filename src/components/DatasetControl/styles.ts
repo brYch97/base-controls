@@ -3,13 +3,17 @@ import { mergeStyleSets } from "@fluentui/react"
 export const getDatasetControlStyles = (height?: string | null) => {
     return mergeStyleSets({
         datasetControlRoot: {
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            ...(height === '100%' ? getFullHeightStyles() : {})
+/*             display: 'flex',
+            flexDirection: 'column',
+            ...(height === '100%' ? getFullHeightStyles() : {}) */
 
         },
         controlContainer: {
-            ...(height === '100%' ? getFullHeightStyles() : {})
+            flex: 1
+/*             ...(height === '100%' ? getFullHeightStyles() : {}) */
         },
         footer: {
 

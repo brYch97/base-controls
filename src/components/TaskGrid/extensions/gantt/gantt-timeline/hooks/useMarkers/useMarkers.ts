@@ -15,7 +15,7 @@ import {
     TODAY_MARKER_CLASS,
 } from '../../GanttMarkers';
 import { MarkerType } from '../../components/marker';
-import { useEventEmitter } from '../../../../../../hooks';
+import { useEventEmitter } from '../../../../../../../hooks';
 
 interface IUseMarkersParams {
     gantt: GanttStatic;

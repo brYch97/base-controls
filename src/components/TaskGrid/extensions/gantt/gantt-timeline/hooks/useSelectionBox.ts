@@ -1,8 +1,8 @@
 import Selecto, { OnDragEnd, OnDragStart, OnScroll, OnSelect } from "selecto";
 import { IGanttManager } from "../GanttManager";
-import { useEventEmitter } from "../../../../../hooks";
+import { useEventEmitter } from "../../../../../../hooks";
 import { useCallback, useEffect, useRef } from "react";
-import { useTaskDataProvider } from "../../../context";
+import { useTaskDataProvider } from "../../../../context";
 import {
     GANTT_SELECTION_CURSOR_CLASS,
     GANTT_TASK_SELECTED_CLASS,

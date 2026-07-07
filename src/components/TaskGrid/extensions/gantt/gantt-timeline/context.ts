@@ -18,13 +18,3 @@ export interface IGanttComponents {
     onRenderTaskTooltipCallout: (props: ICalloutProps) => React.ReactElement;
     onRenderMarker: (props: IMarkerProps) => React.ReactElement;
 }
-
-export const GanttComponentsContext = React.createContext<IGanttComponents | null>(null);
-
-export const useGanttComponents = () => {
-    const components = React.useContext(GanttComponentsContext);
-    if (!components) {
-        throw new Error('GanttComponentsContext is not provided');
-    }
-    return components;
-};

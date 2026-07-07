@@ -536,7 +536,7 @@ export class AgGridModel extends EventEmitter<IAgGridModelEvents> {
         setTimeout(() => {
             const container = this._getContainer();
             if (container) {
-                container.style.height = this._calculateGridHeight();
+                //container.style.height = this._calculateGridHeight();
             }
         }, 100);
     }

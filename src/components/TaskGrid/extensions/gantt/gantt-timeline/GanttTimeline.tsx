@@ -1,23 +1,18 @@
 import { useEffect, useMemo, useRef } from 'react';
 import 'gantt-trial/codebase/dhtmlxgantt.css';
-import { useDatasetControl } from '../..';
+import { useDatasetControl } from '../../../context';
 import { getGanttStyles } from './styles';
 import { useTheme } from '@fluentui/react';
-import { GanttComponents } from './components/components';
 import { TimelineTaskCreateLine, TimelineTaskCreateRowOverlay } from './components';
-import { GanttComponentsContext, IGanttComponents } from './context';
 import { GanttManager } from './GanttManager';
 import { useTimelineTaskCreate } from './hooks/useTimelineTaskCreate';
 import { useTooltip } from './hooks/useTooltip';
 import { useMarkers } from './hooks/useMarkers/useMarkers';
 import { useSelectionBox } from './hooks/useSelectionBox';
+import { useGanttComponents } from '../context';
 
-export interface IGanttProps {
-    components?: Partial<IGanttComponents>;
-}
-
-export const Gantt = (props: IGanttProps) => {
-    const components = useMemo(() => ({ ...GanttComponents, ...props.components }), [props.components]);
+export const GanttTimeline = () => {
+    const components = useGanttComponents()
     const ref = useRef<HTMLDivElement>(null);
     const datasetControl = useDatasetControl();
     const ganttManager = useMemo(() => new GanttManager({ datasetControl }), []);
@@ -27,7 +22,7 @@ export const Gantt = (props: IGanttProps) => {
     const { tooltip } = useTooltip({ gantt });
     const { linePreview, rowOverlay } = useTimelineTaskCreate(ganttManager);
     useSelectionBox(ganttManager);
-    useMarkers({ gantt, components, markers: ganttManager.getMarkers()});
+    useMarkers({ gantt, components, markers: ganttManager.getMarkers() });
 
     useEffect(() => {
         if (!ref.current) {
@@ -48,9 +43,7 @@ export const Gantt = (props: IGanttProps) => {
                 {rowOverlay && <TimelineTaskCreateRowOverlay {...rowOverlay} />}
                 {linePreview && <TimelineTaskCreateLine {...linePreview} />}
             </div>
-            <GanttComponentsContext.Provider value={components}>
-                {tooltip.state && components.onRenderTaskTooltip({ task: tooltip.state.task, event: tooltip.state.event })}
-            </GanttComponentsContext.Provider>
+            {tooltip.state && components.onRenderTaskTooltip({ task: tooltip.state.task, event: tooltip.state.event })}
         </>
     );
 }

@@ -1,5 +1,5 @@
 import { GanttStatic, Task } from 'gantt-trial';
-import { ITaskDataProvider } from '../../providers';
+import { ITaskDataProvider } from '../../../providers';
 
 export interface IGanttSelection {
     destroy: () => void;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useRef, useState } from "react";
 import { IGanttManager } from "../GanttManager";
-import { useEventEmitter } from "../../../../../hooks";
+import { useEventEmitter } from "../../../../../../hooks";
 import {
     GANTT_DATA_AREA_CLASS,
     GANTT_TASK_BG_CLASS,
@@ -12,7 +12,7 @@ import {
     GANTT_TASK_ROW_CLASS,
     GANTT_TIMELINE_TASK_CREATE_CURSOR_CLASS,
 } from "../classNames";
-import { useTaskDataProvider } from "../../../context";
+import { useTaskDataProvider } from "../../../../context";
 
 const EDGE_SCROLL_THRESHOLD = 50;
 const EDGE_SCROLL_STEP = 10;

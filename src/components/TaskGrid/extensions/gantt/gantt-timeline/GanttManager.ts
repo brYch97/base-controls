@@ -1,9 +1,9 @@
 import { Gantt, GanttStatic, Task } from 'gantt-trial';
 import debounce from 'debounce';
-import { ITaskGridDatasetControl } from '../..';
-import { ITaskDataProvider } from '../../providers';
+import { ITaskGridDatasetControl } from '../../../interfaces';
+import { ITaskDataProvider } from '../../../providers';
 import { EventEmitter, IEventEmitter } from '@talxis/client-libraries';
-import { IGanttGridBridge } from "../../bridges/GanttGridBridge";
+import { IGanttGridBridge } from "../../../bridges/GanttGridBridge";
 import { GanttDragging, IGanttDragging } from './GanttDragging';
 import { GanttDates, IGanttDates } from './GanttDates';
 import { GanttInfiniteTimeline, IGanttInfiniteTimeline } from './GanttInfiniteTimeline';
@@ -97,6 +97,7 @@ export class GanttManager implements IGanttManager {
         this._gantt.config.drag_links = false;
         this._gantt.config.static_background = true;
         this._gantt.config.scale_height = 43;
+        this._gantt.config.scroll_size = 14;
         this._gantt.config.show_tasks_outside_timescale = true;
         this._gantt.config.row_height = this._datasetControl.getParameters().RowHeight?.raw ?? 42;
         this._setUpLayout();
@@ -160,8 +161,6 @@ export class GanttManager implements IGanttManager {
 
     private _setUpWeekendVisibility() {
         const showWeekends = this._datasetControl.getShowWeekends();
-        //this._gantt.config.work_time = !showWeekends;
-        //this._gantt.config.skip_off_time = !showWeekends;
         this._gantt.ignore_time = (date) => {
             return !showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible();
         }
@@ -173,7 +172,6 @@ export class GanttManager implements IGanttManager {
     }
 
     private _setUpClasses() {
-        //this._gantt.templates.scale_cell_class = (date) => this._getScaleCellClass(date);
         this._gantt.templates.timeline_cell_class = (task, date) => this._getWeekendClass(date);
         this._gantt.templates.task_row_class = (_start, _end, task) => this._getTaskRowClass(task);
         this._gantt.templates.task_class = (_start, _end, task) => this._getTaskClass(task);

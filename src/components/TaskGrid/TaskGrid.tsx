@@ -15,12 +15,8 @@ import { ITaskGridState, TaskGridDatasetControlFactory } from "./TaskGridDataset
 import { Header } from "./components/header/Header";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Gantt } from "./extensions/gantt";
 import { LocalizationService } from "../../utils";
-
-const DEFAULT_GANTT_PANE_SIZE = 65;
-const MIN_GRID_PANE_SIZE = 7.8;
-const MIN_FLAT_LIST_GRID_PANE_SIZE = 3.6;
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -95,20 +91,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const styles = React.useMemo(() => getDatasetControlStyles(theme, '100%'), [theme]);
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
-    const ganttComponent = taskGridDescriptor.extensions?.gantt?.onGetGanttComponent({
-        components: {}
-    });
-    const defaultGanttPaneSize = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_PANE_SIZE;
-    const defaultGridPaneSize = 100 - defaultGanttPaneSize;
-    const minGridPaneSize = provider.isFlatListEnabled() ? MIN_FLAT_LIST_GRID_PANE_SIZE : MIN_GRID_PANE_SIZE;
-
-    const onLayout = (layout: number[]) => {
-        const ganttPaneSize = layout[1];
-        if (ganttPaneSize == undefined) {
-            return;
-        }
-        datasetControl.setGanttWidth(ganttPaneSize);
-    };
+    const ganttComponent = taskGridDescriptor.extensions?.gantt?.onGetGanttComponent({ components: {} });
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
     useEventEmitter<ITaskGridDatasetControlEvents>(datasetControl.events, 'onFlatListToggled', rerender);
@@ -126,21 +109,13 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                             onGetDatasetControlInstance={() => datasetControl}
                             onGetControlComponent={(props) => {
                                 return (
-                                    <div className={styles.container}>
+                                    <>
                                         {ganttComponent ? (
-                                            <PanelGroup direction="horizontal" onLayout={onLayout}>
-                                                <Panel defaultSize={defaultGridPaneSize} maxSize="33px" minSize={minGridPaneSize}>
-                                                    <Grid {...props} />
-                                                </Panel>
-                                                <PanelResizeHandle className={styles.divider} />
-                                                <Panel className={styles.ganttPanel} defaultSize={defaultGanttPaneSize}>
-                                                    {ganttComponent}
-                                                </Panel>
-                                            </PanelGroup>
+                                            ganttComponent
                                         ) : (
                                             <Grid {...props} />
                                         )}
-                                    </div>
+                                    </>
                                 );
                             }}
                             onOverrideComponentProps={(props) => {

@@ -9,9 +9,8 @@ import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { ILocalizationService } from "../../utils";
 import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
-import { IGanttProps } from "./components/gannt";
-import { ICustomMarker, IGanttMarker } from "./components/gannt/GanttMarkers";
-import { ZoomLevel } from "./components/gannt/components/zoom-switcher";
+import { ICustomMarker } from "./extensions/gantt/gantt-timeline/GanttMarkers";
+import { IGanttProps } from "./extensions/gantt";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;

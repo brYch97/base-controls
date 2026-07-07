@@ -1,9 +1,9 @@
 import { GanttStatic } from "gantt-trial";
-import { ITaskGridDatasetControl } from "../../interfaces";
-import { ILocalizationService } from "../../../..";
-import { ITaskGridLabels } from "../../labels";
+import { ITaskGridDatasetControl } from "../../../interfaces";
+import { ILocalizationService } from "../../../../..";
+import { ITaskGridLabels } from "../../../labels";
 import { IGanttDates } from "./GanttDates";
-import { IProjectDataProvider } from "../../extensions/providers/project";
+import { IProjectDataProvider } from "../../providers/project";
 import { getClassNames } from "@talxis/react-components";
 import { EventEmitter, IEventEmitter } from "@talxis/client-libraries";
 

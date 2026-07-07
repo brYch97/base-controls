@@ -1,7 +1,7 @@
 import { IRawRecord, IRecord } from "@talxis/client-libraries";
 import { GanttStatic, Task } from "gantt-trial";
-import { ITaskGridDatasetControl } from "../..";
-import { IDeleteTasksResult, ITaskDataProvider } from "../../providers";
+import { ITaskGridDatasetControl } from "../../../interfaces";
+import { IDeleteTasksResult, ITaskDataProvider } from "../../../providers";
 import { IGanttDates } from "./GanttDates";
 
 export interface IGanttData { }
