@@ -49,6 +49,7 @@ export interface IGanttExtension {
     showWeekend: (showWeekends: boolean) => void;
     getGanttWidth: () => number | undefined;
     setGanttWidth: (ganttWidth: number) => void;
+    
 }
 
 export interface IExtendedRibbonQuickFindWrapperProps extends IRibbonQuickFindWrapperProps {

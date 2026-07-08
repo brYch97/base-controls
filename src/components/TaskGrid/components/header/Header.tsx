@@ -27,7 +27,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
     const onRenderRibbonQuickFindWrapper = ganttExtension?.onRenderDatasetControlRibbonQuickFindWrapper ?? ((props, defaultRender) => defaultRender(props));
 
     const hasContent = () => {
-        const isGanttEnabled = !!datasetControl.extensions.gantt;
+        const isGanttEnabled = !!ganttExtension;
         return datasetControl.isViewSwitcherEnabled() ||
             datasetControl.isTaskCreatingEnabled() ||
             datasetControl.isTemplatingEnabled() ||

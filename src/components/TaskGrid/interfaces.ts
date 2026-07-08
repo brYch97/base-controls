@@ -112,9 +112,7 @@ export interface IExtensions {
     project?: {
         onCreateProjectDataProvider?: () => IProjectDataProvider;
     }
-    gantt?: {
-        onGetExtension: () => IGanttExtension;
-    }
+    onGetGanttExtension?: () => IGanttExtension;
 }
 
 /**

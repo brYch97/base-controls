@@ -89,7 +89,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
     const ganttExtension = React.useMemo(() => {
-        const extension = taskGridDescriptor.extensions?.gantt?.onGetExtension() ?? null;
+        const extension = taskGridDescriptor.extensions?.onGetGanttExtension?.() ?? null;
         extension?.initialize({
             state: datasetControl.getState() as ITaskGridState,
         });
