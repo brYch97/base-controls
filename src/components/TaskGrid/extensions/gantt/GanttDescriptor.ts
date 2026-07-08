@@ -14,6 +14,7 @@ export interface IGanttDescriptor {
 export interface IExtendedRibbonQuickFindWrapperProps extends IRibbonQuickFindWrapperProps {
     onRenderZoomSlider?: () => JSX.Element;
     onGetCommandBarItems?: (items: ICommandBarItemProps[]) => ICommandBarItemProps[];
+    onRenderSettingsCallout?: () => JSX.Element;
 }
 
 export class GanttDescriptor implements IGanttDescriptor {

@@ -1,7 +1,12 @@
+import { Label, Toggle } from "@fluentui/react";
 import { ICommandBarItemProps } from "@talxis/react-components";
 import { IExtendedRibbonQuickFindWrapperProps } from "../../GanttDescriptor";
 import { useDatasetControl, useLocalizationService } from "../../../../context";
 import { ZoomSliderAdapter } from "../zoom-slider-adapter";
+import { useEventEmitter } from "../../../../../../hooks";
+import { IGanttGridBridgeEvents } from "../../../../bridges";
+import { useRerender } from "@talxis/react-components";
+import { SettingsCallout } from "../../../../components/header/settings-callout";
 
 
 export interface IGanttRibbonQuickFindWrapper {
@@ -14,6 +19,10 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
     const datasetControl = useDatasetControl();
     const provider = datasetControl.getDataProvider();
     const localizationService = useLocalizationService();
+    const rerender = useRerender();
+    const showWeekends = datasetControl.getShowWeekends();
+
+    useEventEmitter<IGanttGridBridgeEvents>(datasetControl.ganttGridBridge, 'onShowWeekendsChanged', rerender);
 
 
     const getCommandBarItems = (items: ICommandBarItemProps[]): ICommandBarItemProps[] => {
@@ -29,14 +38,23 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
         ];
     }
 
-    return (        
-        <>
-        {defaultRender({
+    return (
+        defaultRender({
             ...ribbonWrapperProps,
             onRenderZoomSlider: () => <ZoomSliderAdapter />,
-            onGetCommandBarItems: getCommandBarItems
-        })}
-        </>
+            onGetCommandBarItems: getCommandBarItems,
+            onRenderSettingsCallout: () => <>
+                <SettingsCallout>
+                    <Label>
+                        {localizationService.getLocalizedString('hideWeekends')}
+                    </Label>
+                    <Toggle
+                        checked={!showWeekends}
+                        onClick={() => {
+                            datasetControl.toggleShowWeekends(!showWeekends);
+                        }} />
+                </SettingsCallout>
+            </>
+        })
     );
 };
-    

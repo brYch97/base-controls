@@ -3,23 +3,21 @@ import { useRerender } from "@talxis/react-components";
 import * as React from "react"
 import { getSettingsCalloutStyles } from "./styles";
 import { useDatasetControl, useLocalizationService, useTaskDataProvider } from "../../../context";
-import { useEventEmitter } from "../../../../../hooks";
-import { IGanttGridBridgeEvents } from "../../../bridges";
 
-export const SettingsCallout = () => {
+export interface ISettingsCalloutProps {
+    children?: React.ReactNode;
+}
+
+export const SettingsCallout = (props: ISettingsCalloutProps) => {
+    const { children } = props;
     const localizationService = useLocalizationService();
     const datasetControl = useDatasetControl();
     const taskDataProvider = useTaskDataProvider();
     const styles = React.useMemo(() => getSettingsCalloutStyles(), []);
-    const rerender = useRerender();
     const inactiveTasksVisibility = datasetControl.getInactiveTasksVisibility();
     const isFlatListEnabled = taskDataProvider.isFlatListEnabled();
-    const showWeekends = datasetControl.getShowWeekends();
     const isHierarchyToggleVisible = datasetControl.isShowHierarchyToggleVisible();
     const isHideInactiveTasksToggleVisible = datasetControl.isHideInactiveTasksToggleVisible();
-    const isGanttEnabled = Boolean(datasetControl.extensions.gantt);
-
-    useEventEmitter<IGanttGridBridgeEvents>(datasetControl.ganttGridBridge, 'onShowWeekendsChanged', rerender);
 
 
     return (<div className={styles.settingsCallout}>
@@ -41,15 +39,6 @@ export const SettingsCallout = () => {
                 datasetControl.toggleHideInactiveTasks(inactiveTasksVisibility);
             }} />
         </>}
-        {isGanttEnabled && <>
-            <Label>
-                {localizationService.getLocalizedString('hideWeekends')}
-            </Label>
-            <Toggle
-                checked={!showWeekends}
-                onClick={() => {
-                    datasetControl.toggleShowWeekends(!showWeekends);
-                }} />
-        </>}
+        {children}
     </div>);
 }

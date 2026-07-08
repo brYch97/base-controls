@@ -8,6 +8,7 @@ import { useDatasetControl, useGanttDescriptor, useLocalizationService, usePcfCo
 import { RecordSelector } from "../grid/record-selector";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
+import { IExtendedRibbonQuickFindWrapperProps } from "../../extensions/gantt";
 
 interface ITaskGridHeaderProps {
     headerProps: IHeaderProps;
@@ -94,7 +95,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
         ];
     }
 
-    const getCommandBarItems = (items: ICommandBarItemProps[]): ICommandBarItemProps[] => {
+    const getCommandBarItems = (items: ICommandBarItemProps[], ribbonProps: IExtendedRibbonQuickFindWrapperProps): ICommandBarItemProps[] => {
         const isTemplatingEnabled = datasetControl.isTemplatingEnabled();
         const isEditColumnsEnabled = datasetControl.isEditColumnsVisible();
         const isTaskAddingEnabled = datasetControl.isTaskCreatingEnabled();
@@ -157,7 +158,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 text: localizationService.getLocalizedString('settings'),
                 subMenuProps: {
                     items: [{ key: 'dummy' }],
-                    onRenderMenuList: () => <SettingsCallout />
+                    onRenderMenuList: ribbonProps.onRenderSettingsCallout ?? (() => <SettingsCallout />)
                 },
                 iconProps: { iconName: 'Settings' },
             }] : [])
@@ -189,7 +190,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
                                     return defaultRender({
                                         ...props,
                                         onRenderCommandBar: (props, defaultRender) => {
-                                            const items = getCommandBarItems(props.items as ICommandBarItemProps[]);
+                                            const items = getCommandBarItems(props.items as ICommandBarItemProps[], ribbonProps);
                                             return components.onRenderCommandBar({
                                                 ...props as any,
                                                 items: ribbonProps.onGetCommandBarItems?.(items) ?? items
