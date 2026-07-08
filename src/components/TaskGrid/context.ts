@@ -4,6 +4,7 @@ import { ITaskGridDatasetControl, ITaskGridDescriptor } from "./interfaces";
 import { ITaskGridLabels } from "./labels";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ILocalizationService } from "../../utils";
+import { IGanttDescriptor } from "./extensions/gantt/GanttDescriptor";
 
 export const PcfContext = React.createContext<ComponentFramework.Context<any> | null>(null);
 PcfContext.displayName = 'PcfContext';
@@ -28,6 +29,13 @@ LocalizationServiceContext.displayName = 'LocalizationService';
 
 export const AgGridLicenseKeyContext = React.createContext<string | null>(null);
 AgGridLicenseKeyContext.displayName = 'AgGridLicenseKey';
+
+export const GanttDescriptorContext = React.createContext<IGanttDescriptor | null>(null);
+GanttDescriptorContext.displayName = 'GanttDescriptor';
+
+export const useGanttDescriptor = () => {
+    return React.useContext(GanttDescriptorContext);
+}
 
 const useContextWithNullCheck = <T>(ctx: React.Context<T | null>): T => {
     const value = React.useContext(ctx);

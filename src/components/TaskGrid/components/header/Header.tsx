@@ -4,11 +4,10 @@ import * as React from "react"
 import { CommandBarButton, ContextualMenuItemType } from "@fluentui/react";
 import { getHeaderStyles } from "./styles";
 import { SettingsCallout } from "./settings-callout";
-import { useDatasetControl, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
+import { useDatasetControl, useGanttDescriptor, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
 import { RecordSelector } from "../grid/record-selector";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
-import { ZoomSliderAdapter } from "../../extensions/gantt/components/zoom-slider-adapter";
 
 interface ITaskGridHeaderProps {
     headerProps: IHeaderProps;
@@ -23,6 +22,8 @@ export const Header = (props: ITaskGridHeaderProps) => {
     const [editColumnsOpen, setEditColumnsOpen] = React.useState(false);
     const pcfContext = usePcfContext();
     const components = useTaskGridComponents();
+    const ganttDescriptor = useGanttDescriptor();
+    const onRenderRibbonQuickFindWrapper = ganttDescriptor?.onRenderDatasetControlRibbonQuickFindWrapper ?? ((props, defaultRender) => defaultRender(props));
 
     const hasContent = () => {
         const isGanttEnabled = !!datasetControl.extensions.gantt;
@@ -53,9 +54,11 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 disabled: isLoading,
                 iconProps: { iconName: 'AddToShoppingList' },
                 text: localizationService.getLocalizedString('topLevel'),
-                onClick: () => { provider.createTask({
-                    nextTaskId: provider.getRecordTree().getNode(null).directChildren[0]?.getRecordId()
-                }); }
+                onClick: () => {
+                    provider.createTask({
+                        nextTaskId: provider.getRecordTree().getNode(null).directChildren[0]?.getRecordId()
+                    });
+                }
             }] : []),
             ...(isTemplatingEnabled ? [
                 ...(isTaskAddingEnabled ? [{ key: 'divider', itemType: ContextualMenuItemType.Divider }] : []),
@@ -99,7 +102,6 @@ export const Header = (props: ITaskGridHeaderProps) => {
         const isTaskDeletingEnabled = datasetControl.isTaskDeletingEnabled();
         const isShowHierarchyToggleVisible = datasetControl.isShowHierarchyToggleVisible();
         const isHideInactiveTasksToggleVisible = datasetControl.isHideInactiveTasksToggleVisible();
-        const isGanttEnabled = !!datasetControl.extensions.gantt;
         const selectedIds = provider.getSelectedRecordIds();
         const isLoading = provider.isLoading();
 
@@ -109,9 +111,11 @@ export const Header = (props: ITaskGridHeaderProps) => {
                 text: localizationService.getLocalizedString('new'),
                 disabled: isLoading,
                 iconProps: { iconName: 'Add' },
-                onClick: (isTaskAddingEnabled && !isTemplatingEnabled) ? () => { provider.createTask({
-                    nextTaskId: provider.getRecordTree().getNode(null).directChildren[0]?.getRecordId()
-                }); } : undefined,
+                onClick: (isTaskAddingEnabled && !isTemplatingEnabled) ? () => {
+                    provider.createTask({
+                        nextTaskId: provider.getRecordTree().getNode(null).directChildren[0]?.getRecordId()
+                    });
+                } : undefined,
                 subMenuProps: (isTaskAddingEnabled && !isTemplatingEnabled) ? undefined : { items: getNewSubMenuItems(isTemplatingEnabled, isTaskAddingEnabled, selectedIds, isLoading) }
             }] : []),
             ...(selectedIds.length !== 0 ? [
@@ -156,52 +160,53 @@ export const Header = (props: ITaskGridHeaderProps) => {
                     onRenderMenuList: () => <SettingsCallout />
                 },
                 iconProps: { iconName: 'Settings' },
-            }] : []),
-            ...(isGanttEnabled ? [{
-                key: 'goToToday',
-                disabled: isLoading,
-                text: localizationService.getLocalizedString('goToToday'),
-                iconProps: { iconName: 'CalendarDay' },
-                onClick: () => datasetControl.ganttGridBridge.requestJumpToToday(),
             }] : [])
         ];
     }
 
     if (!hasContent()) return <></>
 
-    return props.defaultRender({
-        ...props.headerProps,
-        onRenderRibbonQuickFindWrapper: (props, defaultRender) => {
-            return <div className={styles.root}>
-                {datasetControl.isViewSwitcherEnabled() &&
-                    <>
-                        <ViewSwitcher />
-                        <ZoomSliderAdapter />
-                    </>
-                }
-                {defaultRender({
-                    ...props,
-                    ribbonQuickFindContainerProps: {
-                        ...props.ribbonQuickFindContainerProps,
-                        className: `${props.ribbonQuickFindContainerProps.className} ${styles.ribbonQuickFindContainer}`,
-                    },
-                    onRenderRibbon: (props, defaultRender) => {
-                        return defaultRender({
-                            ...props,
-                            onRenderCommandBar: (props, defaultRender) => {
-                                return components.onRenderCommandBar({
-                                    ...props as any,
-                                    items: getCommandBarItems(props.items as any)
-                                })
-                            }
-                        })
-                    },
+    return <>
+        {
+            props.defaultRender({
+                ...props.headerProps,
+                onRenderRibbonQuickFindWrapper: (ribbonProps, _defaultRender) => {
+                    return onRenderRibbonQuickFindWrapper(ribbonProps, (ribbonProps) => {
+                        return <div className={styles.root}>
+                            <div className={styles.headerLeftContainer}>
+                                {datasetControl.isViewSwitcherEnabled() &&
+                                    <ViewSwitcher />
+                                }
+                                {ribbonProps.onRenderZoomSlider?.()}
+                            </div>
+                            {_defaultRender({
+                                ...ribbonProps,
+                                ribbonQuickFindContainerProps: {
+                                    ...ribbonProps.ribbonQuickFindContainerProps,
+                                    className: `${ribbonProps.ribbonQuickFindContainerProps.className} ${styles.ribbonQuickFindContainer}`,
+                                },
+                                onRenderRibbon: (props, defaultRender) => {
+                                    return defaultRender({
+                                        ...props,
+                                        onRenderCommandBar: (props, defaultRender) => {
+                                            const items = getCommandBarItems(props.items as ICommandBarItemProps[]);
+                                            return components.onRenderCommandBar({
+                                                ...props as any,
+                                                items: ribbonProps.onGetCommandBarItems?.(items) ?? items
+                                            })
+                                        }
+                                    })
+                                },
 
-                })}
-                {editColumnsOpen &&
-                    <EditColumns onDismiss={() => setEditColumnsOpen(false)} />
+                            })}
+                        </div>
+                    });
                 }
-            </div>
+            })
         }
-    });
+        {editColumnsOpen &&
+            <EditColumns onDismiss={() => setEditColumnsOpen(false)} />
+        }
+    </>
+
 }

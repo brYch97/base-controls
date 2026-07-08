@@ -3,7 +3,7 @@ import { IDatasetControlEvents } from "../../utils/dataset-control";
 import { useRef } from "react";
 import * as React from "react";
 import { useRerender } from "@talxis/react-components";
-import { AgGridLicenseKeyContext, DatasetControlContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext, usePcfContext } from "./context";
+import { AgGridLicenseKeyContext, DatasetControlContext, GanttDescriptorContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext, usePcfContext } from "./context";
 import { DatasetControl as DatasetControlRenderer } from "../DatasetControl";
 import { useTheme } from "@fluentui/react";
 import { getDatasetControlStyles } from "./styles";
@@ -17,6 +17,7 @@ import { ITaskGridComponents, TaskGridComponents } from "./components/components
 import { ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridDatasetControl } from "./interfaces";
 import { Gantt } from "./extensions/gantt";
 import { LocalizationService } from "../../utils";
+import { NormalizedFullOptions } from "liquidjs/dist/liquid-options";
 
 interface ITaskGridProps {
     //should be replaced by Context API in future
@@ -90,6 +91,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
     const ganttComponent = taskGridDescriptor.extensions?.gantt?.onGetGanttComponent({ components: {} });
+    const ganttDescriptor = React.useMemo(() => taskGridDescriptor.extensions?.gantt?.onGetDescriptor() ?? null, []);
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
     useEventEmitter<ITaskGridDatasetControlEvents>(datasetControl.events, 'onFlatListToggled', rerender);
@@ -103,6 +105,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
             <TaskDataProviderContext.Provider value={provider}>
                 <TaskGridDescriptorContext.Provider value={taskGridDescriptor}>
                     <RootElementIdContext.Provider value={rootElementId}>
+                        <GanttDescriptorContext.Provider value={ganttDescriptor}>
                         <DatasetControlRenderer
                             onGetDatasetControlInstance={() => datasetControl}
                             onGetControlComponent={(props) => {
@@ -132,6 +135,8 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                     }
                                 }
                             }} />
+                            </GanttDescriptorContext.Provider>
+
 
                     </RootElementIdContext.Provider>
                 </TaskGridDescriptorContext.Provider>

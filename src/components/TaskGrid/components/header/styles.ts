@@ -14,6 +14,10 @@ export const getHeaderStyles = () => {
             '.talxis__baseControl__Ribbon': {
                 minWidth: 0
             }
+        },
+        headerLeftContainer: {
+            display: 'flex',
+            gap: 5
         }
     })
 }

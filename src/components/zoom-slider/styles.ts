@@ -4,8 +4,6 @@ export const getZoomSliderStyles = (theme: ITheme, disabled?: boolean) => {
     return mergeStyleSets({
         root: {
             minWidth: 220,
-            paddingTop: 4,
-            marginRight: 12,
             display: 'flex',
             alignItems: 'center',
             gap: 5,

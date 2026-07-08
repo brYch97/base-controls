@@ -11,6 +11,7 @@ import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
 import { ICustomMarker } from "./extensions/gantt/gantt-timeline/GanttMarkers";
 import { IGanttProps } from "./extensions/gantt";
+import { IGanttDescriptor } from "./extensions/gantt/GanttDescriptor";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -115,6 +116,7 @@ export interface IExtensions {
         onCreateProjectDataProvider?: () => IProjectDataProvider;
     }
     gantt?: {
+        onGetDescriptor: () => IGanttDescriptor;
         onGetGanttComponent: (props: IGanttProps) => React.ReactElement<IGanttProps>
         onGetCustomMarkers?: () => ICustomMarker[];
     }
