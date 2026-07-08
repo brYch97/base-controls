@@ -66,7 +66,7 @@ export class GanttMarkers implements IGanttMarkers {
         this._dates = params.dates;
         this._localizationService = this._datasetControl.getLocalizationService();
         this._projectDataProvider = this._datasetControl.getProjectDataProvider();
-        this._getCustomMarkers = () => params.ganttExtension.onGetCustomMarkers();
+        this._getCustomMarkers = () => params.ganttExtension.getCustomMarkers();
         this._registerEventListeners();
     }
 

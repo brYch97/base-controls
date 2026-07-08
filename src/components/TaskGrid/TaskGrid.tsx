@@ -95,7 +95,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
         });
         return extension;
     }, []);
-    const ganttComponent = ganttExtension?.onGetGanttComponent({ components: {} }) ?? null;
+    const ganttComponent = ganttExtension?.getGanttComponent({ components: {} }) ?? null;
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
     useEventEmitter<ITaskGridDatasetControlEvents>(datasetControl.events, 'onFlatListToggled', rerender);

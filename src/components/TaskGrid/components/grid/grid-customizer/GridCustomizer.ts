@@ -1,4 +1,4 @@
-import { BodyScrollEvent, ColDef as ColDefBase, GridApi as GridApiBase, IRowNode, IsServerSideGroupOpenByDefaultParams, RowClassRules as RowClassRulesBase, RowGroupOpenedEvent } from "@ag-grid-community/core";
+import { ColDef as ColDefBase, GridApi as GridApiBase, IRowNode, IsServerSideGroupOpenByDefaultParams, RowClassRules as RowClassRulesBase } from "@ag-grid-community/core";
 import { IMoveTaskParameters, ITaskDataProvider } from "../../../providers/task";
 import { DatasetConstants, IColumn, IRawRecord, IRecord } from "@talxis/client-libraries";
 import { GridDragHandler, IDragOperation } from "../grid-drag-handler";
@@ -59,13 +59,11 @@ export class GridCustomizer implements IGridCustomizer {
     private _pcfContext: ComponentFramework.Context<any>;
     private _datasetControl: ITaskGridDatasetControl;
     private _ganttExtension: IGanttExtension | null;
-    private _isGanttEnabled: boolean;
     private _strategy?: IGridCustomizerStrategy;
 
     constructor(parameters: IGridCustomizerParameters) {
         this._datasetControl = parameters.datasetControl;
         this._ganttExtension = parameters.ganttExtension;
-        this._isGanttEnabled = this._ganttExtension !== null;
         this._taskDataProvider = this._datasetControl.getDataProvider();
         this._gridApi = parameters.gridApi;
         this._localizationService = this._datasetControl.getLocalizationService();
@@ -79,11 +77,8 @@ export class GridCustomizer implements IGridCustomizer {
         });
         this._patchGridApi();
         this._registerEventListeners();
-        if (this._isGanttEnabled) {
-            this._registerGanttEventListeners();
-        }
         this._gridApi.setGridOption('rowClassRules', this._getRowClassRules());
-        this._ganttExtension?.onRetrieveGridCustomizer(this);
+        this._ganttExtension?.setGridCustomizer(this);
         this._strategy?.onInitialize?.(this);
     }
 
@@ -167,9 +162,6 @@ export class GridCustomizer implements IGridCustomizer {
                 case this._nativeColumns.subject: {
                     colDef.cellRenderer = GroupCell;
                     colDef.pinned = 'left';
-                    if (this._isGanttEnabled) {
-                        colDef.pinned = undefined;
-                    }
                     break;
                 }
                 case DatasetConstants.CHECKBOX_COLUMN_KEY: {
@@ -193,10 +185,7 @@ export class GridCustomizer implements IGridCustomizer {
 
         columnDefs.sort((a, b) => this._getColumnPriority(a) - this._getColumnPriority(b));
         columnDefs = this._strategy?.onGetColumnDefinitions?.(columnDefs) ?? columnDefs;
-        if (this._isGanttEnabled) {
-            columnDefs.map(colDef => colDef.autoHeight = false)
-        }
-        return columnDefs;
+        return this._ganttExtension?.getColumnDefinitions(columnDefs) ?? columnDefs;
 
     }
 
@@ -467,56 +456,5 @@ export class GridCustomizer implements IGridCustomizer {
         this._taskDataProvider.taskEvents.addEventListener('onRecordTreeUpdated', (updatedParentIds) => this._onRecordTreeUpdated(updatedParentIds));
         this._taskDataProvider.taskEvents.addEventListener('onTaskDataUpdated', (newData) => this._onAfterTaskDataUpdated(newData));
         this._gridDragHandler.addEventListener('onDragEnd', (dragOperation) => this._onDragEnd(dragOperation));
-    }
-
-    private _registerGanttEventListeners() {
-        this._getAgGridVerticalViewport()?.addEventListener('scroll', (event) => this._onAgGridScrolled((event.target as Element).scrollTop));
-        this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
-        this._ganttExtension!.events.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
-        this._ganttExtension!.events.addEventListener('onGanttTaskExpanded', (taskId) => this._onGanttRowExpanded(taskId));
-        this._ganttExtension!.events.addEventListener('onGanttTaskCollapsed', (taskId) => this._onGanttRowCollapsed(taskId));
-    }
-
-    private _onGanttScrolled(scrollTop: number) {
-        const viewport = this._getAgGridVerticalViewport();
-        viewport.scrollTop = scrollTop;
-    }
-
-    private _onAgGridScrolled(scrollTop: number) {
-        this._ganttExtension!.events.dispatchEvent('onAgGridScrolled', scrollTop);
-    }
-
-    private _onGanttRowExpanded(taskId: string) {
-        const node = this._gridApi.getRowNode(taskId);
-        // Only toggle when the state actually differs; setExpanded re-fires
-        // rowGroupOpened, which would bounce back through the bridge.
-        if (node && !node.expanded) {
-            node.setExpanded(true);
-        }
-    }
-
-    private _onGanttRowCollapsed(taskId: string) {
-        const node = this._gridApi.getRowNode(taskId);
-        if (node && node.expanded) {
-            node.setExpanded(false);
-        }
-    }
-
-
-    private _getAgGridVerticalViewport(): HTMLElement {
-        const rootElement = document.getElementById(this._datasetControl.getControlId() + '-root');
-        const viewPort = rootElement?.querySelector('.ag-body-viewport') ?? null;
-        if (!viewPort) {
-            throw new Error('AgGrid vertical viewport not found');
-        }
-        return viewPort as HTMLElement;
-    }
-
-    private _onRowGroupOpened(event: RowGroupOpenedEvent) {
-        if (event.expanded) {
-            this._ganttExtension!.events.dispatchEvent('onAgGridRowExpanded', event.node.id!);
-        } else {
-            this._ganttExtension!.events.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
-        }
     }
 }

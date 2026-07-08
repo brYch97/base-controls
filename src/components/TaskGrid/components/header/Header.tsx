@@ -24,7 +24,7 @@ export const Header = (props: ITaskGridHeaderProps) => {
     const pcfContext = usePcfContext();
     const components = useTaskGridComponents();
     const ganttExtension = useGanttExtension();
-    const onRenderRibbonQuickFindWrapper = ganttExtension?.onRenderDatasetControlRibbonQuickFindWrapper ?? ((props, defaultRender) => defaultRender(props));
+    const onRenderRibbonQuickFindWrapper = ganttExtension?.getRenderDatasetContrilRibbonQuickFindWrapper ?? ((props, defaultRender) => defaultRender(props));
 
     const hasContent = () => {
         const isGanttEnabled = !!ganttExtension;
