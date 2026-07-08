@@ -58,6 +58,7 @@ export interface IExtendedRibbonQuickFindWrapperProps extends IRibbonQuickFindWr
 }
 
 export class GanttDescriptor implements IGanttDescriptor {
+    
     public readonly events: IEventEmitter<IGanttDescriptorEvents> = new EventEmitter<IGanttDescriptorEvents>();
     private _state: ITaskGridState | null = null;
     private _suppressedEvents = new Set<GanttDescriptorEventName>();
