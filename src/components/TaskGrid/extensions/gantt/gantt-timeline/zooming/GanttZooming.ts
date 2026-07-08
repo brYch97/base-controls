@@ -28,6 +28,7 @@ export class GanttZooming implements IGanttZooming {
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
     private _debouncedResetZoomAnchor: debounce.DebouncedFunction<() => void>;
+    private _debouncedShrinkTimeline: debounce.DebouncedFunction<(date: Date) => void>;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _ganttExtension: IGanttExtension;
@@ -45,10 +46,10 @@ export class GanttZooming implements IGanttZooming {
         this._dates = params.dates;
         this._debouncedResetZoomAnchor = debounce(() => {
             this._pendingAnchorDate = undefined;
-            console.log('Zoom anchor reset');
         }, GanttZooming._zoomSessionResetDelay);
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
+        this._debouncedShrinkTimeline = debounce((date: Date) => this._timeline.shrink({ date }), 10);
         this._overrideWheelHandler();
         this._taskDataProvider = params.datasetControl.getDataProvider();
         this._registerEventListeners();
@@ -132,7 +133,7 @@ export class GanttZooming implements IGanttZooming {
 
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
         const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
-        this._timeline.shrink({ date: anchorDate });
+        this._debouncedShrinkTimeline(anchorDate);
         this._debouncedResetZoomAnchor();
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;

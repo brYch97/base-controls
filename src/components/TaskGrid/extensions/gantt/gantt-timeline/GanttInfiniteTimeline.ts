@@ -30,7 +30,9 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         try {
             return callback();
         } finally {
-            this._blockScrollHandler = false;
+            setTimeout(() => {
+                this._blockScrollHandler = false;
+            }, 100);
         }
     }
 
@@ -45,7 +47,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
         console.log(anchorDate);
 
-        const left_date = new Date(+anchorDate - visibleDuration / 2) 
+        const left_date = new Date(+anchorDate - visibleDuration / 2)
         const right_date = new Date(+anchorDate + visibleDuration / 2);
         const targetDuration = visibleDuration * (GanttInfiniteTimeline._targetTimelineWidth / viewportWidth);
         const start_date = new Date(+left_date - ((targetDuration - visibleDuration) / 2));
