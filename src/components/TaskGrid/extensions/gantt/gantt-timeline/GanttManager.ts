@@ -162,7 +162,7 @@ export class GanttManager implements IGanttManager {
     }
 
     private _setUpWeekendVisibility() {
-        const showWeekends = this._ganttDescriptor.getShowWeekends();
+        const showWeekends = this._ganttDescriptor.isWeekendVisible();
         this._gantt.ignore_time = (date) => {
             return !showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible();
         }
@@ -183,7 +183,7 @@ export class GanttManager implements IGanttManager {
 
 
     private _getWeekendClass(date: Date): string | undefined {
-        const showWeekends = this._ganttDescriptor.getShowWeekends();
+        const showWeekends = this._ganttDescriptor.isWeekendVisible();
         return showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? WEEKEND_CLASS : undefined;
     }
 

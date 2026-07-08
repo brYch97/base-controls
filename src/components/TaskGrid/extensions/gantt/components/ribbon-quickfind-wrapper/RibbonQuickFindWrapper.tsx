@@ -21,7 +21,7 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
     const provider = datasetControl.getDataProvider();
     const localizationService = useLocalizationService();
     const rerender = useRerender();
-    const showWeekends = ganttDescriptor.getShowWeekends();
+    const showWeekends = ganttDescriptor.isWeekendVisible();
 
     useEventEmitter<IGanttDescriptorEvents>(ganttDescriptor.events, 'onShowWeekendsChanged', rerender);
 
@@ -34,7 +34,7 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
                 disabled: provider.isLoading(),
                 text: localizationService.getLocalizedString('goToToday'),
                 iconProps: { iconName: 'CalendarDay' },
-                onClick: () => ganttDescriptor.requestJumpToToday(),
+                onClick: () => ganttDescriptor.jumpToToday(),
             }
         ];
     }
@@ -52,7 +52,7 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
                     <Toggle
                         checked={!showWeekends}
                         onClick={() => {
-                            ganttDescriptor.toggleShowWeekends(!showWeekends);
+                            ganttDescriptor.showWeekend(!showWeekends);
                         }} />
                 </SettingsCallout>
             </>

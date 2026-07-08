@@ -44,9 +44,9 @@ export interface IGanttDescriptor {
     onGetCustomMarkers: () => ICustomMarker[];
     getZoomLevel: () => number;
     setZoomLevel: (zoomLevel: number) => void;
-    requestJumpToToday: () => void;
-    getShowWeekends: () => boolean;
-    toggleShowWeekends: (showWeekends: boolean) => void;
+    jumpToToday: () => void;
+    isWeekendVisible: () => boolean;
+    showWeekend: (showWeekends: boolean) => void;
     getGanttWidth: () => number | undefined;
     setGanttWidth: (ganttWidth: number) => void;
 }
@@ -100,15 +100,15 @@ export class GanttDescriptor implements IGanttDescriptor {
         }
     }
 
-    public requestJumpToToday() {
+    public jumpToToday() {
         this._dispatchEvent('onJumpToTodayRequested');
     }
 
-    public getShowWeekends(): boolean {
+    public isWeekendVisible(): boolean {
         return this._getSavedQueryState().showWeekends ?? false;
     }
 
-    public toggleShowWeekends(showWeekends: boolean) {
+    public showWeekend(showWeekends: boolean) {
         this._getSavedQueryState().showWeekends = showWeekends;
         this._dispatchEvent('onShowWeekendsChanged', showWeekends);
     }
