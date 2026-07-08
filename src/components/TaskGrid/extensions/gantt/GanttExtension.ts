@@ -52,7 +52,6 @@ export interface IGanttExtension {
     getGanttWidth: () => number | undefined;
     setGanttWidth: (ganttWidth: number) => void;
     getColumnDefinitions: (colDefs: ColDef[]) => ColDef[];
-
 }
 
 export interface IExtendedRibbonQuickFindWrapperProps extends IRibbonQuickFindWrapperProps {
