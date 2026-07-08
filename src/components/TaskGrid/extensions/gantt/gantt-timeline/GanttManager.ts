@@ -217,10 +217,14 @@ export class GanttManager implements IGanttManager {
 
         const task = this._gantt.getTask(taskId);
         if (expanded && !task.$open) {
-            this._gantt.open(taskId);
+            this._timeline.executeWithScrollBlock(() => {
+                this._gantt.open(taskId);
+            })
         }
         if (!expanded && task.$open) {
-            this._gantt.close(taskId);
+            this._timeline.executeWithScrollBlock(() => {
+                this._gantt.close(taskId);
+            })
         }
     }
 

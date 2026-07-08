@@ -29,7 +29,6 @@ export class GanttZooming implements IGanttZooming {
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
     private _debouncedResetZoomAnchor: debounce.DebouncedFunction<() => void>;
-    private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _ganttExtension: IGanttExtension;
@@ -39,7 +38,6 @@ export class GanttZooming implements IGanttZooming {
 
 
     constructor(params: IGanttZoomingParams) {
-        this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
         this._ganttExtension = params.ganttExtension;
         this._timeline = params.timeline;
@@ -232,11 +230,11 @@ export class GanttZooming implements IGanttZooming {
     private _jumpToToday() {
         const today = new Date();
         if (today > this._gantt.config.end_date! || today < this._gantt.config.start_date!) {
-            this._timeline.setScrollBlock(true);
-            this._timeline.shrink({
-                date: today
+            this._timeline.executeWithScrollBlock(() => {
+                this._timeline.shrink({
+                    date: today
+                });
             });
-            this._timeline.setScrollBlock(false);
         }
         this._gantt.showDate(today);
     }
@@ -252,9 +250,8 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _registerEventListeners() {
-        //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
+        this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._timeline.executeWithScrollBlock(() => this._setZoomPercent(value)));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
     }
 

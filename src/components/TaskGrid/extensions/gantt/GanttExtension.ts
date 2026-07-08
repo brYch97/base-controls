@@ -222,7 +222,6 @@ export class GanttExtension implements IGanttExtension {
         if (!event.node.id) {
             return;
         }
-
         if (event.expanded) {
             this.events.dispatchEvent('onAgGridRowExpanded', event.node.id);
         } else {

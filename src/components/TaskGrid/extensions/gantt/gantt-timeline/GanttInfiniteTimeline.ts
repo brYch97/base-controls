@@ -1,13 +1,12 @@
 import { GanttStatic } from 'gantt-trial';
 
 export interface IGanttInfiniteTimeline {
-    destroy: () => void;
-    setScrollBlock: (block: boolean) => void;
     shrink: (params: {
         anchorX?: number;
         date?: Date;
 
     }) => void;
+    executeWithScrollBlock: (callback: () => any) => void;
 
 }
 
@@ -16,12 +15,9 @@ interface IGanttInfiniteTimelineParams {
 }
 
 export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
-    private static readonly _maxTimelineWidth = 100000;
     private static readonly _targetTimelineWidth = 5000;
 
     private _gantt: GanttStatic;
-    private _onGanttScrollId: string | null = null;
-    private _onGanttLayoutReadyId: string | null = null;
     private _blockScrollHandler = false;
     private _isLayoutReady = false;
 
@@ -30,27 +26,17 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         this._registerEventListeners();
     }
 
-    public destroy() {
-        if (this._onGanttScrollId) {
-            this._gantt.detachEvent(this._onGanttScrollId);
-            this._onGanttScrollId = null;
+    public executeWithScrollBlock(callback: () => any) {
+        this._blockScrollHandler = true;
+        try {
+            return callback();
+        } finally {
+            this._blockScrollHandler = false;
         }
-
-        if (this._onGanttLayoutReadyId) {
-            this._gantt.detachEvent(this._onGanttLayoutReadyId);
-            this._onGanttLayoutReadyId = null;
-        }
-    }
-
-    public setScrollBlock(block: boolean) {
-        this._blockScrollHandler = block;
     }
 
     public shrink(params: { anchorX?: number; date?: Date }) {
         const { anchorX, date } = params;
-        //@ts-ignore - not in types
-        const width = this._gantt.getScrollState().width;
-        console.log('Shrinking timeline to current view');
         const scrollState = this._gantt.getScrollState();
         const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
         const leftPos = scrollState.x;
@@ -90,11 +76,11 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
 
     private _registerEventListeners() {
-        this._onGanttScrollId = this._gantt.attachEvent('onGanttScroll', (left: number, _top: number) => {
+        this._gantt.attachEvent('onGanttScroll', (left: number, _top: number) => {
             if (this._blockScrollHandler || !this._isLayoutReady) return;
-            this._onHorizontalScroll();
+            //this._onHorizontalScroll();
         });
-        this._onGanttLayoutReadyId = this._gantt.attachEvent('onGanttReady', () => {
+        this._gantt.attachEvent('onGanttReady', () => {
             setTimeout(() => {
                 this._isLayoutReady = true;
             }, 1000);
