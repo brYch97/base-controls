@@ -1,6 +1,6 @@
 import { IconButton, Slider, useTheme } from "@fluentui/react";
 import { useEffect, useMemo, useRef } from "react";
-import { IZoomSliderComponents } from "./components";
+import { IZoomSliderComponents, ZoomSliderComponents } from "./components";
 import { getZoomSliderStyles } from "./styles";
 
 const HOLD_DELAY = 300;
@@ -9,15 +9,17 @@ const HOLD_INTERVAL = 75;
 export interface IZoomSliderProps {
     value: number;
     onChange: (value: number) => void;
+    disabled?: boolean;
     components?: Partial<IZoomSliderComponents>;
 }
 
 export const ZoomSlider = (props: IZoomSliderProps) => {
-    const { onChange } = props;
+    const { onChange, disabled } = props;
     const valuerRef = useRef(props.value);
     valuerRef.current = props.value;
     const theme = useTheme();
-    const styles = useMemo(() => getZoomSliderStyles(theme), [theme]);
+    const components = useMemo(() => ({ ...ZoomSliderComponents, ...props.components }), []);
+    const styles = useMemo(() => getZoomSliderStyles(theme, disabled), [disabled, theme]);
     const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -55,6 +57,7 @@ export const ZoomSlider = (props: IZoomSliderProps) => {
     return (
         <div className={styles.root}>
             <IconButton
+                disabled={disabled}
                 className={styles.zoomButton}
                 iconProps={{ iconName: 'Remove' }}
                 onClick={() => changeZoomLevel(-1)}
@@ -62,19 +65,21 @@ export const ZoomSlider = (props: IZoomSliderProps) => {
                 onMouseUp={stopHold}
                 onMouseLeave={stopHold}
             />
-            <Slider
-                className={styles.slider}
-                min={0}
-                max={100}
-                value={valuerRef.current}
-                showValue={false}
-                styles={{
+            {components.onRenderSlider({
+                disabled: disabled,
+                className: styles.slider,
+                min: 0,
+                max: 100,
+                value: valuerRef.current,
+                showValue: false,
+                styles: {
                     thumb: styles.thumb,
                     activeSection: styles.activeSection
-                }}
-                onChange={onChange}
-            />
+                },
+                onChange: onChange
+            })}
             <IconButton
+                disabled={disabled}
                 className={styles.zoomButton}
                 iconProps={{ iconName: 'Add' }}
                 onClick={() => changeZoomLevel(1)}

@@ -6,6 +6,7 @@ import { ZoomSlider } from "../../../../../zoom-slider";
 
 export const ZoomSliderAdapter = () => {
     const datasetControl = useDatasetControl();
+    const provider = datasetControl.getDataProvider();
     const value = datasetControl.ganttGridBridge.getZoomLevel();
     const rerender = useRerender();
     useEventEmitter<IGanttGridBridgeEvents>(datasetControl.ganttGridBridge, 'onZoomLevelChanged', rerender);
@@ -13,6 +14,7 @@ export const ZoomSliderAdapter = () => {
     return (
         <ZoomSlider
             value={value}
+            disabled={provider.isLoading()}
             onChange={(nextValue: number) => {
                 datasetControl.ganttGridBridge.setZoomLevel(nextValue)
             }}
