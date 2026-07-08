@@ -23,35 +23,52 @@ interface IGanttZoomingParams {
 }
 
 export class GanttZooming implements IGanttZooming {
-    private static readonly _zoomSessionResetDelay = 250;
+    private static readonly _zoomScrollResetDelay = 150;
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
-    private _debouncedResetZoomAnchor: debounce.DebouncedFunction<() => void>;
     private _debouncedShrinkTimeline: debounce.DebouncedFunction<(date: Date) => void>;
+    private _debouncedUnblockHorizontalScrollReset: debounce.DebouncedFunction<() => void>;
+    private _debouncedShowDate: debounce.DebouncedFunction<(date: Date) => void>;
+    private _isHorizontalScrollResetBlocked = false;
+    private _lastHorizontalScrollLeft: number;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _ganttExtension: IGanttExtension;
     private _dates: IGanttDates;
     private _timeline: IGanttInfiniteTimeline;
     private _formatting = Formatting.Get();
+    private _handleWindowKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Control') {
+            this._clearZoomAnchorDate();
+        }
+    };
+    private _handleWindowMouseMove = (e: MouseEvent) => {
+        if (e.ctrlKey) {
+            this._clearZoomAnchorDate();
+        }
+    };
 
 
     constructor(params: IGanttZoomingParams) {
         this._gantt = params.gantt;
         this._ganttExtension = params.ganttExtension;
         this._timeline = params.timeline;
+        this._lastHorizontalScrollLeft = this._gantt.getScrollState().x;
         //@ts-ignore
         window.GANTT = this._gantt;
         this._dates = params.dates;
-        this._debouncedResetZoomAnchor = debounce(() => {
-            this._pendingAnchorDate = undefined;
-        }, GanttZooming._zoomSessionResetDelay);
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
         this._debouncedShrinkTimeline = debounce((date: Date) => this._timeline.shrink({ date }), 10);
+        this._debouncedUnblockHorizontalScrollReset = debounce(() => {
+            this._isHorizontalScrollResetBlocked = false;
+        }, GanttZooming._zoomScrollResetDelay);
         this._overrideWheelHandler();
+        this._debouncedShowDate = debounce((date: Date) => this._gantt.showDate(date), 10);
         this._taskDataProvider = params.datasetControl.getDataProvider();
+        window.addEventListener('keydown', this._handleWindowKeyDown);
+        window.addEventListener('mousemove', this._handleWindowMouseMove);
         this._registerEventListeners();
     }
 
@@ -130,11 +147,10 @@ export class GanttZooming implements IGanttZooming {
         if (!levelCount) {
             return;
         }
-
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
         const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
-        this._debouncedShrinkTimeline(anchorDate);
-        this._debouncedResetZoomAnchor();
+        this._blockHorizontalScrollReset();
+        this._timeline.shrink({ date: anchorDate });
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
         const step = zoom._widthStep;
@@ -156,6 +172,9 @@ export class GanttZooming implements IGanttZooming {
         zoom._setScaleDates();
         this._gantt.config.min_column_width = min + widthIndex * step;
         zoom._setLevel(levelIndex, resolvedAnchorX);
+        if(!anchorX) {
+            this._debouncedShowDate(anchorDate);
+        }
     }
 
 
@@ -256,13 +275,38 @@ export class GanttZooming implements IGanttZooming {
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
         this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._timeline.executeWithScrollBlock(() => this._setZoomPercent(value)));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
+        this._gantt.attachEvent('onGanttScroll', (left) => {
+            this._onHorizontalScroll(left);
+            return true;
+        });
     }
 
-    private _onHorizontalScroll() {
+    private _onHorizontalScroll(left: number) {
+        if (left === this._lastHorizontalScrollLeft) {
+            return;
+        }
 
+        this._lastHorizontalScrollLeft = left;
+        if (this._isHorizontalScrollResetBlocked) {
+            return;
+        }
+        this._clearZoomAnchorDate();
     }
 
     public destroy() {
-        this._debouncedResetZoomAnchor.clear();
+        this._debouncedShrinkTimeline.clear();
+        this._debouncedUnblockHorizontalScrollReset.clear();
+        this._debouncedShowDate.clear();
+        window.removeEventListener('keydown', this._handleWindowKeyDown);
+        window.removeEventListener('mousemove', this._handleWindowMouseMove);
+    }
+
+    private _blockHorizontalScrollReset() {
+        this._isHorizontalScrollResetBlocked = true;
+        this._debouncedUnblockHorizontalScrollReset();
+    }
+
+    private _clearZoomAnchorDate() {
+        this._pendingAnchorDate = undefined;
     }
 }
