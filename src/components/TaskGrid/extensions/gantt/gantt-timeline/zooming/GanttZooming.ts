@@ -6,6 +6,7 @@ import { ITaskDataProvider } from '../../../../providers';
 import { IGanttDates } from '../GanttDates';
 import { ZoomingConfig } from './ZoomingConfig';
 import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';
+import { IGanttDescriptor } from '../../GanttDescriptor';
 
 export interface IGanttZooming {
     destroy: () => void;
@@ -16,6 +17,7 @@ export interface IGanttZooming {
 interface IGanttZoomingParams {
     datasetControl: ITaskGridDatasetControl;
     gantt: GanttStatic;
+    ganttDescriptor: IGanttDescriptor;
     dates: IGanttDates;
     timeline: IGanttInfiniteTimeline;
 }
@@ -30,6 +32,7 @@ export class GanttZooming implements IGanttZooming {
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
+    private _ganttDescriptor: IGanttDescriptor;
     private _dates: IGanttDates;
     private _timeline: IGanttInfiniteTimeline;
     private _formatting = Formatting.Get();
@@ -38,6 +41,7 @@ export class GanttZooming implements IGanttZooming {
     constructor(params: IGanttZoomingParams) {
         this._datasetControl = params.datasetControl;
         this._gantt = params.gantt;
+        this._ganttDescriptor = params.ganttDescriptor;
         this._timeline = params.timeline;
         //@ts-ignore
         window.GANTT = this._gantt;
@@ -70,7 +74,7 @@ export class GanttZooming implements IGanttZooming {
             return;
         }
         const percent = this._findFitPercent(startDate, endDate);
-        this._datasetControl.ganttGridBridge.setZoomLevel(percent);
+        this._ganttDescriptor.setZoomLevel(percent);
         this._gantt.showTask(startRecord?.getRecordId()!);
     }
 
@@ -87,19 +91,18 @@ export class GanttZooming implements IGanttZooming {
 
     private _overrideWheelHandler() {
         const zoom = this._gantt.ext.zoom as any;
-        const bridge = this._datasetControl.ganttGridBridge;
         const gantt = this._gantt;
         const getTickStep = () => this._zoomTickStep;
 
         zoom._handler = (e: { clientX: number; deltaY: number; wheelDelta: number; preventDefault: () => void; stopPropagation: () => void; }) => {
             const zoomIn = (gantt.env.isFF ? -40 * e.deltaY : e.wheelDelta) > 0;
-            const current = bridge.getZoomLevel();
+            const current = this._ganttDescriptor.getZoomLevel();
             const next = Math.max(0, Math.min(100, current + (zoomIn ? getTickStep() : -getTickStep())));
             e.preventDefault();
             e.stopPropagation();
             const taskArea = gantt.$task;
             this._pendingAnchorX = taskArea ? e.clientX - taskArea.getBoundingClientRect().x : undefined;
-            bridge.setZoomLevel(next);
+            this._ganttDescriptor.setZoomLevel(next);
         };
     }
 
@@ -250,8 +253,8 @@ export class GanttZooming implements IGanttZooming {
 
     private _registerEventListeners() {
         //this._taskDataProvider.addEventListener('onRecordsSelected', () => this._zoomToFit());
-        this._datasetControl.ganttGridBridge.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._datasetControl.ganttGridBridge.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
+        this._ganttDescriptor.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
+        this._ganttDescriptor.events.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
     }
 

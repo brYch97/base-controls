@@ -6,11 +6,13 @@ import { IGanttDates } from "./GanttDates";
 import { IProjectDataProvider } from "../../providers/project";
 import { getClassNames } from "@talxis/react-components";
 import { EventEmitter, IEventEmitter } from "@talxis/client-libraries";
+import { IGanttDescriptor } from "../GanttDescriptor";
 
 interface IGanttMarkersParams {
     gantt: GanttStatic;
     dates: IGanttDates;
     datasetControl: ITaskGridDatasetControl;
+    ganttDescriptor: IGanttDescriptor;
 }
 
 export interface IGanttMarkersEvents {
@@ -64,7 +66,7 @@ export class GanttMarkers implements IGanttMarkers {
         this._dates = params.dates;
         this._localizationService = this._datasetControl.getLocalizationService();
         this._projectDataProvider = this._datasetControl.getProjectDataProvider();
-        this._getCustomMarkers = this._datasetControl.extensions.gantt?.onGetCustomMarkers ?? (() => []);
+        this._getCustomMarkers = () => params.ganttDescriptor.onGetCustomMarkers();
         this._registerEventListeners();
     }
 

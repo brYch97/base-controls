@@ -11,7 +11,6 @@ import { Type } from "@talxis/client-libraries/dist/utils/fetch-xml/filter/Type"
 import { ICustomColumnsDataProvider } from "./providers/custom-columns/CustomColumnsDataProvider";
 import { ITaskGridDatasetControl, ITaskGridDatasetControlEvents, ITaskGridDescriptor, ITaskGridParameters, ITaskGridDatasetControlParameters } from "./interfaces";
 import { ErrorHelper } from "../../utils/error-handling";
-import { GanttGridBridge } from "./bridges";
 import { IProjectDataProvider } from "./extensions/providers/project";
 
 const STATE_CODE_ACTIVE = 0;
@@ -31,7 +30,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     private _getPcfContext: () => ComponentFramework.Context<any, any>;
     private _changeToQueryId!: string;
     public readonly events: IEventEmitter<ITaskGridDatasetControlEvents> = new EventEmitter<ITaskGridDatasetControlEvents>();
-    public readonly ganttGridBridge = new GanttGridBridge();
 
     constructor(parameters: ITaskGridDatasetControlParameters) {
         super();
@@ -113,14 +111,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         return this._gridParameters.enableInlineCreation ?? false;
     }
 
-    public toggleShowWeekends(showWeekends: boolean): void {
-        if (!this._state.savedQuery) {
-            throw new Error('Cannot toggle show weekends when there is no saved query in state');
-        }
-        this._state.savedQuery.showWeekends = showWeekends;
-        this.ganttGridBridge.setShowWeekends(showWeekends);
-    }
-
     public isShowHierarchyToggleVisible(): boolean {
         return this._gridParameters.enableShowHierarchyToggle ?? false;
     }
@@ -136,21 +126,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
                 return true;
             }
         }
-    }
-
-    public getShowWeekends(): boolean {
-        return this._state.savedQuery?.showWeekends ?? false;
-    }
-
-    public getGanttWidth(): number | undefined {
-        return this._state.savedQuery?.ganttWidth;
-    }
-
-    public setGanttWidth(ganttWidth: number): void {
-        if (!this._state.savedQuery) {
-            throw new Error('Cannot update gantt width when there is no saved query in state');
-        }
-        this._state.savedQuery.ganttWidth = ganttWidth;
     }
 
     public isViewManagerEnabled(): boolean {
@@ -343,7 +318,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
     }
     public destroy(): void {
         this.saveState();
-        this.ganttGridBridge.clearEventListeners();
         this._dataProvider.destroy();
         this._savedQueryDataProvider.destroy();
         this._customColumnsDataProvider?.destroy();
@@ -373,6 +347,7 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         else {
             const currentQueryId = this._savedQueryDataProvider.getCurrentQuery().id;
             this._state.savedQuery = {
+                ...this._state.savedQuery,
                 ...this._savedQueryDataProvider.getSavedQuery(currentQueryId),
                 filtering: this._dataProvider.getFiltering() ?? undefined,
                 sorting: this._dataProvider.getSorting(),
@@ -380,8 +355,6 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
                 searchQuery: this._dataProvider.getSearchQuery() ?? undefined,
                 linking: this._dataProvider.getLinking(),
                 isFlatListEnabled: this._dataProvider.isFlatListEnabled(),
-                showWeekends: this.getShowWeekends(),
-                ganttWidth: this.getGanttWidth(),
             }
         }
     }

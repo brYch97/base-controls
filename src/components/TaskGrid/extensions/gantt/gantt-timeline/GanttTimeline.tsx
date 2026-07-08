@@ -10,12 +10,14 @@ import { useTooltip } from './hooks/useTooltip';
 import { useMarkers } from './hooks/useMarkers/useMarkers';
 import { useSelectionBox } from './hooks/useSelectionBox';
 import { useGanttComponents } from '../context';
+import { useRequiredGanttDescriptor } from '../../../context';
 
 export const GanttTimeline = () => {
     const components = useGanttComponents()
     const ref = useRef<HTMLDivElement>(null);
     const datasetControl = useDatasetControl();
-    const ganttManager = useMemo(() => new GanttManager({ datasetControl }), []);
+    const ganttDescriptor = useRequiredGanttDescriptor();
+    const ganttManager = useMemo(() => new GanttManager({ datasetControl, ganttDescriptor }), [datasetControl, ganttDescriptor]);
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);

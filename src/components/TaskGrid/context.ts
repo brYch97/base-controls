@@ -37,6 +37,10 @@ export const useGanttDescriptor = () => {
     return React.useContext(GanttDescriptorContext);
 }
 
+export const useRequiredGanttDescriptor = () => {
+    return useContextWithNullCheck(GanttDescriptorContext);
+}
+
 const useContextWithNullCheck = <T>(ctx: React.Context<T | null>): T => {
     const value = React.useContext(ctx);
     if (value == null) {

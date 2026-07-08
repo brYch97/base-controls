@@ -1,6 +1,6 @@
 import { getGanttStyles } from './styles';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { useDatasetControl, useTaskDataProvider } from '../../context';
+import { useDatasetControl, useRequiredGanttDescriptor, useTaskDataProvider } from '../../context';
 import { Grid } from '../../components/grid';
 import { GanttTimeline } from './gantt-timeline';
 import { IGanttComponents } from './gantt-timeline/context';
@@ -22,19 +22,20 @@ export interface IGanttProps {
 //props should be the components, labels in future
 export const Gantt = (props: IGanttProps) => {
     const datasetControl = useDatasetControl();
+    const ganttDescriptor = useRequiredGanttDescriptor();
     const provider = useTaskDataProvider();
     const styles = useMemo(() => getGanttStyles(), []);
     const components = useMemo(() => ({ ...GanttComponents, ...props.components }), []);
 
     const isFlatList = provider.isFlatListEnabled();
     const minGridWidthPercentage = isFlatList ? MIN_FLAT_LIST_GRID_WIDTH_PERCENTAGE : MIN_GRID_WIDTH_PERCENTAGE;
-    const ganttWidthPercentage = datasetControl.getGanttWidth() ?? DEFAULT_GANTT_WIDTH_PERCENTAGE;
+    const ganttWidthPercentage = ganttDescriptor.getGanttWidth() ?? DEFAULT_GANTT_WIDTH_PERCENTAGE;
     const gridWidthPercentage = 100 - ganttWidthPercentage;
 
     const [isGanttReady, setIsGanttReady] = useState(false);
 
     const onLayout = (layout: number[]) => {
-        datasetControl.setGanttWidth(layout[1]);
+        ganttDescriptor.setGanttWidth(layout[1]);
     };
 
     useEventEmitter<IDataProviderEventListeners>(provider, 'onFirstDataLoaded', () => setIsGanttReady(true));

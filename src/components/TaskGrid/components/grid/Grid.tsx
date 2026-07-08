@@ -1,6 +1,6 @@
 import { IGrid, Grid as GridBase } from "../../../Grid"
 import * as React from "react"
-import { useAgGridLicenseKey, useDatasetControl, useTaskDataProvider, useTaskGridDescriptor } from "../../context";
+import { useAgGridLicenseKey, useDatasetControl, useGanttDescriptor, useTaskDataProvider, useTaskGridDescriptor } from "../../context";
 import { GridReadyEvent } from "@ag-grid-community/core";
 import { GridCustomizer } from "./grid-customizer/GridCustomizer";
 import { IRecord } from "@talxis/client-libraries";
@@ -12,11 +12,13 @@ export const Grid = (props: IGrid) => {
     const gridCustomizerRef = React.useRef<GridCustomizer>();
     const taskGridDescriptor = useTaskGridDescriptor();
     const datasetControl = useDatasetControl();
+    const ganttDescriptor = useGanttDescriptor();
 
     const onGridReady = (event: GridReadyEvent) => {
         gridCustomizerRef.current = new GridCustomizer({
             datasetControl,
             gridApi: event.api,
+            ganttDescriptor,
             strategy: taskGridDescriptor.onCreateGridCustomizerStrategy?.()
         })
     }

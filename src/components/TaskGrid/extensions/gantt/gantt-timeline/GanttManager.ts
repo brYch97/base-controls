@@ -3,7 +3,7 @@ import debounce from 'debounce';
 import { ITaskGridDatasetControl } from '../../../interfaces';
 import { ITaskDataProvider } from '../../../providers';
 import { EventEmitter, IEventEmitter } from '@talxis/client-libraries';
-import { IGanttGridBridge } from "../../../bridges/GanttGridBridge";
+import { IGanttDescriptor } from '../GanttDescriptor';
 import { GanttDragging, IGanttDragging } from './GanttDragging';
 import { GanttDates, IGanttDates } from './GanttDates';
 import { GanttInfiniteTimeline, IGanttInfiniteTimeline } from './GanttInfiniteTimeline';
@@ -27,6 +27,7 @@ interface IInitParams {
 
 interface IGanttManagerParams {
     datasetControl: ITaskGridDatasetControl;
+    ganttDescriptor: IGanttDescriptor;
 }
 
 export interface IGanttManagerEvents {
@@ -50,7 +51,7 @@ export class GanttManager implements IGanttManager {
     public events: IEventEmitter<IGanttManagerEvents> = new EventEmitter();
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
-    private _bridge: IGanttGridBridge;
+    private _ganttDescriptor: IGanttDescriptor;
     private _expandedNodeSet: Set<string> = new Set();
     private _debouncedToggleTaskExpansion: debounce.DebouncedFunction<(taskId: string) => void>;
     private _dragging: IGanttDragging;
@@ -64,9 +65,9 @@ export class GanttManager implements IGanttManager {
 
     constructor(params: IGanttManagerParams) {
         this._datasetControl = params.datasetControl;
+        this._ganttDescriptor = params.ganttDescriptor;
         this._dataProvider = this._datasetControl.getDataProvider();
         this._gantt = Gantt.getGanttInstance();
-        this._bridge = this._datasetControl.ganttGridBridge;
 
         this._gantt.plugins({
             drag_timeline: true,
@@ -77,14 +78,14 @@ export class GanttManager implements IGanttManager {
         this._dates = new GanttDates({ datasetControl: this._datasetControl });
         this._timeline = new GanttInfiniteTimeline({ gantt: this._gantt });
         this._dragging = new GanttDragging({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
-        this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates, timeline: this._timeline });
-        this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates });
+        this._zooming = new GanttZooming({ datasetControl: this._datasetControl, gantt: this._gantt, ganttDescriptor: this._ganttDescriptor, dates: this._dates, timeline: this._timeline });
         this._data = new GanttData({
             datasetControl: this._datasetControl,
             gantt: this._gantt,
             dates: this._dates,
             expandedNodeSet: this._expandedNodeSet,
         });
+        this._markers = new GanttMarkers({ datasetControl: this._datasetControl, gantt: this._gantt, dates: this._dates, ganttDescriptor: this._ganttDescriptor });
         this._selection = new GanttSelection({ gantt: this._gantt, dataProvider: this._dataProvider });
     }
 
@@ -151,17 +152,17 @@ export class GanttManager implements IGanttManager {
     }
 
     private _registerEventListeners() {
-        this._bridge.addEventListener('onShowWeekendsChanged', () => this._onShowWeekendsRequested());
-        this._bridge.addEventListener('onAgGridRowExpanded', (taskId) => this._setTaskExpanded(taskId, true));
-        this._bridge.addEventListener('onAgGridRowCollapsed', (taskId) => this._setTaskExpanded(taskId, false));
-        this._bridge.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
+        this._ganttDescriptor.events.addEventListener('onShowWeekendsChanged', () => this._onShowWeekendsRequested());
+        this._ganttDescriptor.events.addEventListener('onAgGridRowExpanded', (taskId) => this._setTaskExpanded(taskId, true));
+        this._ganttDescriptor.events.addEventListener('onAgGridRowCollapsed', (taskId) => this._setTaskExpanded(taskId, false));
+        this._ganttDescriptor.events.addEventListener('onAgGridScrolled', (scrollTop) => this._onAgGridScrolled(scrollTop));
         this._gantt.$scroll_ver.addEventListener('scroll', (event) => this._onGanttScrolled((event.target as Element).scrollTop));
         this._gantt.attachEvent('onTaskClick', (id: string, e?: MouseEvent) => this._onTaskClick(id, e));
         this._gantt.attachEvent('onTaskDblClick', (id: string, e?: MouseEvent) => this._onTaskDblClick(id, e));
     }
 
     private _setUpWeekendVisibility() {
-        const showWeekends = this._datasetControl.getShowWeekends();
+        const showWeekends = this._ganttDescriptor.getShowWeekends();
         this._gantt.ignore_time = (date) => {
             return !showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible();
         }
@@ -182,7 +183,7 @@ export class GanttManager implements IGanttManager {
 
 
     private _getWeekendClass(date: Date): string | undefined {
-        const showWeekends = this._datasetControl.getShowWeekends();
+        const showWeekends = this._ganttDescriptor.getShowWeekends();
         return showWeekends && this._isWeekend(date) && this._zooming.isLevelWithDaysVisible() ? WEEKEND_CLASS : undefined;
     }
 
@@ -227,12 +228,12 @@ export class GanttManager implements IGanttManager {
         const isExpanded = !!this._gantt.getTask(taskId).$open;
         if (isExpanded) {
             this._setTaskExpanded(taskId, false);
-            this._bridge.dispatchEvent('onGanttTaskCollapsed', taskId);
+            this._ganttDescriptor.events.dispatchEvent('onGanttTaskCollapsed', taskId);
             return;
         }
 
         this._setTaskExpanded(taskId, true);
-        this._bridge.dispatchEvent('onGanttTaskExpanded', taskId);
+        this._ganttDescriptor.events.dispatchEvent('onGanttTaskExpanded', taskId);
     }
 
     private _getTaskRowClass(task: Task) {
@@ -269,13 +270,10 @@ export class GanttManager implements IGanttManager {
 
 
     private _onAgGridScrolled(scrollTop: number) {
-        this._gantt.$scroll_ver.scrollTo({
-            top: scrollTop,
-            behavior: 'instant'
-        });
+        this._gantt.$scroll_ver.scrollTop = scrollTop;
     }
 
     private _onGanttScrolled(scrollTop: number) {
-        this._bridge.dispatchEvent('onGanttScrolled', scrollTop);
+        this._ganttDescriptor.events.dispatchEvent('onGanttScrolled', scrollTop);
     }
 }
