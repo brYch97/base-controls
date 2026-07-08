@@ -44,7 +44,10 @@ export class GanttZooming implements IGanttZooming {
         //@ts-ignore
         window.GANTT = this._gantt;
         this._dates = params.dates;
-        this._debouncedResetZoomAnchor = debounce(() => this._pendingAnchorDate = undefined, GanttZooming._zoomSessionResetDelay);
+        this._debouncedResetZoomAnchor = debounce(() => {
+            this._pendingAnchorDate = undefined;
+            console.log('Zoom anchor reset');
+        }, GanttZooming._zoomSessionResetDelay);
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
         this._overrideWheelHandler();

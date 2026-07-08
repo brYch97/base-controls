@@ -19,7 +19,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
 
     private _gantt: GanttStatic;
     private _blockScrollHandler = false;
-    private _isLayoutReady = false;
+    private _isLayoutReady = true;
 
     constructor(params: IGanttInfiniteTimelineParams) {
         this._gantt = params.gantt;
@@ -78,7 +78,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
     private _registerEventListeners() {
         this._gantt.attachEvent('onGanttScroll', (left: number, _top: number) => {
             if (this._blockScrollHandler || !this._isLayoutReady) return;
-            //this._onHorizontalScroll();
+            this._onHorizontalScroll();
         });
         this._gantt.attachEvent('onGanttReady', () => {
             setTimeout(() => {
