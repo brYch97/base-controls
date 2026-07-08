@@ -24,7 +24,6 @@ interface IGanttZoomingParams {
 
 export class GanttZooming implements IGanttZooming {
     private static readonly _zoomSessionResetDelay = 250;
-
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
@@ -133,7 +132,7 @@ export class GanttZooming implements IGanttZooming {
 
         const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
         const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
-        this._timeline.shrink({ anchorX: resolvedAnchorX, date: anchorDate });
+        this._timeline.shrink({ date: anchorDate });
         this._debouncedResetZoomAnchor();
         const min = zoom._minColumnWidth;
         const max = zoom._maxColumnWidth;
@@ -242,13 +241,13 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.showDate(today);
     }
 
-    private _getStableZoomAnchorDate(anchorX: number): Date | undefined {
+    private _getStableZoomAnchorDate(anchorX: number): Date {
         if (this._pendingAnchorDate) {
             return this._pendingAnchorDate;
         }
 
         const scrollX = this._gantt.getScrollState().x;
-        this._pendingAnchorDate = this._gantt.dateFromPos(scrollX + anchorX) ?? undefined;
+        this._pendingAnchorDate = this._gantt.dateFromPos(scrollX + anchorX);
         return this._pendingAnchorDate;
     }
 
@@ -256,6 +255,10 @@ export class GanttZooming implements IGanttZooming {
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
         this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._timeline.executeWithScrollBlock(() => this._setZoomPercent(value)));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
+    }
+
+    private _onHorizontalScroll() {
+
     }
 
     public destroy() {

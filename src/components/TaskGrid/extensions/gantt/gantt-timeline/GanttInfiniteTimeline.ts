@@ -2,8 +2,7 @@ import { GanttStatic } from 'gantt-trial';
 
 export interface IGanttInfiniteTimeline {
     shrink: (params: {
-        anchorX?: number;
-        date?: Date;
+        date: Date;
 
     }) => void;
     executeWithScrollBlock: (callback: () => any) => void;
@@ -35,29 +34,19 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         }
     }
 
-    public shrink(params: { anchorX?: number; date?: Date }) {
-        const { anchorX, date } = params;
+    public shrink(params: { date: Date }) {
+        const { date: anchorDate } = params;
         const scrollState = this._gantt.getScrollState();
         const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
         const leftPos = scrollState.x;
         const currentLeftDate = this._gantt.dateFromPos(leftPos);
         const currentRightDate = this._gantt.dateFromPos(leftPos + viewportWidth);
-
-        if (!currentLeftDate || !currentRightDate || !viewportWidth) {
-            return;
-        }
-
-        const resolvedAnchorX = anchorX ?? viewportWidth / 2;
-        const anchorOffset = Math.max(0, Math.min(viewportWidth, resolvedAnchorX));
-        const anchorDate = date ?? this._gantt.dateFromPos(leftPos + anchorOffset);
         const visibleDuration = +currentRightDate - +currentLeftDate;
 
-        if (!anchorDate) {
-            return;
-        }
+        console.log(anchorDate);
 
-        const left_date = date ? new Date(+anchorDate - visibleDuration / 2) : currentLeftDate;
-        const right_date = date ? new Date(+anchorDate + visibleDuration / 2) : currentRightDate;
+        const left_date = new Date(+anchorDate - visibleDuration / 2) 
+        const right_date = new Date(+anchorDate + visibleDuration / 2);
         const targetDuration = visibleDuration * (GanttInfiniteTimeline._targetTimelineWidth / viewportWidth);
         const start_date = new Date(+left_date - ((targetDuration - visibleDuration) / 2));
         start_date.setHours(0, 0, 0, 0);
@@ -67,11 +56,9 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         this._gantt.config.end_date = end_date;
         this._gantt.render();
 
-        if (anchorX) {
-            this._gantt.showDate(anchorDate);
-            const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - anchorOffset);
-            this._gantt.scrollTo(nextLeft, scrollState.y);
-        }
+        //this._gantt.showDate(anchorDate);
+        //const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
+        //this._gantt.scrollTo(nextLeft, scrollState.y);
     }
 
 
@@ -113,7 +100,7 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         if (repaint) {
             setTimeout(() => {
                 this._gantt.render();
-                this._gantt.showDate(left_date);
+                //this._gantt.showDate(left_date);
             }, 20)
         }
     }
