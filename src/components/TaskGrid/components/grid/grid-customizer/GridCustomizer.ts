@@ -9,7 +9,7 @@ import { ILocalizationService } from "../../../../../utils";
 import { ITaskGridLabels } from "../../../labels";
 import { PERCENT_COMPLETE_CONTROL_NAME, PercentComplete } from "../cell-renderers/percent-complete";
 import { INativeColumns, ITaskGridDatasetControl } from "../../../interfaces";
-import { IGanttDescriptor } from "../../../extensions/gantt";
+import { IGanttExtension } from "../../../extensions/gantt";
 
 export const ADD_TASK_COLUMN_NAME = 'addTask';
 
@@ -46,7 +46,7 @@ export interface IGridCustomizer {
 export interface IGridCustomizerParameters {
     gridApi: GridApi;
     datasetControl: ITaskGridDatasetControl;
-    ganttDescriptor: IGanttDescriptor | null;
+    ganttExtension: IGanttExtension | null;
     strategy?: IGridCustomizerStrategy;
 }
 
@@ -58,14 +58,14 @@ export class GridCustomizer implements IGridCustomizer {
     private _nativeColumns: INativeColumns;
     private _pcfContext: ComponentFramework.Context<any>;
     private _datasetControl: ITaskGridDatasetControl;
-    private _ganttDescriptor: IGanttDescriptor | null;
+    private _ganttExtension: IGanttExtension | null;
     private _isGanttEnabled: boolean;
     private _strategy?: IGridCustomizerStrategy;
 
     constructor(parameters: IGridCustomizerParameters) {
         this._datasetControl = parameters.datasetControl;
-        this._ganttDescriptor = parameters.ganttDescriptor;
-        this._isGanttEnabled = this._ganttDescriptor !== null;
+        this._ganttExtension = parameters.ganttExtension;
+        this._isGanttEnabled = this._ganttExtension !== null;
         this._taskDataProvider = this._datasetControl.getDataProvider();
         this._gridApi = parameters.gridApi;
         this._localizationService = this._datasetControl.getLocalizationService();
@@ -471,9 +471,9 @@ export class GridCustomizer implements IGridCustomizer {
     private _registerGanttEventListeners() {
         this._getAgGridVerticalViewport()?.addEventListener('scroll', (event) => this._onAgGridScrolled((event.target as Element).scrollTop));
         this._gridApi.addEventListener('rowGroupOpened', (event: RowGroupOpenedEvent) => this._onRowGroupOpened(event));
-        this._ganttDescriptor!.events.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
-        this._ganttDescriptor!.events.addEventListener('onGanttTaskExpanded', (taskId) => this._onGanttRowExpanded(taskId));
-        this._ganttDescriptor!.events.addEventListener('onGanttTaskCollapsed', (taskId) => this._onGanttRowCollapsed(taskId));
+        this._ganttExtension!.events.addEventListener('onGanttScrolled', (scrollTop) => this._onGanttScrolled(scrollTop));
+        this._ganttExtension!.events.addEventListener('onGanttTaskExpanded', (taskId) => this._onGanttRowExpanded(taskId));
+        this._ganttExtension!.events.addEventListener('onGanttTaskCollapsed', (taskId) => this._onGanttRowCollapsed(taskId));
     }
 
     private _onGanttScrolled(scrollTop: number) {
@@ -482,7 +482,7 @@ export class GridCustomizer implements IGridCustomizer {
     }
 
     private _onAgGridScrolled(scrollTop: number) {
-        this._ganttDescriptor!.events.dispatchEvent('onAgGridScrolled', scrollTop);
+        this._ganttExtension!.events.dispatchEvent('onAgGridScrolled', scrollTop);
     }
 
     private _onGanttRowExpanded(taskId: string) {
@@ -513,9 +513,9 @@ export class GridCustomizer implements IGridCustomizer {
 
     private _onRowGroupOpened(event: RowGroupOpenedEvent) {
         if (event.expanded) {
-            this._ganttDescriptor!.events.dispatchEvent('onAgGridRowExpanded', event.node.id!);
+            this._ganttExtension!.events.dispatchEvent('onAgGridRowExpanded', event.node.id!);
         } else {
-            this._ganttDescriptor!.events.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
+            this._ganttExtension!.events.dispatchEvent('onAgGridRowCollapsed', event.node.id!);
         }
     }
 }

@@ -1,10 +1,10 @@
 import { Label, Toggle } from "@fluentui/react";
 import { ICommandBarItemProps } from "@talxis/react-components";
-import { IExtendedRibbonQuickFindWrapperProps } from "../../GanttDescriptor";
-import { useDatasetControl, useLocalizationService, useRequiredGanttDescriptor } from "../../../../context";
+import { IExtendedRibbonQuickFindWrapperProps } from "../../GanttExtension";
+import { useDatasetControl, useLocalizationService, useRequiredGanttExtension } from "../../../../context";
 import { ZoomSliderAdapter } from "../zoom-slider-adapter";
 import { useEventEmitter } from "../../../../../../hooks";
-import { IGanttDescriptorEvents } from "../../GanttDescriptor";
+import { IGanttExtensionEvents } from "../../GanttExtension";
 import { useRerender } from "@talxis/react-components";
 import { SettingsCallout } from "../../../../components/header/settings-callout";
 
@@ -17,13 +17,13 @@ export interface IGanttRibbonQuickFindWrapper {
 export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
     const { defaultRender, ribbonWrapperProps } = props;
     const datasetControl = useDatasetControl();
-    const ganttDescriptor = useRequiredGanttDescriptor();
+    const ganttExtension = useRequiredGanttExtension();
     const provider = datasetControl.getDataProvider();
     const localizationService = useLocalizationService();
     const rerender = useRerender();
-    const showWeekends = ganttDescriptor.isWeekendVisible();
+    const showWeekends = ganttExtension.isWeekendVisible();
 
-    useEventEmitter<IGanttDescriptorEvents>(ganttDescriptor.events, 'onShowWeekendsChanged', rerender);
+    useEventEmitter<IGanttExtensionEvents>(ganttExtension.events, 'onShowWeekendsChanged', rerender);
 
 
     const getCommandBarItems = (items: ICommandBarItemProps[]): ICommandBarItemProps[] => {
@@ -34,7 +34,7 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
                 disabled: provider.isLoading(),
                 text: localizationService.getLocalizedString('goToToday'),
                 iconProps: { iconName: 'CalendarDay' },
-                onClick: () => ganttDescriptor.jumpToToday(),
+                onClick: () => ganttExtension.jumpToToday(),
             }
         ];
     }
@@ -52,7 +52,7 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
                     <Toggle
                         checked={!showWeekends}
                         onClick={() => {
-                            ganttDescriptor.showWeekend(!showWeekends);
+                            ganttExtension.showWeekend(!showWeekends);
                         }} />
                 </SettingsCallout>
             </>

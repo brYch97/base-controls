@@ -4,7 +4,7 @@ import { ITaskGridDatasetControl, ITaskGridDescriptor } from "./interfaces";
 import { ITaskGridLabels } from "./labels";
 import { ITaskGridComponents, TaskGridComponents } from "./components/components";
 import { ILocalizationService } from "../../utils";
-import { IGanttDescriptor } from "./extensions/gantt/GanttDescriptor";
+import { IGanttExtension } from "./extensions/gantt/GanttExtension";
 
 export const PcfContext = React.createContext<ComponentFramework.Context<any> | null>(null);
 PcfContext.displayName = 'PcfContext';
@@ -30,15 +30,15 @@ LocalizationServiceContext.displayName = 'LocalizationService';
 export const AgGridLicenseKeyContext = React.createContext<string | null>(null);
 AgGridLicenseKeyContext.displayName = 'AgGridLicenseKey';
 
-export const GanttDescriptorContext = React.createContext<IGanttDescriptor | null>(null);
-GanttDescriptorContext.displayName = 'GanttDescriptor';
+export const GanttExtensionContext = React.createContext<IGanttExtension | null>(null);
+GanttExtensionContext.displayName = 'GanttExtension';
 
-export const useGanttDescriptor = () => {
-    return React.useContext(GanttDescriptorContext);
+export const useGanttExtension = () => {
+    return React.useContext(GanttExtensionContext);
 }
 
-export const useRequiredGanttDescriptor = () => {
-    return useContextWithNullCheck(GanttDescriptorContext);
+export const useRequiredGanttExtension = () => {
+    return useContextWithNullCheck(GanttExtensionContext);
 }
 
 const useContextWithNullCheck = <T>(ctx: React.Context<T | null>): T => {

@@ -3,7 +3,7 @@ import { IDatasetControlEvents } from "../../utils/dataset-control";
 import { useRef } from "react";
 import * as React from "react";
 import { useRerender } from "@talxis/react-components";
-import { AgGridLicenseKeyContext, DatasetControlContext, GanttDescriptorContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext } from "./context";
+import { AgGridLicenseKeyContext, DatasetControlContext, GanttExtensionContext, LocalizationServiceContext, PcfContext, RootElementIdContext, TaskDataProviderContext, TaskGridComponentsContext, TaskGridDescriptorContext } from "./context";
 import { DatasetControl as DatasetControlRenderer } from "../DatasetControl";
 import { useTheme } from "@fluentui/react";
 import { getDatasetControlStyles } from "./styles";
@@ -88,14 +88,14 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
     const styles = React.useMemo(() => getDatasetControlStyles(theme, '100%'), [theme]);
     const provider = datasetControl.getDataset().getDataProvider() as ITaskDataProvider;
     const rootElementId = `${datasetControl.getControlId()}-root`;
-    const ganttDescriptor = React.useMemo(() => {
-        const descriptor = taskGridDescriptor.extensions?.gantt?.onGetDescriptor() ?? null;
-        descriptor?.initialize({
+    const ganttExtension = React.useMemo(() => {
+        const extension = taskGridDescriptor.extensions?.gantt?.onGetExtension() ?? null;
+        extension?.initialize({
             state: datasetControl.getState() as ITaskGridState,
         });
-        return descriptor;
+        return extension;
     }, []);
-    const ganttComponent = ganttDescriptor?.onGetGanttComponent({ components: {} }) ?? null;
+    const ganttComponent = ganttExtension?.onGetGanttComponent({ components: {} }) ?? null;
 
     useEventEmitter<IDatasetControlEvents>(datasetControl, 'onRemountRequested', onRemountRequested);
     useEventEmitter<ITaskGridDatasetControlEvents>(datasetControl.events, 'onFlatListToggled', rerender);
@@ -106,16 +106,16 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
 
     React.useEffect(() => {
         return () => {
-            ganttDescriptor?.destroy();
+            ganttExtension?.destroy();
         };
-    }, [ganttDescriptor]);
+    }, [ganttExtension]);
 
     return <>
         <DatasetControlContext.Provider value={datasetControl}>
             <TaskDataProviderContext.Provider value={provider}>
                 <TaskGridDescriptorContext.Provider value={taskGridDescriptor}>
                     <RootElementIdContext.Provider value={rootElementId}>
-                        <GanttDescriptorContext.Provider value={ganttDescriptor}>
+                        <GanttExtensionContext.Provider value={ganttExtension}>
                         <DatasetControlRenderer
                             onGetDatasetControlInstance={() => datasetControl}
                             onGetControlComponent={(props) => {
@@ -145,7 +145,7 @@ const InternalTaskGridDatasetControl = (props: IInternalTaskGridProps) => {
                                     }
                                 }
                             }} />
-                            </GanttDescriptorContext.Provider>
+                            </GanttExtensionContext.Provider>
 
 
                     </RootElementIdContext.Provider>

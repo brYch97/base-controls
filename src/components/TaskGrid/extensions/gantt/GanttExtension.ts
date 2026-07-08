@@ -8,11 +8,11 @@ import { EventEmitter, IEventEmitter } from "@talxis/client-libraries";
 import { ITaskGridState } from "../../TaskGridDatasetControlFactory";
 import { ICustomMarker } from "./gantt-timeline/GanttMarkers";
 
-export interface IGanttDescriptorInitializationParameters {
+export interface IGanttExtensionInitializationParameters {
     state: ITaskGridState;
 }
 
-export interface IGanttDescriptorEvents {
+export interface IGanttExtensionEvents {
     onAgGridScrolled: (scrollTop: number) => void;
     onAgGridRowExpanded: (taskId: string) => void;
     onAgGridRowCollapsed: (taskId: string) => void;
@@ -24,9 +24,9 @@ export interface IGanttDescriptorEvents {
     onZoomLevelChanged: (level: number) => void;
 }
 
-type GanttDescriptorEventName = keyof IGanttDescriptorEvents;
+type GanttExtensionEventName = keyof IGanttExtensionEvents;
 
-const MIRROR_EVENTS: Partial<Record<GanttDescriptorEventName, GanttDescriptorEventName>> = {
+const MIRROR_EVENTS: Partial<Record<GanttExtensionEventName, GanttExtensionEventName>> = {
     onAgGridScrolled: 'onGanttScrolled',
     onGanttScrolled: 'onAgGridScrolled',
     onAgGridRowExpanded: 'onGanttTaskExpanded',
@@ -35,9 +35,9 @@ const MIRROR_EVENTS: Partial<Record<GanttDescriptorEventName, GanttDescriptorEve
     onGanttTaskCollapsed: 'onAgGridRowCollapsed',
 };
 
-export interface IGanttDescriptor {
-    events: IEventEmitter<IGanttDescriptorEvents>;
-    initialize: (parameters: IGanttDescriptorInitializationParameters) => void;
+export interface IGanttExtension {
+    events: IEventEmitter<IGanttExtensionEvents>;
+    initialize: (parameters: IGanttExtensionInitializationParameters) => void;
     destroy: () => void;
     onGetGanttComponent: (props: IGanttProps) => JSX.Element;
     onRenderDatasetControlRibbonQuickFindWrapper: (props: IExtendedRibbonQuickFindWrapperProps, defaultRender: (props: IExtendedRibbonQuickFindWrapperProps) => JSX.Element) => JSX.Element;
@@ -57,11 +57,10 @@ export interface IExtendedRibbonQuickFindWrapperProps extends IRibbonQuickFindWr
     onRenderSettingsCallout?: () => JSX.Element;
 }
 
-export class GanttDescriptor implements IGanttDescriptor {
-    
-    public readonly events: IEventEmitter<IGanttDescriptorEvents> = new EventEmitter<IGanttDescriptorEvents>();
+export class GanttExtension implements IGanttExtension {
+    public readonly events: IEventEmitter<IGanttExtensionEvents> = new EventEmitter<IGanttExtensionEvents>();
     private _state: ITaskGridState | null = null;
-    private _suppressedEvents = new Set<GanttDescriptorEventName>();
+    private _suppressedEvents = new Set<GanttExtensionEventName>();
     private _debouncedClean: debounce.DebouncedFunction<() => void>;
     private _zoomLevel: number = 0;
 
@@ -69,7 +68,7 @@ export class GanttDescriptor implements IGanttDescriptor {
         this._debouncedClean = debounce(() => this._suppressedEvents.clear(), 100);
     }
 
-    public initialize(parameters: IGanttDescriptorInitializationParameters) {
+    public initialize(parameters: IGanttExtensionInitializationParameters) {
         this._state = parameters.state;
     }
 
@@ -126,7 +125,7 @@ export class GanttDescriptor implements IGanttDescriptor {
         return this._zoomLevel;
     }
 
-    private _dispatchEvent<K extends GanttDescriptorEventName>(event: K, ...args: Parameters<IGanttDescriptorEvents[K]>): boolean {
+    private _dispatchEvent<K extends GanttExtensionEventName>(event: K, ...args: Parameters<IGanttExtensionEvents[K]>): boolean {
         if (this._suppressedEvents.has(event)) {
             return false;
         }

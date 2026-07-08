@@ -8,7 +8,7 @@ import { ITaskGridLabels } from "./labels";
 import { ITaskGridState } from "./TaskGridDatasetControlFactory";
 import { ILocalizationService } from "../../utils";
 import { IProjectDataProvider } from "./extensions/providers/project/ProjectDataProvider";
-import { IGanttDescriptor } from "./extensions/gantt/GanttDescriptor";
+import { IGanttExtension } from "./extensions/gantt/GanttExtension";
 
 export interface ITaskGridDatasetControlParameters {
     dataset: IDataset;
@@ -113,7 +113,7 @@ export interface IExtensions {
         onCreateProjectDataProvider?: () => IProjectDataProvider;
     }
     gantt?: {
-        onGetDescriptor: () => IGanttDescriptor;
+        onGetExtension: () => IGanttExtension;
     }
 }
 

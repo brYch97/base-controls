@@ -4,7 +4,7 @@ import * as React from "react"
 import { CommandBarButton, ContextualMenuItemType } from "@fluentui/react";
 import { getHeaderStyles } from "./styles";
 import { SettingsCallout } from "./settings-callout";
-import { useDatasetControl, useGanttDescriptor, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
+import { useDatasetControl, useGanttExtension, useLocalizationService, usePcfContext, useTaskDataProvider, useTaskGridComponents } from "../../context";
 import { RecordSelector } from "../grid/record-selector";
 import { ViewSwitcher } from "./view-switcher";
 import { EditColumns } from "./edit-columns/EditColumns";
@@ -23,8 +23,8 @@ export const Header = (props: ITaskGridHeaderProps) => {
     const [editColumnsOpen, setEditColumnsOpen] = React.useState(false);
     const pcfContext = usePcfContext();
     const components = useTaskGridComponents();
-    const ganttDescriptor = useGanttDescriptor();
-    const onRenderRibbonQuickFindWrapper = ganttDescriptor?.onRenderDatasetControlRibbonQuickFindWrapper ?? ((props, defaultRender) => defaultRender(props));
+    const ganttExtension = useGanttExtension();
+    const onRenderRibbonQuickFindWrapper = ganttExtension?.onRenderDatasetControlRibbonQuickFindWrapper ?? ((props, defaultRender) => defaultRender(props));
 
     const hasContent = () => {
         const isGanttEnabled = !!datasetControl.extensions.gantt;

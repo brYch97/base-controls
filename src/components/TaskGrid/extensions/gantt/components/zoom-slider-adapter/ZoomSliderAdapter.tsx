@@ -1,23 +1,23 @@
 import { useRerender } from "@talxis/react-components";
-import { IGanttDescriptorEvents } from "../../GanttDescriptor";
+import { IGanttExtensionEvents } from "../../GanttExtension";
 import { useEventEmitter } from "../../../../../../hooks";
-import { useDatasetControl, useRequiredGanttDescriptor } from "../../../../context";
+import { useDatasetControl, useRequiredGanttExtension } from "../../../../context";
 import { ZoomSlider } from "../../../../../zoom-slider";
 
 export const ZoomSliderAdapter = () => {
     const datasetControl = useDatasetControl();
-    const ganttDescriptor = useRequiredGanttDescriptor();
+    const ganttExtension = useRequiredGanttExtension();
     const provider = datasetControl.getDataProvider();
-    const value = ganttDescriptor.getZoomLevel();
+    const value = ganttExtension.getZoomLevel();
     const rerender = useRerender();
-    useEventEmitter<IGanttDescriptorEvents>(ganttDescriptor.events, 'onZoomLevelChanged', rerender);
+    useEventEmitter<IGanttExtensionEvents>(ganttExtension.events, 'onZoomLevelChanged', rerender);
 
     return (
         <ZoomSlider
             value={value}
             disabled={provider.isLoading()}
             onChange={(nextValue: number) => {
-                ganttDescriptor.setZoomLevel(nextValue)
+                ganttExtension.setZoomLevel(nextValue)
             }}
         />
     );
