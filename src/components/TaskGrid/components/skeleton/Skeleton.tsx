@@ -2,9 +2,6 @@ import * as React from 'react';
 import { useTheme } from '@fluentui/react';
 import { getSkeletonStyles } from './styles';
 
-export interface ISkeletonProps {
-    height: string;
-}
 
 // flex values per column: checkbox, name (wide), status, assignee, due date, priority
 const COLUMN_FLEX = ['0 0 32px', '2 1 0', '1 1 0', '1 1 0', '1 1 0', '1 1 0'];
@@ -21,12 +18,12 @@ const ROW_PATTERNS = [
 
 const ROW_COUNT = 20;
 
-export const Skeleton = ({ height }: ISkeletonProps) => {
+export const Skeleton = () => {
     const theme = useTheme();
     const styles = React.useMemo(() => getSkeletonStyles(theme), [theme]);
 
     return (
-        <div className={styles.root} style={{height: height}}>
+        <div className={styles.root} >
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <div className={styles.headerPill} style={{ width: 120 }} />

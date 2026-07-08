@@ -61,9 +61,7 @@ export const TaskGrid = (props: ITaskGridProps) => {
     }, []);
 
     if (!instanceState) {
-        return components.onRenderSkeleton({
-            height: taskGridDescriptor.onGetHeight?.() ?? '400px'
-        })
+        return components.onRenderSkeleton();
     }
 
     return (

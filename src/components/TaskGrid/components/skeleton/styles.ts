@@ -26,6 +26,7 @@ export const getSkeletonStyles = (theme: ITheme) => {
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: theme.semanticColors.bodyBackground,
+            height: '100%'
         },
         header: {
             height: HEADER_HEIGHT,
