@@ -83,6 +83,7 @@ export class GridCustomizer implements IGridCustomizer {
             this._registerGanttEventListeners();
         }
         this._gridApi.setGridOption('rowClassRules', this._getRowClassRules());
+        this._ganttExtension?.onRetrieveGridCustomizer(this);
         this._strategy?.onInitialize?.(this);
     }
 

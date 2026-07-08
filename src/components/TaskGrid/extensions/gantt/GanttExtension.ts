@@ -7,6 +7,7 @@ import debounce from "debounce";
 import { EventEmitter, IEventEmitter } from "@talxis/client-libraries";
 import { ITaskGridState } from "../../TaskGridDatasetControlFactory";
 import { ICustomMarker } from "./gantt-timeline/GanttMarkers";
+import { ColDef, IGridCustomizer } from "../../components/grid";
 
 export interface IGanttExtensionInitializationParameters {
     state: ITaskGridState;
@@ -42,6 +43,7 @@ export interface IGanttExtension {
     onGetGanttComponent: (props: IGanttProps) => JSX.Element;
     onRenderDatasetControlRibbonQuickFindWrapper: (props: IExtendedRibbonQuickFindWrapperProps, defaultRender: (props: IExtendedRibbonQuickFindWrapperProps) => JSX.Element) => JSX.Element;
     onGetCustomMarkers: () => ICustomMarker[];
+    onRetrieveGridCustomizer: (customizer: IGridCustomizer) => void;
     getZoomLevel: () => number;
     setZoomLevel: (zoomLevel: number) => void;
     jumpToToday: () => void;
@@ -49,7 +51,8 @@ export interface IGanttExtension {
     showWeekend: (showWeekends: boolean) => void;
     getGanttWidth: () => number | undefined;
     setGanttWidth: (ganttWidth: number) => void;
-    
+    getColumnDefinitions: (colDefs: ColDef[]) => ColDef[];
+
 }
 
 export interface IExtendedRibbonQuickFindWrapperProps extends IRibbonQuickFindWrapperProps {
@@ -64,6 +67,7 @@ export class GanttExtension implements IGanttExtension {
     private _suppressedEvents = new Set<GanttExtensionEventName>();
     private _debouncedClean: debounce.DebouncedFunction<() => void>;
     private _zoomLevel: number = 0;
+    private _customizer: IGridCustomizer | null = null;
 
     constructor() {
         this._debouncedClean = debounce(() => this._suppressedEvents.clear(), 100);
@@ -71,6 +75,14 @@ export class GanttExtension implements IGanttExtension {
 
     public initialize(parameters: IGanttExtensionInitializationParameters) {
         this._state = parameters.state;
+    }
+
+    public onRetrieveGridCustomizer(customizer: IGridCustomizer) {
+        this._customizer = customizer;
+    }
+
+    public getColumnDefinitions(colDefs: ColDef[]): ColDef[] {
+        return [];
     }
 
     public destroy() {
