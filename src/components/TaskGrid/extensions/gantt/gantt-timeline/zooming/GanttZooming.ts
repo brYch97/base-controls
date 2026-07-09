@@ -1,4 +1,5 @@
 import { Formatting } from '@talxis/client-libraries';
+import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../../../../interfaces';
 import { ITaskDataProvider } from '../../../../providers';
@@ -55,13 +56,14 @@ export class GanttZooming implements IGanttZooming {
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
+    private _scrollClearBlock = false;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _ganttExtension: IGanttExtension;
     private _dates: IGanttDates;
     private _timeline: IGanttInfiniteTimeline;
     private _formatting = Formatting.Get();
-    
+    private _debouncedDisableScrollClearBlock: debounce.DebouncedFunction<() => void>;
 
     constructor(params: IGanttZoomingParams) {
         this._gantt = params.gantt;
@@ -69,6 +71,7 @@ export class GanttZooming implements IGanttZooming {
         this._dates = params.dates;
         this._timeline = params.timeline;
         this._taskDataProvider = params.datasetControl.getDataProvider();
+        this._debouncedDisableScrollClearBlock = debounce(this._disableScrollClearBlock, 100);
 
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
@@ -77,6 +80,7 @@ export class GanttZooming implements IGanttZooming {
     }
 
     public destroy() {
+        this._debouncedDisableScrollClearBlock.clear();
         window.removeEventListener('keydown', this._onKeyDown);
         window.removeEventListener('mousemove', this._onMouseMove);
     }
@@ -158,6 +162,7 @@ export class GanttZooming implements IGanttZooming {
         const maxColumnWidth = zoom._maxColumnWidth;
         const widthStep = zoom._widthStep;
 
+        this._setScrollClearBlock();
         this._pendingAnchorX = anchorX;
         this._timeline.shrink({ date: anchorDate });
 
@@ -269,21 +274,18 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _onHorizontalScroll(left: number) {
-        if (this._shouldKeepZoomAnchor(left)) {
-            return;
-        }
-
+        if(this._scrollClearBlock) return;
         this._clearZoomAnchors();
     }
 
-    private _shouldKeepZoomAnchor(left: number): boolean {
-        if (this._pendingAnchorDate === undefined || this._pendingAnchorX === undefined) {
-            return false;
-        }
+    private _setScrollClearBlock() {
+        this._scrollClearBlock = true;
+        this._debouncedDisableScrollClearBlock.clear();
+        this._debouncedDisableScrollClearBlock();
+    }
 
-        const expectedAnchorPosition = this._gantt.posFromDate(this._pendingAnchorDate);
-        console.log(expectedAnchorPosition - (left + this._pendingAnchorX));
-        return Math.abs(expectedAnchorPosition - (left + this._pendingAnchorX)) < 100;
+    private _disableScrollClearBlock = () => {
+        this._scrollClearBlock = false;
     }
 
     private _getZoomAnchorX(): number {
