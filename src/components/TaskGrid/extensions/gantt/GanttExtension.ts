@@ -10,6 +10,7 @@ import { ICustomMarker } from "./gantt-timeline/GanttMarkers";
 import { ColDef, IGridCustomizer } from "../../components/grid";
 import { DatasetConstants, IRecord } from "@talxis/client-libraries";
 import { RowGroupOpenedEvent } from "@ag-grid-community/core";
+import { IGanttSavedQueryMetadata } from "../../providers/saved-query";
 
 export interface IGanttExtensionInitializationParameters {
     state: ITaskGridState;
@@ -142,7 +143,7 @@ export class GanttExtension implements IGanttExtension {
 
     public setZoomLevel(zoomLevel: number) {
         if (this.getZoomLevel() !== zoomLevel) {
-            this._getSavedQueryState().zoomLevel = zoomLevel;
+            this._getGanttSavedQueryState().zoomLevel = zoomLevel;
             this.events.dispatchEvent('onZoomLevelChanged', zoomLevel);
         }
     }
@@ -152,24 +153,24 @@ export class GanttExtension implements IGanttExtension {
     }
 
     public isWeekendVisible(): boolean {
-        return this._getSavedQueryState().showWeekends ?? false;
+        return this._getGanttSavedQueryState().showWeekends ?? false;
     }
 
     public showWeekend(showWeekends: boolean) {
-        this._getSavedQueryState().showWeekends = showWeekends;
+        this._getGanttSavedQueryState().showWeekends = showWeekends;
         this.events.dispatchEvent('onShowWeekendsChanged', showWeekends);
     }
 
     public getGanttWidth(): number | undefined {
-        return this._getSavedQueryState().ganttWidth;
+        return this._getGanttSavedQueryState().ganttWidth;
     }
 
     public setGanttWidth(ganttWidth: number) {
-        this._getSavedQueryState().ganttWidth = ganttWidth;
+        this._getGanttSavedQueryState().ganttWidth = ganttWidth;
     }
 
     public getZoomLevel(): number | undefined {
-        return this._getSavedQueryState().zoomLevel;
+        return this._getGanttSavedQueryState().zoomLevel;
     }
 
     private _registerGridEventListeners() {
@@ -234,6 +235,16 @@ export class GanttExtension implements IGanttExtension {
         }
 
         return this._state.savedQuery;
+    }
+
+    private _getGanttSavedQueryState(): IGanttSavedQueryMetadata {
+        const savedQueryState = this._getSavedQueryState();
+
+        if (!savedQueryState.gantt) {
+            savedQueryState.gantt = {};
+        }
+        
+        return savedQueryState.gantt;
     }
 
     private _getCustomizer(): IGridCustomizer {

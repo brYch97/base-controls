@@ -106,20 +106,20 @@ export class GanttDescriptor implements IGanttDescriptor {
     }
 
     public isWeekendVisible(): boolean {
-        return this._getSavedQueryState().showWeekends ?? false;
+        return this._getGanttSavedQueryState().showWeekends ?? false;
     }
 
     public showWeekend(showWeekends: boolean) {
-        this._getSavedQueryState().showWeekends = showWeekends;
+        this._getGanttSavedQueryState().showWeekends = showWeekends;
         this._dispatchEvent('onShowWeekendsChanged', showWeekends);
     }
 
     public getGanttWidth(): number | undefined {
-        return this._getSavedQueryState().ganttWidth;
+        return this._getGanttSavedQueryState().ganttWidth;
     }
 
     public setGanttWidth(ganttWidth: number) {
-        this._getSavedQueryState().ganttWidth = ganttWidth;
+        this._getGanttSavedQueryState().ganttWidth = ganttWidth;
     }
 
     public getZoomLevel(): number {
@@ -146,5 +146,14 @@ export class GanttDescriptor implements IGanttDescriptor {
         }
 
         return this._state.savedQuery;
+    }
+
+    private _getGanttSavedQueryState() {
+        const savedQueryState = this._getSavedQueryState();
+        if (!savedQueryState.gantt) {
+            savedQueryState.gantt = {};
+        }
+
+        return savedQueryState.gantt;
     }
 }

@@ -347,8 +347,8 @@ export class TaskGridDatasetControl extends EventEmitter<IDatasetControlEvents> 
         else {
             const currentQueryId = this._savedQueryDataProvider.getCurrentQuery().id;
             this._state.savedQuery = {
-                ...this._state.savedQuery,
                 ...this._savedQueryDataProvider.getSavedQuery(currentQueryId),
+                ...this._state.savedQuery,
                 filtering: this._dataProvider.getFiltering() ?? undefined,
                 sorting: this._dataProvider.getSorting(),
                 columns: this._dataProvider.getColumns(),

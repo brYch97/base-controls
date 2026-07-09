@@ -36,15 +36,19 @@ export interface ISavedQuery extends ISavedQueryMetadata {
     name: string;
 }
 
+export interface IGanttSavedQueryMetadata {
+    showWeekends?: boolean;
+    ganttWidth?: number;
+    zoomLevel?: number;
+}
+
 export interface ISavedQueryMetadata {
     columns: IColumn[]
     sorting?: ComponentFramework.PropertyHelper.DataSetApi.SortStatus[];
     filtering?: ComponentFramework.PropertyHelper.DataSetApi.FilterExpression;
     linking?: ComponentFramework.PropertyHelper.DataSetApi.LinkEntityExposedExpression[];
     isFlatListEnabled?: boolean;
-    showWeekends?: boolean;
-    ganttWidth?: number;
-    zoomLevel?: number;
+    gantt?: IGanttSavedQueryMetadata;
     searchQuery?: string | undefined;
     quickFindColumns?: string[];
 }
@@ -296,15 +300,19 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
     }
 
     private _getMetadataForSavedQuery(provider: ITaskDataProvider): ISavedQueryMetadata {
+        const savedQueryState = this._getState().savedQuery;
+        const ganttState = savedQueryState?.gantt;
         return {
             sorting: provider.getSorting(),
             filtering: provider.getFiltering() ?? undefined,
             linking: provider.getLinking(),
             searchQuery: provider.getSearchQuery(),
             isFlatListEnabled: provider.isFlatListEnabled(),
-            showWeekends: this._getState().savedQuery?.showWeekends ?? false,
-            ganttWidth: this._getState().savedQuery?.ganttWidth,
-            zoomLevel: this._getState().savedQuery?.zoomLevel,
+            gantt: {
+                showWeekends: ganttState?.showWeekends ?? false,
+                ganttWidth: ganttState?.ganttWidth,
+                zoomLevel: ganttState?.zoomLevel,
+            },
             quickFindColumns: provider.getQuickFindColumns().map(col => col.name),
             columns: [
                 ...provider.getColumns().map((col: any) => {
@@ -329,7 +337,6 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
             (col as any)[propName] = propValue;
         }
     }
-
 
     private _parseSavedQueryMetadata(metadata: ISavedQueryMetadata): ISavedQueryMetadata {
         const parsed = metadata;
