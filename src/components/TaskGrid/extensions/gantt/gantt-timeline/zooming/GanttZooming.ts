@@ -62,6 +62,7 @@ export class GanttZooming implements IGanttZooming {
     private _ganttExtension: IGanttExtension;
     private _dates: IGanttDates;
     private _timeline: IGanttInfiniteTimeline;
+    private _isMouseWheelZoom = false;
     private _formatting = Formatting.Get();
     private _debouncedDisableScrollClearBlock: debounce.DebouncedFunction<() => void>;
 
@@ -131,7 +132,9 @@ export class GanttZooming implements IGanttZooming {
             event.stopPropagation();
 
             this._pendingAnchorX = this._getWheelAnchorX(event.clientX);
+            this._isMouseWheelZoom = true;
             this._ganttExtension.setZoomLevel(next);
+            this._isMouseWheelZoom = false;
         };
     }
 
@@ -184,10 +187,12 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.config.min_column_width = minColumnWidth + widthIndex * widthStep;
         zoom._setLevel(levelIndex, anchorX);
 
-        const scrollState = this._gantt.getScrollState();
-        const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
-        const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
-        this._gantt.scrollTo(nextLeft, scrollState.y);
+        if (!this._isMouseWheelZoom) {
+            const scrollState = this._gantt.getScrollState();
+            const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
+            const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
+            this._gantt.scrollTo(nextLeft, scrollState.y);
+        }
     }
 
     private _findFitPercent(startDate: Date, endDate: Date): number {
@@ -274,7 +279,7 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _onHorizontalScroll(left: number) {
-        if(this._scrollClearBlock) return;
+        if (this._scrollClearBlock) return;
         this._clearZoomAnchors();
     }
 
