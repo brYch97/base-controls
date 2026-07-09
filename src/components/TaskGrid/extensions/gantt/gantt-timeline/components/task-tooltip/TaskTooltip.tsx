@@ -1,88 +1,53 @@
+import { DirectionalHint, ICalloutProps, Icon, useTheme } from '@fluentui/react';
 import { useMemo } from 'react';
-import { Callout, DirectionalHint, Icon, useTheme } from '@fluentui/react';
-import { Task } from 'gantt-trial';
-import { useTaskDataProvider } from '../../../../../context';
 import { getTaskTooltipStyles } from './styles';
-import { Formatting } from '@talxis/client-libraries';
-import { useGanttComponents } from '../../../context';
 
 export interface ITaskTooltipProps {
-    task: Task;
-    event: MouseEvent;
+    taskName?: string;
+    startDate?: string;
+    endDate?: string;
+    duration?: string;
+    statusColor?: string;
 }
 
 export const TaskTooltip = (props: ITaskTooltipProps) => {
-    const { task, event } = props;
+    const { taskName, startDate, endDate, duration, statusColor } = props;
     const theme = useTheme();
-    const components = useGanttComponents();
-    const formatting = Formatting.Get();
-    const taskDataProvider = useTaskDataProvider();
-    const nativeColumns = taskDataProvider.getNativeColumns();
-    const record = taskDataProvider.getRecordsMap()[task.id];
-    const name = record.getValue(nativeColumns.subject);
-    const startDate = record.getFormattedValue(nativeColumns.startDate!);
-    const hasEndDate = Boolean(nativeColumns.endDate && record.getValue(nativeColumns.endDate));
-    const endDate = hasEndDate ? record.getFormattedValue(nativeColumns.endDate!) : null;
-    const durationDays = hasEndDate ? task.duration ?? 0 : null;
-    const durationFormatted = durationDays !== null ? formatting.formatDuration(durationDays * 24 * 60) : null;
-    
-    const target = {
-        x: event.clientX + 10,
-        y: event.clientY + 12,
-    };
+    const styles = useMemo(() => getTaskTooltipStyles(theme, statusColor), [theme, statusColor]);
 
-    const getStatusCodeColor = (): string => {
-        let color = theme.palette.themePrimary; // Default color
-        if (nativeColumns.statusCode) {
-            const statusCode = record.getValue(nativeColumns.statusCode);
-            const statusCodeColumn = taskDataProvider.getColumnsMap()[nativeColumns.statusCode];
-            const options = statusCodeColumn.metadata?.OptionSet ?? [];
-            color = options.find(option => option.Value == statusCode)?.Color ?? color;
-
-        }
-        return color;
-    }
-
-    const statusDotColor = getStatusCodeColor();
-
-    const styles = useMemo(() => getTaskTooltipStyles(theme, statusDotColor), [theme, statusDotColor]);
-
-    return components.onRenderTaskTooltipCallout({
-        target,
-        directionalHint: DirectionalHint.bottomLeftEdge,
-        directionalHintFixed: false,
-        isBeakVisible: false,
-        gapSpace: 8,
-        children: (
-            <div className={styles.root}>
+    return (
+        <div className={styles.root}>
+            {taskName && (
                 <div className={styles.header}>
-                    <div className={styles.statusDot} />
-                    <span className={styles.title}>{name}</span>
+                    {statusColor && <div className={styles.statusDot} />}
+                    <span className={styles.title}>{taskName}</span>
                 </div>
-                <div className={styles.rows}>
+            )}
+            <div className={styles.rows}>
+                {startDate && (
                     <div className={styles.row}>
                         <Icon iconName="Calendar" className={styles.icon} />
-                        <span className={styles.label}>{hasEndDate ? 'Start' : 'Date'}</span>
+                        <span className={styles.label}>{endDate ? 'Start' : 'Date'}</span>
                         <span className={styles.value}>{startDate}</span>
                     </div>
-                    {hasEndDate && endDate && (
-                        <div className={styles.row}>
-                            <Icon iconName="CalendarReply" className={styles.icon} />
-                            <span className={styles.label}>End</span>
-                            <span className={styles.value}>{endDate}</span>
-                        </div>
-                    )}
-                    {durationFormatted && (
-                        <div className={styles.row}>
-                            <Icon iconName="Clock" className={styles.icon} />
-                            <span className={styles.label}>Duration</span>
-                            <span className={styles.durationBadge}>
-                                {durationFormatted}
-                            </span>
-                        </div>
-                    )}
-                </div>
+                )}
+                {endDate && (
+                    <div className={styles.row}>
+                        <Icon iconName="CalendarReply" className={styles.icon} />
+                        <span className={styles.label}>End</span>
+                        <span className={styles.value}>{endDate}</span>
+                    </div>
+                )}
+                {duration && (
+                    <div className={styles.row}>
+                        <Icon iconName="Clock" className={styles.icon} />
+                        <span className={styles.label}>Duration</span>
+                        <span className={styles.durationBadge}>
+                            {duration}
+                        </span>
+                    </div>
+                )}
             </div>
-        )
-    });
+        </div>
+    );
 };

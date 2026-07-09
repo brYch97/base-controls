@@ -1,9 +1,8 @@
 import React from "react";
-import { ICalloutProps } from "@fluentui/react";
 import { Task } from "gantt-trial";
 import { IMarkerProps } from "./components/marker";
 
-export interface ITaskTooltipProps {
+export interface IGanttTaskTooltipProps {
     task: Task;
     event: MouseEvent;
 }
@@ -14,7 +13,6 @@ export interface ITaskTextProps {
 
 export interface IGanttComponents {
     //onRenderTaskText: (props: ITaskTextProps) => React.ReactElement;
-    onRenderTaskTooltip: (props: ITaskTooltipProps) => React.ReactElement;
-    onRenderTaskTooltipCallout: (props: ICalloutProps) => React.ReactElement;
+    onRenderTaskTooltip: (props: IGanttTaskTooltipProps) => React.ReactElement;
     onRenderMarker: (props: IMarkerProps) => React.ReactElement;
 }

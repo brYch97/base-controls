@@ -1,14 +1,12 @@
-import { Callout, ICalloutProps } from "@fluentui/react";
-import { TaskTooltip } from "./task-tooltip";
-import { IGanttComponents, ITaskTooltipProps } from "../context";
+import { IGanttComponents, IGanttTaskTooltipProps } from "../context";
 import { TaskText } from "./task-text";
 import { Marker, ProjectMarker } from "./marker";
 import { MilestoneMarker } from "./marker/milestone-marker/";
+import { TaskTooltipAdapter } from "./task-tooltip-adapter";
 
 export const GanttComponents: IGanttComponents = {
     //onRenderTaskText: (props) => <TaskText {...props} />,
-    onRenderTaskTooltip: (props: ITaskTooltipProps) => <TaskTooltip {...props} />,
-    onRenderTaskTooltipCallout: (props: ICalloutProps) => <Callout {...props} />,
+    onRenderTaskTooltip: (props: IGanttTaskTooltipProps) => <TaskTooltipAdapter {...props} />,
     onRenderMarker: (props) => {
         switch (props.type) {
             case 'milestone': {
