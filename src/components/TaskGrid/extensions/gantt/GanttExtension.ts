@@ -54,6 +54,8 @@ export interface IGanttExtension {
     showWeekend: (showWeekends: boolean) => void;
     getGanttWidth: () => number | undefined;
     setGanttWidth: (ganttWidth: number) => void;
+    getAnchorDate: () => Date | undefined;
+    setAnchorDate: (anchorDate?: Date) => void;
     getColumnDefinitions: (colDefs: ColDef[]) => ColDef[];
 }
 
@@ -171,6 +173,15 @@ export class GanttExtension implements IGanttExtension {
 
     public getZoomLevel(): number | undefined {
         return this._getGanttSavedQueryState().zoomLevel;
+    }
+
+    public getAnchorDate(): Date | undefined {
+        const anchorDate = this._getGanttSavedQueryState().anchorDate;
+        return anchorDate ? new Date(anchorDate) : undefined;
+    }
+
+    public setAnchorDate(anchorDate?: Date) {
+        this._getGanttSavedQueryState().anchorDate = anchorDate?.toISOString();
     }
 
     private _registerGridEventListeners() {

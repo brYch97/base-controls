@@ -40,6 +40,7 @@ export interface IGanttSavedQueryMetadata {
     showWeekends?: boolean;
     ganttWidth?: number;
     zoomLevel?: number;
+    anchorDate?: string;
 }
 
 export interface ISavedQueryMetadata {

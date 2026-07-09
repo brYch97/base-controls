@@ -147,7 +147,6 @@ export class GanttManager implements IGanttManager {
     public destroy() {
         this._debouncedToggleTaskExpansion.clear();
         this._selection.destroy();
-        this._zooming.destroy();
         this._gantt.destructor();
     }
 
