@@ -8,7 +8,7 @@ export const ZoomSliderAdapter = () => {
     const datasetControl = useDatasetControl();
     const ganttExtension = useRequiredGanttExtension();
     const provider = datasetControl.getDataProvider();
-    const value = ganttExtension.getZoomLevel();
+    const value = ganttExtension.getZoomLevel() ?? 0;
     const rerender = useRerender();
     useEventEmitter<IGanttExtensionEvents>(ganttExtension.events, 'onZoomLevelChanged', rerender);
 

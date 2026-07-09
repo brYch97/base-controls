@@ -46,7 +46,7 @@ export interface IGanttExtension {
     getRenderDatasetContrilRibbonQuickFindWrapper: (props: IExtendedRibbonQuickFindWrapperProps, defaultRender: (props: IExtendedRibbonQuickFindWrapperProps) => JSX.Element) => JSX.Element;
     getCustomMarkers: () => ICustomMarker[];
     setGridCustomizer: (customizer: IGridCustomizer) => void;
-    getZoomLevel: () => number;
+    getZoomLevel: () => number | undefined;
     setZoomLevel: (zoomLevel: number) => void;
     jumpToToday: () => void;
     isWeekendVisible: () => boolean;
@@ -95,7 +95,6 @@ class GanttExtensionEventEmitter extends EventEmitter<IGanttExtensionEvents> {
 export class GanttExtension implements IGanttExtension {
     public readonly events: IEventEmitter<IGanttExtensionEvents> = new GanttExtensionEventEmitter();
     private _state: ITaskGridState | null = null;
-    private _zoomLevel: number = 0;
     private _customizer: IGridCustomizer | null = null;
 
     public initialize(parameters: IGanttExtensionInitializationParameters) {
@@ -142,8 +141,8 @@ export class GanttExtension implements IGanttExtension {
     }
 
     public setZoomLevel(zoomLevel: number) {
-        if (this._zoomLevel !== zoomLevel) {
-            this._zoomLevel = zoomLevel;
+        if (this.getZoomLevel() !== zoomLevel) {
+            this._getSavedQueryState().zoomLevel = zoomLevel;
             this.events.dispatchEvent('onZoomLevelChanged', zoomLevel);
         }
     }
@@ -169,8 +168,8 @@ export class GanttExtension implements IGanttExtension {
         this._getSavedQueryState().ganttWidth = ganttWidth;
     }
 
-    public getZoomLevel(): number {
-        return this._zoomLevel;
+    public getZoomLevel(): number | undefined {
+        return this._getSavedQueryState().zoomLevel;
     }
 
     private _registerGridEventListeners() {

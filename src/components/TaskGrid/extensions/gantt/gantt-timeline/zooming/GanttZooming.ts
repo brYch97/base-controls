@@ -7,6 +7,7 @@ import { IGanttDates } from '../GanttDates';
 import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';
 import { IGanttExtension } from '../../GanttExtension';
 import { ZoomingConfig } from './ZoomingConfig';
+import { IGanttData } from '../GanttData';
 
 export interface IGanttZooming {
     destroy: () => void;
@@ -17,6 +18,7 @@ export interface IGanttZooming {
 interface IGanttZoomingParams {
     datasetControl: ITaskGridDatasetControl;
     gantt: GanttStatic;
+    ganttData: IGanttData;
     ganttExtension: IGanttExtension;
     dates: IGanttDates;
     timeline: IGanttInfiniteTimeline;
@@ -64,6 +66,7 @@ export class GanttZooming implements IGanttZooming {
     private _timeline: IGanttInfiniteTimeline;
     private _isMouseWheelZoom = false;
     private _formatting = Formatting.Get();
+    private _ganttData: IGanttData;
     private _debouncedDisableScrollClearBlock: debounce.DebouncedFunction<() => void>;
 
     constructor(params: IGanttZoomingParams) {
@@ -72,6 +75,7 @@ export class GanttZooming implements IGanttZooming {
         this._dates = params.dates;
         this._timeline = params.timeline;
         this._taskDataProvider = params.datasetControl.getDataProvider();
+        this._ganttData = params.ganttData;
         this._debouncedDisableScrollClearBlock = debounce(this._disableScrollClearBlock, 100);
 
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
@@ -91,11 +95,7 @@ export class GanttZooming implements IGanttZooming {
     }
 
     public zoomToFit() {
-        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
-        const records = selectedRecordIds.length > 0
-            ? selectedRecordIds.map(id => this._taskDataProvider.getRecordsMap()[id]).filter(Boolean)
-            : this._taskDataProvider.getRecordTree().getNode(null).allChildren;
-
+        const records = this._taskDataProvider.getRecordTree().getNode(null).allChildren;
         if (!records.length || !this._gantt.$task) {
             return;
         }
@@ -108,6 +108,17 @@ export class GanttZooming implements IGanttZooming {
         const percent = this._findFitPercent(startDate, endDate);
         this._ganttExtension.setZoomLevel(percent);
         this._gantt.showTask(startRecord?.getRecordId()!);
+    }
+
+    private _onDataParsed = (isFirstLoad: boolean) => {
+        if (!isFirstLoad) return;
+        const zoomLevel = this._ganttExtension.getZoomLevel();
+        if (zoomLevel === undefined) {
+            this.zoomToFit();
+        }
+        else {
+            this._setZoomPercent(zoomLevel);
+        }
     }
 
     private _initZoomTickStep() {
@@ -125,7 +136,7 @@ export class GanttZooming implements IGanttZooming {
         const zoom = this._getZoomApi();
         zoom._handler = (event: IZoomWheelEvent) => {
             const zoomIn = (this._gantt.env.isFF ? -40 * event.deltaY : event.wheelDelta) > 0;
-            const current = this._ganttExtension.getZoomLevel();
+            const current = this._ganttExtension.getZoomLevel() ?? 0;
             const next = Math.max(0, Math.min(100, current + (zoomIn ? this._zoomTickStep : -this._zoomTickStep)));
 
             event.preventDefault();
@@ -339,6 +350,7 @@ export class GanttZooming implements IGanttZooming {
     private _registerEventListeners() {
         window.addEventListener('keydown', this._onKeyDown);
         window.addEventListener('mousemove', this._onMouseMove);
+        this._ganttData.events.addEventListener('onDataParsed', (isFirstLoad) => this._onDataParsed(isFirstLoad));
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
         this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));

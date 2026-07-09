@@ -3,8 +3,11 @@ import { GanttStatic, Task } from "gantt-trial";
 import { ITaskGridDatasetControl } from "../../../interfaces";
 import { IDeleteTasksResult, ITaskDataProvider } from "../../../providers";
 import { IGanttDates } from "./GanttDates";
+import { EventEmitter, IEventEmitter } from "@talxis/client-libraries";
 
-export interface IGanttData { }
+export interface IGanttData {
+    events: IEventEmitter<IGanttDataEvents>;
+ }
 
 interface IGanttDataParams {
     datasetControl: ITaskGridDatasetControl;
@@ -13,12 +16,18 @@ interface IGanttDataParams {
     expandedNodeSet: ReadonlySet<string>;
 }
 
+interface IGanttDataEvents {
+    onDataParsed: (isFirstLoad: boolean) => void;
+}
+
 export class GanttData implements IGanttData {
     private _datasetControl: ITaskGridDatasetControl;
     private _dataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _dates: IGanttDates;
     private _expandedNodeSet: ReadonlySet<string>;
+    private _isFirstLoad = true;
+    public readonly events: IEventEmitter<IGanttDataEvents> = new EventEmitter<IGanttDataEvents>();
 
     constructor(params: IGanttDataParams) {
         this._datasetControl = params.datasetControl;
@@ -56,6 +65,8 @@ export class GanttData implements IGanttData {
         this._gantt.parse({
             data: data
         });
+        this.events.dispatchEvent('onDataParsed', this._isFirstLoad);
+        this._isFirstLoad = false;
     }
 
     private _onAfterTasksCreated(rawRecords: IRawRecord[] | null, parentId?: string) {

@@ -44,6 +44,7 @@ export interface ISavedQueryMetadata {
     isFlatListEnabled?: boolean;
     showWeekends?: boolean;
     ganttWidth?: number;
+    zoomLevel?: number;
     searchQuery?: string | undefined;
     quickFindColumns?: string[];
 }
@@ -303,6 +304,7 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
             isFlatListEnabled: provider.isFlatListEnabled(),
             showWeekends: this._getState().savedQuery?.showWeekends ?? false,
             ganttWidth: this._getState().savedQuery?.ganttWidth,
+            zoomLevel: this._getState().savedQuery?.zoomLevel,
             quickFindColumns: provider.getQuickFindColumns().map(col => col.name),
             columns: [
                 ...provider.getColumns().map((col: any) => {
