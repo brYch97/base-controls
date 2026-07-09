@@ -107,7 +107,10 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private set _pendingAnchorDate(date: Date | undefined) {
-        this._ganttExtension.setAnchorDate(date);
+        if(date) {
+            console.log('Setting pending anchor date:', date);
+            this._ganttExtension.setAnchorDate(date);
+        }
         this.__pendingAnchorDate = date;
     }
 

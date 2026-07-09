@@ -302,18 +302,13 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
 
     private _getMetadataForSavedQuery(provider: ITaskDataProvider): ISavedQueryMetadata {
         const savedQueryState = this._getState().savedQuery;
-        const ganttState = savedQueryState?.gantt;
         return {
             sorting: provider.getSorting(),
             filtering: provider.getFiltering() ?? undefined,
             linking: provider.getLinking(),
             searchQuery: provider.getSearchQuery(),
             isFlatListEnabled: provider.isFlatListEnabled(),
-            gantt: {
-                showWeekends: ganttState?.showWeekends ?? false,
-                ganttWidth: ganttState?.ganttWidth,
-                zoomLevel: ganttState?.zoomLevel,
-            },
+            gantt: savedQueryState?.gantt,
             quickFindColumns: provider.getQuickFindColumns().map(col => col.name),
             columns: [
                 ...provider.getColumns().map((col: any) => {
