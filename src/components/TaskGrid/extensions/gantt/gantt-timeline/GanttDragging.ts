@@ -1,3 +1,4 @@
+import { EventEmitter, IEventEmitter } from '@talxis/client-libraries';
 import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../../../interfaces';
 import { ITaskDataProvider } from '../../../providers';
@@ -8,7 +9,13 @@ import {
 } from './classNames';
 
 export interface IGanttDragging {
+    events: IEventEmitter<IGanttDraggingEvents>;
     setDraggingDisabled: (disabled: boolean) => void;
+}
+
+export interface IGanttDraggingEvents {
+    onDragStarted: (taskId: string) => void;
+    onDragEnded: () => void;
 }
 
 interface IGanttDraggingParams {
@@ -18,6 +25,7 @@ interface IGanttDraggingParams {
 }
 
 export class GanttDragging implements IGanttDragging {
+    public readonly events: IEventEmitter<IGanttDraggingEvents> = new EventEmitter<IGanttDraggingEvents>();
     private _datasetControl: ITaskGridDatasetControl;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
@@ -49,6 +57,7 @@ export class GanttDragging implements IGanttDragging {
         }
         const task = this._gantt.getTask(taskId);
         if (!task?.active) return false;
+        this.events.dispatchEvent('onDragStarted', taskId);
         return true;
     }
 
@@ -56,7 +65,6 @@ export class GanttDragging implements IGanttDragging {
         const draggedTask = this._gantt.getTask(taskId);
         const startColumnName = this._dates.getStartDateColumnName();
         const endColumnName = this._dates.getEndDateColumnName();
-        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
 
         if (mode === 'resize') {
             const record = this._taskDataProvider.getRecordsMap()[taskId];
@@ -64,10 +72,6 @@ export class GanttDragging implements IGanttDragging {
             record.setValue(endColumnName, draggedTask.end_date);
         }
         else {
-            const selectedTaskIds = new Set<string>(
-                (selectedRecordIds.includes(taskId) ? selectedRecordIds : [taskId])
-                    .filter(selectedTaskId => this._gantt.getTask(selectedTaskId)?.active)
-            );
             const draggedRecord = this._taskDataProvider.getRecordsMap()[taskId];
             const originalDraggedStartDate = draggedRecord.getValue(startColumnName);
             const originalDraggedStartTime = this._dates.getDateFromString(originalDraggedStartDate)?.getTime();
@@ -78,31 +82,22 @@ export class GanttDragging implements IGanttDragging {
             }
 
             const draggedOffset = draggedTaskStartTime - originalDraggedStartTime;
+            const originalEndDate = this._dates.getDateFromString(draggedRecord.getValue(endColumnName));
 
-            for (const taskIdToMove of selectedTaskIds) {
-                const taskToMove = this._gantt.getTask(taskIdToMove);
-                const recordToMove = this._taskDataProvider.getRecordsMap()[taskIdToMove];
-                const originalStartDate = this._dates.getDateFromString(recordToMove.getValue(startColumnName));
-                const originalEndDate = this._dates.getDateFromString(recordToMove.getValue(endColumnName));
-
-                if (!originalStartDate || !originalEndDate) {
-                    continue;
-                }
-
-                taskToMove.start_date = new Date(originalStartDate.getTime() + draggedOffset);
-                taskToMove.end_date = new Date(originalEndDate.getTime() + draggedOffset);
-
-                recordToMove.setValue(startColumnName, taskToMove.start_date);
-                recordToMove.setValue(endColumnName, taskToMove.end_date);
+            if (!originalEndDate) {
+                return;
             }
-        }
 
-        if (selectedRecordIds.length > 1) {
-            this._gantt.render();
+            draggedTask.start_date = new Date(originalDraggedStartTime + draggedOffset);
+            draggedTask.end_date = new Date(originalEndDate.getTime() + draggedOffset);
+
+            draggedRecord.setValue(startColumnName, draggedTask.start_date);
+            draggedRecord.setValue(endColumnName, draggedTask.end_date);
         }
     }
 
     private _onAfterTaskDrag() {
+        this.events.dispatchEvent('onDragEnded');
         this._taskDataProvider.save();
     }
 }

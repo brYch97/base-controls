@@ -1,9 +1,12 @@
 import { GanttStatic, Task } from 'gantt-trial'
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEventEmitter } from '../../../../../../hooks';
+import { IGanttDragging, IGanttDraggingEvents } from '../GanttDragging';
 import { GANTT_TASK_ROW_CLASS } from '../classNames';
 
 interface IUseTooltipParams {
 	gantt: GanttStatic;
+	dragging: IGanttDragging;
 }
 
 export interface ITooltipState {
@@ -13,11 +16,16 @@ export interface ITooltipState {
 
 export const useTooltip = (params: IUseTooltipParams) => {
 	const [tooltipState, setTooltipState] = useState<ITooltipState | null>(null);
+	const draggingTaskIdRef = useRef<string | null>(null);
 	const containerRef = useRef<HTMLDivElement | null>(null);
-    const { gantt } = params;
+	const { gantt, dragging } = params;
 
 	const onMouseMove = useCallback((event: MouseEvent) => {
-		const taskAttr = params.gantt.config.task_attribute;
+		if (draggingTaskIdRef.current) {
+			setTooltipState({ task: gantt.getTask(draggingTaskIdRef.current), event });
+			return;
+		}
+		const taskAttr = gantt.config.task_attribute;
 		const taskNode = (event.target as HTMLElement).closest<HTMLElement>(`[${taskAttr}]:not(.${GANTT_TASK_ROW_CLASS})`);
 		if (!taskNode) {
 			setTooltipState(null);
@@ -34,12 +42,24 @@ export const useTooltip = (params: IUseTooltipParams) => {
 	}, []);
 
 	const onMouseOut = useCallback((event: MouseEvent) => {
+		if (draggingTaskIdRef.current) {
+			return;
+		}
 		const taskAttr = gantt.config.task_attribute;
 		const related = event.relatedTarget as HTMLElement | null;
 		if (!related?.closest(`[${taskAttr}]:not(.${GANTT_TASK_ROW_CLASS})`)) {
 			setTooltipState(null);
 		}
 	}, []);
+
+	useEventEmitter<IGanttDraggingEvents>(dragging.events, 'onDragStarted', (taskId) => {
+		draggingTaskIdRef.current = taskId;
+	});
+
+	useEventEmitter<IGanttDraggingEvents>(dragging.events, 'onDragEnded', () => {
+		draggingTaskIdRef.current = null;
+		setTooltipState(null);
+	});
 
 	const init = (container: HTMLDivElement) => {
 		containerRef.current = container;

@@ -25,6 +25,7 @@ export const TaskTooltip = (props: ITaskTooltipProps) => {
     const endDate = hasEndDate ? record.getFormattedValue(nativeColumns.endDate!) : null;
     const durationDays = hasEndDate ? task.duration ?? 0 : null;
     const durationFormatted = durationDays !== null ? formatting.formatDuration(durationDays * 24 * 60) : null;
+    
     const target = {
         x: event.clientX + 10,
         y: event.clientY + 12,

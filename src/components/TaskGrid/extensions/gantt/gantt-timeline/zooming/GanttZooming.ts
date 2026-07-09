@@ -1,4 +1,4 @@
-import { Formatting } from '@talxis/client-libraries';
+import { Formatting, IRecord } from '@talxis/client-libraries';
 import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../../../../interfaces';
@@ -87,12 +87,12 @@ export class GanttZooming implements IGanttZooming {
     }
 
     public zoomToFit() {
-        const records = this._taskDataProvider.getRecordTree().getNode(null).allChildren;
+        const records = this._getZoomToFitRecords();
         if (!records.length || !this._gantt.$task) {
             return;
         }
 
-        const { startDate, endDate, startRecord } = this._dates.getStartEndDateFromRecords(records);
+        const { startDate, endDate } = this._dates.getStartEndDateFromRecords(records);
         if (!startDate || !endDate) {
             return;
         }
@@ -103,6 +103,16 @@ export class GanttZooming implements IGanttZooming {
         //this is not a typo, it really needs to be called twice to work properly, dont ask why, I have no idea
         this._setZoomPercent(percent);
         this._setZoomPercent(percent);
+    }
+
+    private _getZoomToFitRecords(): IRecord[] {
+        const selectedRecordIds = this._taskDataProvider.getSelectedRecordIds();
+        if (selectedRecordIds.length > 0) {
+            return selectedRecordIds.map(recordId => this._taskDataProvider.getRecordsMap()[recordId])
+        }
+        else {
+            return this._taskDataProvider.getRecordTree().getNode(null).allChildren;
+        }
     }
 
     private get _pendingAnchorDate(): Date | undefined {

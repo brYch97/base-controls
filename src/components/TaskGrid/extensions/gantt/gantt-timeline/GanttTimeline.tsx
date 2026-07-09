@@ -21,7 +21,7 @@ export const GanttTimeline = () => {
     const gantt = ganttManager.getGanttInstance();
     const theme = useTheme();
     const styles = useMemo(() => getGanttStyles(theme), []);
-    const { tooltip } = useTooltip({ gantt });
+    const { tooltip } = useTooltip({ gantt, dragging: ganttManager.getDragging() });
     const { linePreview, rowOverlay } = useTimelineTaskCreate(ganttManager);
     useSelectionBox(ganttManager);
     useMarkers({ gantt, components, markers: ganttManager.getMarkers() });
