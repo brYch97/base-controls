@@ -30,6 +30,13 @@ export const RibbonQuickFindWrapper = (props: IGanttRibbonQuickFindWrapper) => {
         return [
             ...items,
             {
+                key: 'zoomToFit',
+                disabled: provider.isLoading(),
+                text: localizationService.getLocalizedString('zoomToFit'),
+                iconProps: { iconName: 'ZoomToFit' },
+                onClick: () => ganttExtension.zoomToFit(),
+            },
+            {
                 key: 'goToToday',
                 disabled: provider.isLoading(),
                 text: localizationService.getLocalizedString('goToToday'),

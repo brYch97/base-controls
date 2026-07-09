@@ -373,6 +373,7 @@ export class GanttZooming implements IGanttZooming {
         window.addEventListener('mousemove', this._onMouseMove);
         this._ganttData.events.addEventListener('onDataParsed', (isFirstLoad) => this._onDataParsed(isFirstLoad));
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
+        this._ganttExtension.events.addEventListener('onZoomToFitRequested', () => this.zoomToFit());
         this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
         this._taskDataProvider.addEventListener('onDestroyed', () => this._onDestroy());

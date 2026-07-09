@@ -61,6 +61,7 @@ export interface ITaskGridLabels {
     hideWeekends: string;
     settingsSlider: string;
     goToToday: string;
+    zoomToFit: string;
     successfulOperationDialogTitle: string;
     warningDialogTitle: string;
     informationDialogTitle: string;
@@ -142,6 +143,7 @@ export const TASK_GRID_LABELS: ITaskGridLabels = {
     hideWeekends: 'Hide weekends',
     settingsSlider: 'Settings slider',
     goToToday: 'Go to today',
+    zoomToFit: 'Zoom to fit',
     successfulOperationDialogTitle: 'Success',
     warningDialogTitle: 'Warning',
     informationDialogTitle: 'Information',

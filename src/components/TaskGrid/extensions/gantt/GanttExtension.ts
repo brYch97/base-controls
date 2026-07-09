@@ -24,6 +24,7 @@ export interface IGanttExtensionEvents {
     onGanttTaskExpanded: (taskId: string) => void;
     onGanttTaskCollapsed: (taskId: string) => void;
     onJumpToTodayRequested: () => void;
+    onZoomToFitRequested: () => void;
     onShowWeekendsChanged: (showWeekends: boolean) => void;
     onZoomLevelChanged: (level: number) => void;
 }
@@ -50,6 +51,7 @@ export interface IGanttExtension {
     getZoomLevel: () => number | undefined;
     setZoomLevel: (zoomLevel: number) => void;
     jumpToToday: () => void;
+    zoomToFit: () => void;
     isWeekendVisible: () => boolean;
     showWeekend: (showWeekends: boolean) => void;
     getGanttWidth: () => number | undefined;
@@ -152,6 +154,10 @@ export class GanttExtension implements IGanttExtension {
 
     public jumpToToday() {
         this.events.dispatchEvent('onJumpToTodayRequested');
+    }
+
+    public zoomToFit() {
+        this.events.dispatchEvent('onZoomToFitRequested');
     }
 
     public isWeekendVisible(): boolean {
