@@ -146,10 +146,8 @@ export class GanttExtension implements IGanttExtension {
     }
 
     public setZoomLevel(zoomLevel: number) {
-        if (this.getZoomLevel() !== zoomLevel) {
-            this._getGanttSavedQueryState().zoomLevel = zoomLevel;
-            this.events.dispatchEvent('onZoomLevelChanged', zoomLevel);
-        }
+        this._getGanttSavedQueryState().zoomLevel = zoomLevel;
+        this.events.dispatchEvent('onZoomLevelChanged', zoomLevel);
     }
 
     public jumpToToday() {
@@ -260,7 +258,7 @@ export class GanttExtension implements IGanttExtension {
         if (!savedQueryState.gantt) {
             savedQueryState.gantt = {};
         }
-        
+
         return savedQueryState.gantt;
     }
 

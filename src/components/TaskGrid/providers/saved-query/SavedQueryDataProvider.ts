@@ -343,6 +343,6 @@ export class SavedQueryDataProvider implements ISavedQueryDataProvider {
             return systemCol ? { ...systemCol, ...col, metadata: { ...systemCol.metadata, ...col.metadata } } : col;
         });
         
-        return { ...parsed, columns };
+        return structuredClone({ ...parsed, columns })  ;
     }
 }

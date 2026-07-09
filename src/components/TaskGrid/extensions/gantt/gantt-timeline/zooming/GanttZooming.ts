@@ -98,12 +98,11 @@ export class GanttZooming implements IGanttZooming {
         }
 
         const percent = this._findFitPercent(startDate, endDate);
-        //calculate the pendingAnchorDate as date in middle between start and end
         this._pendingAnchorDate = new Date(+startDate + (+endDate - +startDate) / 2);
         this._ganttExtension.setZoomLevel(percent);
-        setTimeout(() => {
-            //this._gantt.showDate(this._pendingAnchorDate!);
-        }, 100);
+        //this is not a typo, it really needs to be called twice to work properly, dont ask why, I have no idea
+        this._setZoomPercent(percent);
+        this._setZoomPercent(percent);
     }
 
     private get _pendingAnchorDate(): Date | undefined {
@@ -169,52 +168,50 @@ export class GanttZooming implements IGanttZooming {
     }
 
     private _setZoomPercent(percent: number) {
-        this._timeline.executeWithScrollBlock(() => {
-            const zoom = this._getZoomApi();
-            if (!zoom._initialized) {
-                return;
-            }
+        const zoom = this._getZoomApi();
+        if (!zoom._initialized) {
+            return;
+        }
 
-            const levels = zoom.getLevels();
-            if (!levels.length) {
-                return;
-            }
+        const levels = zoom.getLevels();
+        if (!levels.length) {
+            return;
+        }
 
-            const clampedPercent = Math.max(0, Math.min(100, percent));
-            const anchorX = this._getZoomAnchorX();
-            const anchorDate = this._getStableZoomAnchorDate(anchorX);
-            const minColumnWidth = zoom._minColumnWidth;
-            const maxColumnWidth = zoom._maxColumnWidth;
-            const widthStep = zoom._widthStep;
+        const clampedPercent = Math.max(0, Math.min(100, percent));
+        const anchorX = this._getZoomAnchorX();
+        const anchorDate = this._getStableZoomAnchorDate(anchorX);
+        const minColumnWidth = zoom._minColumnWidth;
+        const maxColumnWidth = zoom._maxColumnWidth;
+        const widthStep = zoom._widthStep;
 
-            this._setScrollClearBlock();
-            this._timeline.shrink({ date: anchorDate });
+        this._setScrollClearBlock();
+        this._timeline.shrink({ date: anchorDate });
 
-            if (!widthStep) {
-                const levelIndex = Math.round((clampedPercent / 100) * (levels.length - 1));
-                zoom._exitFitMode();
-                zoom._setLevel(levelIndex, anchorX);
-                return;
-            }
-
-            const widthSlots = Math.round((maxColumnWidth - minColumnWidth) / widthStep) + 1;
-            const totalStates = levels.length * widthSlots;
-            const stateIndex = Math.round((clampedPercent / 100) * (totalStates - 1));
-            const levelIndex = Math.floor(stateIndex / widthSlots);
-            const widthIndex = stateIndex % widthSlots;
-
+        if (!widthStep) {
+            const levelIndex = Math.round((clampedPercent / 100) * (levels.length - 1));
             zoom._exitFitMode();
-            zoom._setScaleDates();
-            this._gantt.config.min_column_width = minColumnWidth + widthIndex * widthStep;
             zoom._setLevel(levelIndex, anchorX);
+            return;
+        }
 
-            if (!this._isMouseWheelZoom) {
-                const scrollState = this._gantt.getScrollState();
-                const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
-                const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
-                this._gantt.scrollTo(nextLeft, scrollState.y);
-            }
-        });
+        const widthSlots = Math.round((maxColumnWidth - minColumnWidth) / widthStep) + 1;
+        const totalStates = levels.length * widthSlots;
+        const stateIndex = Math.round((clampedPercent / 100) * (totalStates - 1));
+        const levelIndex = Math.floor(stateIndex / widthSlots);
+        const widthIndex = stateIndex % widthSlots;
+
+        zoom._exitFitMode();
+        zoom._setScaleDates();
+        this._gantt.config.min_column_width = minColumnWidth + widthIndex * widthStep;
+        zoom._setLevel(levelIndex, anchorX);
+
+        if (!this._isMouseWheelZoom) {
+            const scrollState = this._gantt.getScrollState();
+            const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
+            const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
+            this._gantt.scrollTo(nextLeft, scrollState.y);
+        }
     }
 
     private _findFitPercent(startDate: Date, endDate: Date): number {
