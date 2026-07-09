@@ -28,6 +28,7 @@ export class GanttZooming implements IGanttZooming {
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
     private _debouncedShrinkTimeline: debounce.DebouncedFunction<(date: Date) => void>;
+    private _debouncedSetZoomPercent: debounce.DebouncedFunction<(percent: number) => void>;
     private _debouncedUnblockHorizontalScrollReset: debounce.DebouncedFunction<() => void>;
     private _debouncedShowDate: debounce.DebouncedFunction<(date: Date) => void>;
     private _isHorizontalScrollResetBlocked = false;
@@ -38,14 +39,15 @@ export class GanttZooming implements IGanttZooming {
     private _dates: IGanttDates;
     private _timeline: IGanttInfiniteTimeline;
     private _formatting = Formatting.Get();
+    
     private _handleWindowKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Control') {
-            this._clearZoomAnchorDate();
+            this._clearZoomAnchors();
         }
     };
     private _handleWindowMouseMove = (e: MouseEvent) => {
         if (e.ctrlKey) {
-            this._clearZoomAnchorDate();
+            this._clearZoomAnchors();
         }
     };
 
@@ -61,6 +63,7 @@ export class GanttZooming implements IGanttZooming {
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
         this._debouncedShrinkTimeline = debounce((date: Date) => this._timeline.shrink({ date }), 10);
+        this._debouncedSetZoomPercent = debounce((percent: number) => this._setZoomPercent(percent), 10);
         this._debouncedUnblockHorizontalScrollReset = debounce(() => {
             this._isHorizontalScrollResetBlocked = false;
         }, GanttZooming._zoomScrollResetDelay);
@@ -126,7 +129,6 @@ export class GanttZooming implements IGanttZooming {
 
     private _setZoomPercent(percent: number) {
         const anchorX = this._pendingAnchorX;
-        this._pendingAnchorX = undefined;
         const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
             _initialized: boolean;
             _exitFitMode: () => void;
@@ -172,9 +174,11 @@ export class GanttZooming implements IGanttZooming {
         zoom._setScaleDates();
         this._gantt.config.min_column_width = min + widthIndex * step;
         zoom._setLevel(levelIndex, resolvedAnchorX);
-        if(!anchorX) {
-            this._debouncedShowDate(anchorDate);
-        }
+        const scrollState = this._gantt.getScrollState();
+        const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
+        const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
+        //fixes most issues, but causes jump on initial ctrl zoom
+        this._gantt.scrollTo(nextLeft, scrollState.y);
     }
 
 
@@ -273,7 +277,7 @@ export class GanttZooming implements IGanttZooming {
 
     private _registerEventListeners() {
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._timeline.executeWithScrollBlock(() => this._setZoomPercent(value)));
+        this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._timeline.executeWithScrollBlock(() => this._debouncedSetZoomPercent(value)));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
         this._gantt.attachEvent('onGanttScroll', (left) => {
             this._onHorizontalScroll(left);
@@ -290,7 +294,7 @@ export class GanttZooming implements IGanttZooming {
         if (this._isHorizontalScrollResetBlocked) {
             return;
         }
-        this._clearZoomAnchorDate();
+        this._clearZoomAnchors();
     }
 
     public destroy() {
@@ -306,7 +310,8 @@ export class GanttZooming implements IGanttZooming {
         this._debouncedUnblockHorizontalScrollReset();
     }
 
-    private _clearZoomAnchorDate() {
+    private _clearZoomAnchors() {
+        this._pendingAnchorX = undefined;
         this._pendingAnchorDate = undefined;
     }
 }
