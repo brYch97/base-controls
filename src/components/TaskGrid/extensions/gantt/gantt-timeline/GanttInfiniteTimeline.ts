@@ -57,10 +57,6 @@ export class GanttInfiniteTimeline implements IGanttInfiniteTimeline {
         this._gantt.config.start_date = start_date;
         this._gantt.config.end_date = end_date;
         this._gantt.render();
-
-        //this._gantt.showDate(anchorDate);
-        //const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
-        //this._gantt.scrollTo(nextLeft, scrollState.y);
     }
 
 

@@ -1,12 +1,11 @@
 import { Formatting } from '@talxis/client-libraries';
-import debounce from 'debounce';
 import { GanttStatic } from 'gantt-trial';
 import { ITaskGridDatasetControl } from '../../../../interfaces';
 import { ITaskDataProvider } from '../../../../providers';
 import { IGanttDates } from '../GanttDates';
-import { ZoomingConfig } from './ZoomingConfig';
 import { IGanttInfiniteTimeline } from '../GanttInfiniteTimeline';
 import { IGanttExtension } from '../../GanttExtension';
+import { ZoomingConfig } from './ZoomingConfig';
 
 export interface IGanttZooming {
     destroy: () => void;
@@ -22,17 +21,40 @@ interface IGanttZoomingParams {
     timeline: IGanttInfiniteTimeline;
 }
 
+interface IGanttScaleDefinition {
+    unit: string;
+    step?: number;
+}
+
+interface IGanttZoomLevelDefinition {
+    scales?: IGanttScaleDefinition[];
+}
+
+interface IGanttZoomApi {
+    _initialized: boolean;
+    _exitFitMode: () => void;
+    _setScaleDates: () => void;
+    _setLevel: (levelIndex: number, anchorX: number) => void;
+    _minColumnWidth: number;
+    _maxColumnWidth: number;
+    _widthStep: number | undefined;
+    _handler: (event: IZoomWheelEvent) => void;
+    getLevels: () => IGanttZoomLevelDefinition[];
+    getCurrentLevel: () => number;
+}
+
+interface IZoomWheelEvent {
+    clientX: number;
+    deltaY: number;
+    wheelDelta: number;
+    preventDefault: () => void;
+    stopPropagation: () => void;
+}
+
 export class GanttZooming implements IGanttZooming {
-    private static readonly _zoomScrollResetDelay = 150;
     private _zoomTickStep = 1;
     private _pendingAnchorX: number | undefined;
     private _pendingAnchorDate: Date | undefined;
-    private _debouncedShrinkTimeline: debounce.DebouncedFunction<(date: Date) => void>;
-    private _debouncedSetZoomPercent: debounce.DebouncedFunction<(percent: number) => void>;
-    private _debouncedUnblockHorizontalScrollReset: debounce.DebouncedFunction<() => void>;
-    private _debouncedShowDate: debounce.DebouncedFunction<(date: Date) => void>;
-    private _isHorizontalScrollResetBlocked = false;
-    private _lastHorizontalScrollLeft: number;
     private _taskDataProvider: ITaskDataProvider;
     private _gantt: GanttStatic;
     private _ganttExtension: IGanttExtension;
@@ -40,41 +62,24 @@ export class GanttZooming implements IGanttZooming {
     private _timeline: IGanttInfiniteTimeline;
     private _formatting = Formatting.Get();
     
-    private _handleWindowKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Control') {
-            this._clearZoomAnchors();
-        }
-    };
-    private _handleWindowMouseMove = (e: MouseEvent) => {
-        if (e.ctrlKey) {
-            this._clearZoomAnchors();
-        }
-    };
-
 
     constructor(params: IGanttZoomingParams) {
         this._gantt = params.gantt;
         this._ganttExtension = params.ganttExtension;
-        this._timeline = params.timeline;
-        this._lastHorizontalScrollLeft = this._gantt.getScrollState().x;
-        //@ts-ignore
-        window.GANTT = this._gantt;
         this._dates = params.dates;
+        this._timeline = params.timeline;
+        this._taskDataProvider = params.datasetControl.getDataProvider();
+
         this._gantt.ext.zoom.init(ZoomingConfig.getScrollZoomConfig(this._gantt, this._formatting.locale));
         this._initZoomTickStep();
-        this._debouncedShrinkTimeline = debounce((date: Date) => this._timeline.shrink({ date }), 10);
-        this._debouncedSetZoomPercent = debounce((percent: number) => this._setZoomPercent(percent), 10);
-        this._debouncedUnblockHorizontalScrollReset = debounce(() => {
-            this._isHorizontalScrollResetBlocked = false;
-        }, GanttZooming._zoomScrollResetDelay);
         this._overrideWheelHandler();
-        this._debouncedShowDate = debounce((date: Date) => this._gantt.showDate(date), 10);
-        this._taskDataProvider = params.datasetControl.getDataProvider();
-        window.addEventListener('keydown', this._handleWindowKeyDown);
-        window.addEventListener('mousemove', this._handleWindowMouseMove);
         this._registerEventListeners();
     }
 
+    public destroy() {
+        window.removeEventListener('keydown', this._onKeyDown);
+        window.removeEventListener('mousemove', this._onMouseMove);
+    }
 
     public isLevelWithDaysVisible(): boolean {
         return this._gantt.ext.zoom.getCurrentLevel() > 4;
@@ -94,175 +99,199 @@ export class GanttZooming implements IGanttZooming {
         if (!startDate || !endDate) {
             return;
         }
+
         const percent = this._findFitPercent(startDate, endDate);
         this._ganttExtension.setZoomLevel(percent);
         this._gantt.showTask(startRecord?.getRecordId()!);
     }
 
     private _initZoomTickStep() {
-        const zoom = this._gantt.ext.zoom as any;
-        const min: number = zoom._minColumnWidth ?? ZoomingConfig.scrollZoomMinColumnWidth;
-        const max: number = zoom._maxColumnWidth ?? ZoomingConfig.scrollZoomMaxColumnWidth;
-        const step: number | undefined = zoom._widthStep;
-        const levelCount: number = zoom.getLevels().length;
+        const zoom = this._getZoomApi();
+        const min = zoom._minColumnWidth ?? ZoomingConfig.scrollZoomMinColumnWidth;
+        const max = zoom._maxColumnWidth ?? ZoomingConfig.scrollZoomMaxColumnWidth;
+        const step = zoom._widthStep;
         const widthSlots = step ? Math.round((max - min) / step) + 1 : 1;
-        const totalStates = levelCount * widthSlots;
+        const totalStates = zoom.getLevels().length * widthSlots;
+
         this._zoomTickStep = totalStates > 1 ? 100 / (totalStates - 1) : 100;
     }
 
     private _overrideWheelHandler() {
-        const zoom = this._gantt.ext.zoom as any;
-        const gantt = this._gantt;
-        const getTickStep = () => this._zoomTickStep;
-
-        zoom._handler = (e: { clientX: number; deltaY: number; wheelDelta: number; preventDefault: () => void; stopPropagation: () => void; }) => {
-            const zoomIn = (gantt.env.isFF ? -40 * e.deltaY : e.wheelDelta) > 0;
+        const zoom = this._getZoomApi();
+        zoom._handler = (event: IZoomWheelEvent) => {
+            const zoomIn = (this._gantt.env.isFF ? -40 * event.deltaY : event.wheelDelta) > 0;
             const current = this._ganttExtension.getZoomLevel();
-            const next = Math.max(0, Math.min(100, current + (zoomIn ? getTickStep() : -getTickStep())));
-            e.preventDefault();
-            e.stopPropagation();
-            const taskArea = gantt.$task;
-            this._pendingAnchorX = taskArea ? e.clientX - taskArea.getBoundingClientRect().x : undefined;
+            const next = Math.max(0, Math.min(100, current + (zoomIn ? this._zoomTickStep : -this._zoomTickStep)));
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            this._pendingAnchorX = this._getWheelAnchorX(event.clientX);
             this._ganttExtension.setZoomLevel(next);
         };
     }
 
+    private _getWheelAnchorX(clientX: number): number {
+        const taskArea = this._gantt.$task;
+        if (!taskArea) {
+            return this._getDefaultAnchorX();
+        }
+
+        return clientX - taskArea.getBoundingClientRect().x;
+    }
+
     private _setZoomPercent(percent: number) {
-        const anchorX = this._pendingAnchorX;
-        const zoom = this._gantt.ext.zoom as typeof this._gantt.ext.zoom & {
-            _initialized: boolean;
-            _exitFitMode: () => void;
-            _setScaleDates: () => void;
-            _setLevel: (levelIndex: number, anchorX: number) => void;
-            _minColumnWidth: number;
-            _maxColumnWidth: number;
-            _widthStep: number | undefined;
-        };
-
-        if (!zoom?._initialized) {
+        const zoom = this._getZoomApi();
+        if (!zoom._initialized) {
             return;
         }
 
-        const clamped = Math.max(0, Math.min(100, percent));
         const levels = zoom.getLevels();
-        const levelCount = levels.length;
-        if (!levelCount) {
+        if (!levels.length) {
             return;
         }
-        const resolvedAnchorX = anchorX ?? (this._gantt.$task?.offsetWidth ?? 0) / 2;
-        const anchorDate = this._getStableZoomAnchorDate(resolvedAnchorX);
-        this._blockHorizontalScrollReset();
+
+        const clampedPercent = Math.max(0, Math.min(100, percent));
+        const anchorX = this._getZoomAnchorX();
+        const anchorDate = this._getStableZoomAnchorDate(anchorX);
+        const minColumnWidth = zoom._minColumnWidth;
+        const maxColumnWidth = zoom._maxColumnWidth;
+        const widthStep = zoom._widthStep;
+
+        this._pendingAnchorX = anchorX;
         this._timeline.shrink({ date: anchorDate });
-        const min = zoom._minColumnWidth;
-        const max = zoom._maxColumnWidth;
-        const step = zoom._widthStep;
 
-        if (!step) {
-            const levelIndex = Math.round((clamped / 100) * (levelCount - 1));
+        if (!widthStep) {
+            const levelIndex = Math.round((clampedPercent / 100) * (levels.length - 1));
             zoom._exitFitMode();
-            zoom._setLevel(levelIndex, resolvedAnchorX);
+            zoom._setLevel(levelIndex, anchorX);
             return;
         }
 
-        const widthSlots = Math.round((max - min) / step) + 1;
-        const totalStates = levelCount * widthSlots;
-        const stateIndex = Math.round((clamped / 100) * (totalStates - 1));
+        const widthSlots = Math.round((maxColumnWidth - minColumnWidth) / widthStep) + 1;
+        const totalStates = levels.length * widthSlots;
+        const stateIndex = Math.round((clampedPercent / 100) * (totalStates - 1));
         const levelIndex = Math.floor(stateIndex / widthSlots);
         const widthIndex = stateIndex % widthSlots;
 
         zoom._exitFitMode();
         zoom._setScaleDates();
-        this._gantt.config.min_column_width = min + widthIndex * step;
-        zoom._setLevel(levelIndex, resolvedAnchorX);
+        this._gantt.config.min_column_width = minColumnWidth + widthIndex * widthStep;
+        zoom._setLevel(levelIndex, anchorX);
+
         const scrollState = this._gantt.getScrollState();
         const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
         const nextLeft = Math.max(0, this._gantt.posFromDate(anchorDate) - viewportWidth / 2);
-        //fixes most issues, but causes jump on initial ctrl zoom
         this._gantt.scrollTo(nextLeft, scrollState.y);
     }
 
-
     private _findFitPercent(startDate: Date, endDate: Date): number {
-        const zoom = this._gantt.ext.zoom as any;
-        const levels = zoom.getLevels() as any[];
-        const levelCount = levels.length;
-        const min = zoom._minColumnWidth as number;
-        const max = zoom._maxColumnWidth as number;
-        const step = zoom._widthStep as number | undefined;
+        const zoom = this._getZoomApi();
+        const levels = zoom.getLevels();
         const viewportWidth = this._gantt.$task?.offsetWidth ?? 0;
         const offset = 5;
 
-        if (!viewportWidth || !levelCount) return 0;
+        if (!viewportWidth || !levels.length) {
+            return 0;
+        }
 
-        const widthSlots = step ? Math.round((max - min) / step) + 1 : 1;
-        const totalStates = levelCount * widthSlots;
+        const widthSlots = zoom._widthStep ? Math.round((zoom._maxColumnWidth - zoom._minColumnWidth) / zoom._widthStep) + 1 : 1;
+        const totalStates = levels.length * widthSlots;
 
-        // Iterate from most zoomed in (high index) to most zoomed out (0)
-        // Return the highest zoom level where all tasks still fit
         for (let stateIndex = totalStates - 1; stateIndex >= 0; stateIndex--) {
             const levelIndex = Math.floor(stateIndex / widthSlots);
             const widthIndex = stateIndex % widthSlots;
-            const columnWidth = min + widthIndex * (step ?? 0);
+            const columnWidth = zoom._minColumnWidth + widthIndex * (zoom._widthStep ?? 0);
+            const finestScale = this._getFinestScale(levels[levelIndex]);
 
-            const level = levels[levelIndex];
-            const finest = this._getFinestScale(level);
-            if (!finest) continue;
+            if (!finestScale) {
+                continue;
+            }
 
-            const columnCount = this._countColumnsInRange(startDate, endDate, finest.unit, finest.step);
+            const columnCount = this._countColumnsInRange(startDate, endDate, finestScale.unit, finestScale.step);
             if (columnCount * columnWidth <= viewportWidth) {
                 const percent = totalStates > 1 ? (stateIndex / (totalStates - 1)) * 100 : 100;
                 return Math.max(0, percent - offset);
             }
         }
 
-        return 0; // fall back to fully zoomed out
+        return 0;
     }
 
-    private _getFinestScale(level: any): { unit: string; step: number } | null {
-        if (!level?.scales?.length) return null;
+    private _getFinestScale(level: IGanttZoomLevelDefinition): { unit: string; step: number } | null {
+        if (!level.scales?.length) {
+            return null;
+        }
+
         const unitOrder = ['hour', 'day', 'week', 'month', 'quarter', 'year'];
-        let finest: { unit: string; step: number } | null = null;
-        for (const scale of level.scales as Array<{ unit: string; step?: number }>) {
-            if (!finest
-                || unitOrder.indexOf(scale.unit) < unitOrder.indexOf(finest.unit)
-                || (scale.unit === finest.unit && (scale.step ?? 1) < finest.step)) {
-                finest = { unit: scale.unit, step: scale.step ?? 1 };
+        let finestScale: { unit: string; step: number } | null = null;
+
+        for (const scale of level.scales) {
+            if (!finestScale
+                || unitOrder.indexOf(scale.unit) < unitOrder.indexOf(finestScale.unit)
+                || (scale.unit === finestScale.unit && (scale.step ?? 1) < finestScale.step)) {
+                finestScale = { unit: scale.unit, step: scale.step ?? 1 };
             }
         }
-        return finest;
+
+        return finestScale;
     }
 
     private _countColumnsInRange(start: Date, end: Date, unit: string, step: number): number {
-        const MS: Record<string, number> = {
+        const millisecondsPerUnit: Record<string, number> = {
             minute: 60_000,
             hour: 3_600_000,
             day: 86_400_000,
             week: 604_800_000,
         };
-        if (MS[unit]) {
-            return Math.ceil((end.getTime() - start.getTime()) / (step * MS[unit]));
+
+        if (millisecondsPerUnit[unit]) {
+            return Math.ceil((end.getTime() - start.getTime()) / (step * millisecondsPerUnit[unit]));
         }
-        // month / quarter / year — use gantt date arithmetic
+
         let current = new Date(start);
         let count = 0;
         while (current < end && count < 10_000) {
-            current = this._gantt.date.add(current, step, unit as any);
+            current = this._gantt.date.add(current, step, unit as never);
             count++;
         }
+
         return count;
     }
-
 
     private _jumpToToday() {
         const today = new Date();
         if (today > this._gantt.config.end_date! || today < this._gantt.config.start_date!) {
-            this._timeline.executeWithScrollBlock(() => {
-                this._timeline.shrink({
-                    date: today
-                });
-            });
+            this._timeline.shrink({ date: today });
         }
+
         this._gantt.showDate(today);
+    }
+
+    private _onHorizontalScroll(left: number) {
+        if (this._shouldKeepZoomAnchor(left)) {
+            return;
+        }
+
+        this._clearZoomAnchors();
+    }
+
+    private _shouldKeepZoomAnchor(left: number): boolean {
+        if (this._pendingAnchorDate === undefined || this._pendingAnchorX === undefined) {
+            return false;
+        }
+
+        const expectedAnchorPosition = this._gantt.posFromDate(this._pendingAnchorDate);
+        console.log(expectedAnchorPosition - (left + this._pendingAnchorX));
+        return Math.abs(expectedAnchorPosition - (left + this._pendingAnchorX)) < 100;
+    }
+
+    private _getZoomAnchorX(): number {
+        return this._pendingAnchorX ?? this._getDefaultAnchorX();
+    }
+
+    private _getDefaultAnchorX(): number {
+        return (this._gantt.$task?.offsetWidth ?? 0) / 2;
     }
 
     private _getStableZoomAnchorDate(anchorX: number): Date {
@@ -275,43 +304,40 @@ export class GanttZooming implements IGanttZooming {
         return this._pendingAnchorDate;
     }
 
+    private _clearZoomAnchors() {
+        console.log('Clearing zoom anchors');
+        this._pendingAnchorX = undefined;
+        this._pendingAnchorDate = undefined;
+    }
+
+
+    private _onMouseMove = (event: MouseEvent) => {
+        //if mouse is moved with ctrl key held, clear the zoom anchords
+        if (event.ctrlKey) {
+            this._clearZoomAnchors();
+        }
+    }
+
+    private _onKeyDown = (event: KeyboardEvent) => {
+        //if ctrl key is pressed, clear the zoom anchors
+        if (event.ctrlKey) {
+            this._clearZoomAnchors();
+        }
+    }
+
+
+    private _getZoomApi(): typeof this._gantt.ext.zoom & IGanttZoomApi {
+        return this._gantt.ext.zoom as typeof this._gantt.ext.zoom & IGanttZoomApi;
+    }
     private _registerEventListeners() {
+        window.addEventListener('keydown', this._onKeyDown);
+        window.addEventListener('mousemove', this._onMouseMove);
         this._ganttExtension.events.addEventListener('onJumpToTodayRequested', () => this._jumpToToday());
-        this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._timeline.executeWithScrollBlock(() => this._debouncedSetZoomPercent(value)));
+        this._ganttExtension.events.addEventListener('onZoomLevelChanged', (value) => this._setZoomPercent(value));
         this._taskDataProvider.addEventListener('onFirstDataLoaded', () => setTimeout(() => this.zoomToFit(), 0));
-        this._gantt.attachEvent('onGanttScroll', (left) => {
+        this._gantt.attachEvent('onGanttScroll', (left: number) => {
             this._onHorizontalScroll(left);
             return true;
         });
-    }
-
-    private _onHorizontalScroll(left: number) {
-        if (left === this._lastHorizontalScrollLeft) {
-            return;
-        }
-
-        this._lastHorizontalScrollLeft = left;
-        if (this._isHorizontalScrollResetBlocked) {
-            return;
-        }
-        this._clearZoomAnchors();
-    }
-
-    public destroy() {
-        this._debouncedShrinkTimeline.clear();
-        this._debouncedUnblockHorizontalScrollReset.clear();
-        this._debouncedShowDate.clear();
-        window.removeEventListener('keydown', this._handleWindowKeyDown);
-        window.removeEventListener('mousemove', this._handleWindowMouseMove);
-    }
-
-    private _blockHorizontalScrollReset() {
-        this._isHorizontalScrollResetBlocked = true;
-        this._debouncedUnblockHorizontalScrollReset();
-    }
-
-    private _clearZoomAnchors() {
-        this._pendingAnchorX = undefined;
-        this._pendingAnchorDate = undefined;
     }
 }
