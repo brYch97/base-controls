@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useRef, useState } from "react";
 import { IGanttManager } from "../GanttManager";
 import { useEventEmitter } from "../../../../../../hooks";
+import { Formatting } from "@talxis/client-libraries";
 import {
     GANTT_DATA_AREA_CLASS,
     GANTT_TASK_BG_CLASS,
@@ -21,6 +22,8 @@ interface ITimelineTaskCreateLinePreview {
     left: number;
     top: number;
     width: number;
+    startDate: string;
+    endDate: string;
 }
 
 interface ITimelineTaskCreateRowOverlay {
@@ -42,6 +45,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     const dates = ganttManager.getDates();
     const dragging = ganttManager.getDragging();
     const taskDataProvider = useTaskDataProvider();
+    const formatting = Formatting.Get();
     const [linePreview, setLinePreview] = useState<ITimelineTaskCreateLinePreview | null>(null);
     const [rowOverlay, setRowOverlay] = useState<ITimelineTaskCreateRowOverlay | null>(null);
     const activePreviewRef = useRef<IActivePreviewState | null>(null);
@@ -131,11 +135,15 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         const scrollX = gantt.getScrollState().x;
         const rootLeft = gantt.$root.getBoundingClientRect().left;
         const currentTimelineX = scrollX + activePreview.currentClientX - rootLeft;
+        const startDate = gantt.dateFromPos(activePreview.anchorTimelineX);
+        const endDate = gantt.dateFromPos(currentTimelineX);
 
         setLinePreview({
             left: activePreview.anchorTimelineX - scrollX,
             top: activePreview.top,
             width: Math.max(0, currentTimelineX - activePreview.anchorTimelineX),
+            startDate: formatting.formatDateShort(startDate),
+            endDate: formatting.formatDateShort(endDate),
         });
         setRowOverlay({
             top: activePreview.rowTop,
@@ -296,7 +304,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     }, []);
 
     const createTask = (activePreview: IActivePreviewState | null) => {
-        if(!activePreview || !activePreview.currentTaskId) return;
+        if (!activePreview || !activePreview.currentTaskId) return;
         const scrollX = gantt.getScrollState().x;
         const rootLeft = gantt.$root.getBoundingClientRect().left;
 
