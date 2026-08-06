@@ -31,6 +31,14 @@ interface ITimelineTaskCreateRowOverlay {
     height: number;
 }
 
+interface ITimelineTaskCreateHoverPreview {
+    target: {
+        x: number;
+        y: number;
+    };
+    date: string;
+}
+
 interface IActivePreviewState {
     anchorTimelineX: number;
     currentClientX: number;
@@ -48,7 +56,9 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     const formatting = Formatting.Get();
     const [linePreview, setLinePreview] = useState<ITimelineTaskCreateLinePreview | null>(null);
     const [rowOverlay, setRowOverlay] = useState<ITimelineTaskCreateRowOverlay | null>(null);
+    const [hoverPreview, setHoverPreview] = useState<ITimelineTaskCreateHoverPreview | null>(null);
     const activePreviewRef = useRef<IActivePreviewState | null>(null);
+    const lastMouseEventRef = useRef<{ clientX: number; clientY: number; target: EventTarget | null } | null>(null);
     const autoScrollIntervalRef = useRef<number | null>(null);
     const autoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
 
@@ -65,6 +75,10 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         activePreviewRef.current = null;
         setLinePreview(null);
         setRowOverlay(null);
+    };
+
+    const clearHoverPreview = () => {
+        setHoverPreview(null);
     };
 
     const stopAutoScroll = () => {
@@ -151,6 +165,26 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         });
     };
 
+    const updateHoverPreview = (pointer: { clientX: number; clientY: number; target: EventTarget | null } | null) => {
+        if (!pointer || activePreviewRef.current || !isTimelineTaskCreateTarget(pointer.target)) {
+            clearHoverPreview();
+            return;
+        }
+
+        const scrollX = gantt.getScrollState().x;
+        const rootLeft = gantt.$root.getBoundingClientRect().left;
+        const timelineX = scrollX + pointer.clientX - rootLeft;
+        const date = gantt.dateFromPos(timelineX);
+
+        setHoverPreview({
+            target: {
+                x: pointer.clientX + 10,
+                y: pointer.clientY + 12,
+            },
+            date: formatting.formatDateShort(date),
+        });
+    };
+
     const canScrollLeft = () => {
         const activePreview = activePreviewRef.current;
         if (!activePreview) {
@@ -227,6 +261,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
             }
             setTaskCreateMode(false);
             stopAutoScroll();
+            clearHoverPreview();
             clearPreview();
         }
     }, []);
@@ -234,6 +269,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     const onKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Control') {
             setTaskCreateMode(true);
+            updateHoverPreview(lastMouseEventRef.current);
         }
     }, []);
 
@@ -248,6 +284,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         }
 
         setTaskCreateMode(true);
+        clearHoverPreview();
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation?.();
@@ -276,8 +313,20 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     }, []);
 
     const onMouseMove = useCallback((e: MouseEvent) => {
+        lastMouseEventRef.current = {
+            clientX: e.clientX,
+            clientY: e.clientY,
+            target: e.target,
+        };
+
         const activePreview = activePreviewRef.current;
         if (!activePreview) {
+            if (e.ctrlKey) {
+                updateHoverPreview(lastMouseEventRef.current);
+            }
+            else {
+                clearHoverPreview();
+            }
             return;
         }
 
@@ -300,6 +349,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
         stopAutoScroll();
         createTask(activePreviewRef.current);
         clearPreview();
+        clearHoverPreview();
         setTaskCreateMode(false);
     }, []);
 
@@ -359,6 +409,7 @@ export const useTimelineTaskCreate = (ganttManager: IGanttManager) => {
     useEventEmitter(ganttManager.events, 'onInit', onInit);
 
     return {
+        hoverPreview,
         linePreview,
         rowOverlay,
     };
